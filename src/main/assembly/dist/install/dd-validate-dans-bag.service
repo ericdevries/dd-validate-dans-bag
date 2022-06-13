@@ -1,0 +1,13 @@
+[Unit]
+Description=Dd Validate Dans Bag Service
+
+[Service]
+ExecStart=/opt/dans.knaw.nl/dd-validate-dans-bag/bin/dd-validate-dans-bag server /etc/opt/dans.knaw.nl/dd-validate-dans-bag/config.yml
+# Java returns 143 even if the SIGTERM was handled correctly.
+SuccessExitStatus=143
+
+User=dd-validate-dans-bag
+Group=dd-validate-dans-bag
+
+[Install]
+WantedBy=multi-user.target
