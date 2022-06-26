@@ -15,3 +15,11 @@ server:
     - type: http
       # Replace with port number unique for this service
       port: 20001
+
+logging:
+  level: INFO
+  appenders:
+    - archive: false
+      currentLogFilename: /var/opt/dans.knaw.nl/log/dd-validate-dans-bag/dd-validate-dans-bag.log
+      type: file
+      timeZone: system
