@@ -42,4 +42,24 @@ public interface BagInfoChecker {
     BagValidatorRule optionalFileIsUtf8Decodable(Path path);
 
     BagValidatorRule isOriginalFilepathsFileComplete();
+
+    BagValidatorRule ddmContainsUrnNbnIdentifier();
+
+    BagValidatorRule ddmDoiIdentifiersAreValid();
+
+    BagValidatorRule ddmDaisAreValid();
+
+    BagValidatorRule ddmGmlPolygonPosListIsWellFormed();
+
+    BagValidatorRule polygonsInSameMultiSurfaceHaveSameSrsName();
+
+    BagValidatorRule pointsHaveAtLeastTwoValues();
+
+    BagValidatorRule archisIdentifiersHaveAtMost10Characters();
+
+    BagValidatorRule allUrlsAreValid();
+
+    BagValidatorRule ddmMustHaveRightsHolder();
+
+    BagValidatorRule xmlFileConfirmsToSchema(Path file);
 }

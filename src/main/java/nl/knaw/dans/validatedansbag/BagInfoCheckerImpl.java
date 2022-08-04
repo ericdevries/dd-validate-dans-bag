@@ -20,11 +20,14 @@ import org.joda.time.DateTime;
 import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathFactory;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -36,10 +39,12 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
     private final FileService fileService;
 
     private final BagItMetadataReader bagItMetadataReader;
+    private final BagXmlReader bagXmlReader;
 
-    public BagInfoCheckerImpl(FileService fileService, BagItMetadataReader bagItMetadataReader) {
+    public BagInfoCheckerImpl(FileService fileService, BagItMetadataReader bagItMetadataReader, BagXmlReader bagXmlReader) {
         this.fileService = fileService;
         this.bagItMetadataReader = bagItMetadataReader;
+        this.bagXmlReader = bagXmlReader;
     }
 
     @Override
@@ -277,6 +282,89 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
     public BagValidatorRule isOriginalFilepathsFileComplete() {
         return (path) -> {
             // TODO read files xml, apply original-filepaths.txt to it and do the magic
+        };
+    }
+
+    @Override
+    public BagValidatorRule ddmContainsUrnNbnIdentifier() {
+        return (path) -> {
+            try {
+                var document = bagXmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
+                var expr = "/DDM/profile/audience";
+                var nodes = (NodeList)bagXmlReader.evaluateXpath(document, expr, XPathConstants.NODESET);
+
+                System.out.println("LENGTH: " + nodes.getLength());
+                for (int i = 0; i < nodes.getLength(); i++) {
+                    var value = (Element) nodes.item(i);
+                    System.out.println("VALUE: " + value);
+                }
+                System.out.println("DOCUMENT: " + document);
+            } catch (Exception e) {
+                e.printStackTrace();;
+            }
+        };
+    }
+
+    @Override
+    public BagValidatorRule ddmDoiIdentifiersAreValid() {
+        return (path) -> {
+
+        };
+    }
+
+    @Override
+    public BagValidatorRule ddmDaisAreValid() {
+        return (path) -> {
+
+        };
+    }
+
+    @Override
+    public BagValidatorRule ddmGmlPolygonPosListIsWellFormed() {
+        return (path) -> {
+
+        };
+    }
+
+    @Override
+    public BagValidatorRule polygonsInSameMultiSurfaceHaveSameSrsName() {
+        return (path) -> {
+
+        };
+    }
+
+    @Override
+    public BagValidatorRule pointsHaveAtLeastTwoValues() {
+        return (path) -> {
+
+        };
+    }
+
+    @Override
+    public BagValidatorRule archisIdentifiersHaveAtMost10Characters() {
+        return (path) -> {
+
+        };
+    }
+
+    @Override
+    public BagValidatorRule allUrlsAreValid() {
+        return (path) -> {
+
+        };
+    }
+
+    @Override
+    public BagValidatorRule ddmMustHaveRightsHolder() {
+        return (path) -> {
+
+        };
+    }
+
+    @Override
+    public BagValidatorRule xmlFileConfirmsToSchema(Path file) {
+        return (path) -> {
+
         };
     }
 }

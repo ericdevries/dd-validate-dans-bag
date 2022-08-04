@@ -19,10 +19,10 @@ import gov.loc.repository.bagit.domain.Bag;
 import gov.loc.repository.bagit.domain.Manifest;
 import gov.loc.repository.bagit.exceptions.InvalidBagitFileFormatException;
 import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,11 +35,18 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class BagInfoCheckerImplTest {
 
+    final BagXmlReader bagXmlReader = Mockito.mock(BagXmlReader.class);
+
+    @AfterEach
+    void afterEach() {
+        Mockito.reset(bagXmlReader);
+    }
+
     @Test
     void testBagIsValid() throws Exception {
         var fileService = Mockito.mock(FileService.class);
         var bagItMetadataReader = Mockito.mock(BagItMetadataReader.class);
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader);
 
         assertDoesNotThrow(() -> checker.bagIsValid().validate(Path.of("testpath")));
 
@@ -51,7 +58,7 @@ class BagInfoCheckerImplTest {
     void testBagIsNotValidWithExceptionThrown() throws Exception {
         var fileService = Mockito.mock(FileService.class);
         var bagItMetadataReader = Mockito.mock(BagItMetadataReader.class);
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader);
 
         Mockito.doThrow(new InvalidBagitFileFormatException("Invalid file format"))
             .when(bagItMetadataReader).verifyBag(Mockito.any());
@@ -63,7 +70,7 @@ class BagInfoCheckerImplTest {
     void containsDirWorks() throws RuleViolationDetailsException {
         var fileService = Mockito.mock(FileService.class);
         var bagItMetadataReader = Mockito.mock(BagItMetadataReader.class);
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader);
 
         Mockito.when(fileService.isDirectory(Mockito.any()))
             .thenReturn(true);
@@ -77,7 +84,7 @@ class BagInfoCheckerImplTest {
     void containsDirThrowsException() {
         var fileService = Mockito.mock(FileService.class);
         var bagItMetadataReader = Mockito.mock(BagItMetadataReader.class);
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader);
 
         Mockito.when(fileService.isDirectory(Mockito.any()))
             .thenReturn(false);
@@ -89,7 +96,7 @@ class BagInfoCheckerImplTest {
     void containsFileWorks() throws RuleViolationDetailsException {
         var fileService = Mockito.mock(FileService.class);
         var bagItMetadataReader = Mockito.mock(BagItMetadataReader.class);
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader);
 
         Mockito.when(fileService.isFile(Mockito.any()))
             .thenReturn(true);
@@ -103,7 +110,7 @@ class BagInfoCheckerImplTest {
     void containsFileThrowsException() {
         var fileService = Mockito.mock(FileService.class);
         var bagItMetadataReader = Mockito.mock(BagItMetadataReader.class);
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader);
 
         Mockito.when(fileService.isFile(Mockito.any()))
             .thenReturn(false);
@@ -115,7 +122,7 @@ class BagInfoCheckerImplTest {
     void bagInfoExistsAndIsWellFormed() {
         var fileService = Mockito.mock(FileService.class);
         var bagItMetadataReader = Mockito.mock(BagItMetadataReader.class);
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader);
 
         Mockito.when(fileService.isFile(Mockito.any()))
             .thenReturn(true);
@@ -130,7 +137,7 @@ class BagInfoCheckerImplTest {
     void bagInfoDoesNotExist() {
         var fileService = Mockito.mock(FileService.class);
         var bagItMetadataReader = Mockito.mock(BagItMetadataReader.class);
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader);
 
         Mockito.when(fileService.isFile(Mockito.any()))
             .thenReturn(false);
@@ -142,7 +149,7 @@ class BagInfoCheckerImplTest {
     void bagInfoDoesExistButItCouldNotBeOpened() throws Exception {
         var fileService = Mockito.mock(FileService.class);
         var bagItMetadataReader = Mockito.mock(BagItMetadataReader.class);
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader);
 
         Mockito.when(fileService.isFile(Mockito.any()))
             .thenReturn(true);
@@ -158,7 +165,7 @@ class BagInfoCheckerImplTest {
 
         var fileService = Mockito.mock(FileService.class);
         var bagItMetadataReader = Mockito.mock(BagItMetadataReader.class);
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader);
 
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Created")))
             .thenReturn(List.of("2022-01-01T01:23:45.678+00:00"));
@@ -171,7 +178,7 @@ class BagInfoCheckerImplTest {
 
         var fileService = Mockito.mock(FileService.class);
         var bagItMetadataReader = Mockito.mock(BagItMetadataReader.class);
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader);
 
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Created")))
             .thenReturn(List.of("2022-01-01 01:23:45.678"));
@@ -183,7 +190,7 @@ class BagInfoCheckerImplTest {
     void bagInfoContainsExactlyOneOf() throws Exception {
         var fileService = Mockito.mock(FileService.class);
         var bagItMetadataReader = Mockito.mock(BagItMetadataReader.class);
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader);
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Key")))
             .thenReturn(List.of("value"));
 
@@ -194,7 +201,7 @@ class BagInfoCheckerImplTest {
     void bagInfoContainsExactlyOneOfButInRealityItIsTwo() throws Exception {
         var fileService = Mockito.mock(FileService.class);
         var bagItMetadataReader = Mockito.mock(BagItMetadataReader.class);
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader);
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Key")))
             .thenReturn(List.of("value", "secondvalue"));
 
@@ -205,7 +212,7 @@ class BagInfoCheckerImplTest {
     void bagInfoContainsExactlyOneOfButInRealityItIsZero() throws Exception {
         var fileService = Mockito.mock(FileService.class);
         var bagItMetadataReader = Mockito.mock(BagItMetadataReader.class);
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader);
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Key")))
             .thenReturn(new ArrayList<>());
 
@@ -216,7 +223,7 @@ class BagInfoCheckerImplTest {
     void bagInfoContainsAtMostOne() throws Exception {
         var fileService = Mockito.mock(FileService.class);
         var bagItMetadataReader = Mockito.mock(BagItMetadataReader.class);
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader);
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Key")))
             .thenReturn(List.of("value"));
 
@@ -227,7 +234,7 @@ class BagInfoCheckerImplTest {
     void bagInfoContainsAtMostOneButItReturnsTwo() throws Exception {
         var fileService = Mockito.mock(FileService.class);
         var bagItMetadataReader = Mockito.mock(BagItMetadataReader.class);
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader);
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Key")))
             .thenReturn(List.of("value", "secondvalue"));
 
@@ -238,7 +245,7 @@ class BagInfoCheckerImplTest {
     void bagInfoContainsAtMostOneOfButInRealityItIsZero() throws Exception {
         var fileService = Mockito.mock(FileService.class);
         var bagItMetadataReader = Mockito.mock(BagItMetadataReader.class);
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader);
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Key")))
             .thenReturn(new ArrayList<>());
 
@@ -249,7 +256,7 @@ class BagInfoCheckerImplTest {
     void bagShaPayloadManifestContainsAllPayloadFiles() throws Exception {
         var fileService = Mockito.mock(FileService.class);
         var bagItMetadataReader = Mockito.mock(BagItMetadataReader.class);
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader);
 
         Mockito.when(fileService.getAllFiles(Mockito.any()))
             .thenReturn(List.of(Path.of("path/1.txt"), Path.of("path/2.txt")));
@@ -274,7 +281,7 @@ class BagInfoCheckerImplTest {
     void bagShaPayloadManifestMissesSomeFiles() throws Exception {
         var fileService = Mockito.mock(FileService.class);
         var bagItMetadataReader = Mockito.mock(BagItMetadataReader.class);
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader);
 
         Mockito.when(fileService.getAllFiles(Mockito.any()))
             .thenReturn(List.of(Path.of("path/1.txt"), Path.of("path/2.txt"), Path.of("path/3.txt")));
@@ -297,7 +304,7 @@ class BagInfoCheckerImplTest {
     void bagShaPayloadManifestHasTooManyFiles() throws Exception {
         var fileService = Mockito.mock(FileService.class);
         var bagItMetadataReader = Mockito.mock(BagItMetadataReader.class);
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader);
 
         Mockito.when(fileService.getAllFiles(Mockito.any()))
             .thenReturn(List.of(Path.of("path/1.txt"), Path.of("path/2.txt")));
@@ -321,7 +328,7 @@ class BagInfoCheckerImplTest {
     void containsNothingElseThan() throws Exception {
         var fileService = Mockito.mock(FileService.class);
         var bagItMetadataReader = Mockito.mock(BagItMetadataReader.class);
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader);
         var basePath = Path.of("bagdir/metadata");
 
         Mockito.when(fileService.getAllFilesAndDirectories(Mockito.eq(basePath)))
@@ -340,7 +347,7 @@ class BagInfoCheckerImplTest {
     void containsNothingElseThanButThereAreInvalidFiles() throws Exception {
         var fileService = Mockito.mock(FileService.class);
         var bagItMetadataReader = Mockito.mock(BagItMetadataReader.class);
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader);
 
         var basePath = Path.of("bagdir/metadata");
 
