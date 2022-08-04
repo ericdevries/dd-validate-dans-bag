@@ -15,8 +15,6 @@
  */
 package nl.knaw.dans.validatedansbag;
 
-import gov.loc.repository.bagit.domain.Bag;
-
 import java.nio.file.Path;
 
 public interface BagInfoChecker {
@@ -38,4 +36,10 @@ public interface BagInfoChecker {
     BagValidatorRule bagShaPayloadManifestContainsAllPayloadFiles();
 
     BagValidatorRule containsNothingElseThan(Path dir, String[] paths);
+
+    BagValidatorRule hasOnlyValidFileNames();
+
+    BagValidatorRule optionalFileIsUtf8Decodable(Path path);
+
+    BagValidatorRule isOriginalFilepathsFileComplete();
 }

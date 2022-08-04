@@ -16,6 +16,7 @@
 package nl.knaw.dans.validatedansbag;
 
 import gov.loc.repository.bagit.domain.Bag;
+import gov.loc.repository.bagit.domain.Manifest;
 import gov.loc.repository.bagit.exceptions.CorruptChecksumException;
 import gov.loc.repository.bagit.exceptions.FileNotInPayloadDirectoryException;
 import gov.loc.repository.bagit.exceptions.InvalidBagitFileFormatException;
@@ -23,9 +24,10 @@ import gov.loc.repository.bagit.exceptions.MaliciousPathException;
 import gov.loc.repository.bagit.exceptions.MissingBagitFileException;
 import gov.loc.repository.bagit.exceptions.MissingPayloadDirectoryException;
 import gov.loc.repository.bagit.exceptions.MissingPayloadManifestException;
-import gov.loc.repository.bagit.exceptions.UnparsableVersionException;
 import gov.loc.repository.bagit.exceptions.UnsupportedAlgorithmException;
 import gov.loc.repository.bagit.exceptions.VerificationException;
+import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms;
+import gov.loc.repository.bagit.hash.SupportedAlgorithm;
 import gov.loc.repository.bagit.reader.BagReader;
 import gov.loc.repository.bagit.verify.BagVerifier;
 import org.slf4j.Logger;
@@ -34,22 +36,36 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 
 public class BagItMetadataReaderImpl implements BagItMetadataReader {
     private static final Logger log = LoggerFactory.getLogger(BagItMetadataReaderImpl.class);
 
     @Override
-    public Bag getBag(Path path) throws MaliciousPathException, UnparsableVersionException, UnsupportedAlgorithmException, InvalidBagitFileFormatException, IOException {
-        return new BagReader().read(path);
+    public Optional<Bag> getBag(Path path) {
+        try {
+            return Optional.of(new BagReader().read(path));
+        }
+        catch (Exception e) {
+            return Optional.empty();
+        }
+    }
+
+    @Override
+    public Optional<Manifest> getBagManifest(Bag bag, SupportedAlgorithm algorithm) {
+        return bag.getPayLoadManifests().stream()
+            .filter(m -> m.getAlgorithm().equals(algorithm))
+            .findFirst();
     }
 
     @Override
     public void verifyBag(Path path)
-        throws MaliciousPathException, UnparsableVersionException, UnsupportedAlgorithmException, InvalidBagitFileFormatException, IOException, MissingPayloadManifestException,
+        throws MaliciousPathException, UnsupportedAlgorithmException, InvalidBagitFileFormatException, IOException, MissingPayloadManifestException,
         MissingPayloadDirectoryException, FileNotInPayloadDirectoryException, InterruptedException, MissingBagitFileException, CorruptChecksumException, VerificationException {
 
+        var bag = getBag(path).orElseThrow();
+
         try (var verifier = new BagVerifier()) {
-            var bag = getBag(path);
             var ignoreHiddenFiles = false;
 
             log.trace("Verifying bag is complete on path {}", path);
@@ -61,8 +77,8 @@ public class BagItMetadataReaderImpl implements BagItMetadataReader {
     }
 
     @Override
-    public List<String> getField(Path bagDir, String field) throws MaliciousPathException, UnparsableVersionException, UnsupportedAlgorithmException, InvalidBagitFileFormatException, IOException {
-        var bag = getBag(bagDir);
+    public List<String> getField(Path bagDir, String field) {
+        var bag = getBag(bagDir).orElseThrow();
         return bag.getMetadata().get(field);
     }
 }

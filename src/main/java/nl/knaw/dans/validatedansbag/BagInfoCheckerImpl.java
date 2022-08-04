@@ -21,6 +21,11 @@ import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.stream.Collectors;
@@ -83,7 +88,7 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
             }
 
             try {
-                bagItMetadataReader.getBag(path);
+                bagItMetadataReader.getBag(path).orElseThrow();
             }
             catch (Exception e) {
                 throw new RuleViolationDetailsException("bag-info.txt exists but is malformed: " + e.getMessage(), e);
@@ -148,18 +153,24 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
         };
     }
 
+    RuleViolationDetailsException bagNotFoundException(Path path) {
+        var message = String.format("Could not open bag on location '%s'", path);
+        return new RuleViolationDetailsException(message);
+    }
+
     @Override
     public BagValidatorRule bagShaPayloadManifestContainsAllPayloadFiles() {
         return (path) -> {
-            try {
-                var bag = bagItMetadataReader.getBag(path);
+            var bag = bagItMetadataReader.getBag(path)
+                .orElseThrow(() -> bagNotFoundException(path));
 
-                var manifest = bag.getPayLoadManifests().stream()
-                    .filter(m -> m.getAlgorithm().equals(StandardSupportedAlgorithms.SHA1))
-                    .findFirst()
+            try {
+                var manifest = bagItMetadataReader.getBagManifest(bag, StandardSupportedAlgorithms.SHA1)
                     .orElseThrow(() -> new RuleViolationDetailsException("No manifest file found"));
 
-                var filesInManifest = manifest.getFileToChecksumMap().keySet().stream().map(path::relativize).collect(Collectors.toSet());
+                var filesInManifest = manifest.getFileToChecksumMap().keySet()
+                    .stream().map(path::relativize).collect(Collectors.toSet());
+
                 var filesInPayload = fileService.getAllFiles(path.resolve("data"))
                     .stream().map(path::relativize).collect(Collectors.toSet());
 
@@ -207,6 +218,65 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
             catch (Exception e) {
                 throw new RuleViolationDetailsException("Unexpected error occurred", e);
             }
+        };
+    }
+
+    @Override
+    public BagValidatorRule hasOnlyValidFileNames() {
+        return (path) -> {
+            var bag = bagItMetadataReader.getBag(path)
+                .orElseThrow(() -> bagNotFoundException(path));
+
+            var manifest = bagItMetadataReader.getBagManifest(bag, StandardSupportedAlgorithms.SHA1)
+                .orElseThrow(() -> new RuleViolationDetailsException(String.format(
+                    "Dependent rule should have failed: Could not get bag '%s'", path
+                )));
+
+            var invalidCharacters = ":*?\"<>|;#";
+
+            var files = manifest.getFileToChecksumMap().keySet()
+                .stream()
+                .filter(file -> {
+                    for (var c: invalidCharacters.toCharArray()) {
+                        if (file.toString().indexOf(c) > -1) {
+                            return true;
+                        }
+                    }
+                    return false;
+                })
+                .map(Path::toString)
+                .collect(Collectors.joining(", "));
+
+            if (files.length() > 0) {
+                throw new RuleViolationDetailsException(String.format("Payload files must have valid characters. Invalid ones: %s", files));
+            }
+        };
+    }
+
+    @Override
+    public BagValidatorRule optionalFileIsUtf8Decodable(Path filename) {
+        return (path) -> {
+            try {
+                var target = path.resolve(filename);
+
+                if (fileService.exists(target)) {
+                    var contents = fileService.readFileContents(path.resolve(filename));
+                    StandardCharsets.UTF_8.newDecoder().decode(ByteBuffer.wrap(contents));
+                }
+            }
+            catch (CharacterCodingException e) {
+                throw new RuleViolationDetailsException("Input not valid UTF-8: " + e.getMessage());
+            }
+            catch (IOException e) {
+                throw new RuleViolationDetailsException("Exception when reading file: " + e.getMessage());
+            }
+        };
+    }
+
+    @Override
+    public BagValidatorRule isOriginalFilepathsFileComplete() {
+        return (path) -> {
+            // TODO read files xml, apply original-filepaths.txt to it and do the magic
         };
     }
 }

@@ -87,9 +87,18 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
                 "depositor-info/depositor-agreement.txt",
             }), List.of("2.1")),
 
+            new NumberedRule("2.6", validator.hasOnlyValidFileNames(), List.of("1.3.1(b)")),
+            new NumberedRule("2.7.1", validator.optionalFileIsUtf8Decodable(Path.of("original-filepaths.txt"))),
+            new NumberedRule("2.7.2", validator.isOriginalFilepathsFileComplete(), List.of("1.1.1(datadir)", "2.7.1", "2.2(b)", "3.2.4")),
+            /*
+            NumberedRule("2.6", hasOnlyValidFileNames, dependsOn = List("1.3.1(b)")),
+    NumberedRule("2.7.1", optionalFileIsUtf8Decodable(Paths.get(originalFilepathsFile))),
+    NumberedRule("2.7.2", isOriginalFilepathsFileComplete, dependsOn = List("1.1.1(datadir)", "2.7.1", "2.2(b)", "3.2.4")),
+
+             */
         };
 
-        var path = Path.of("/home/eric/workspace/dd-validate-dans-bag/src/test/resources/audiences");
+        var path = Path.of("/Users/eric/workspace/dd-validate-dans-bag/src/test/resources/audiences");
 
         var engine = new RuleEngineImpl();
         var result = engine.validateRules(path, rules);

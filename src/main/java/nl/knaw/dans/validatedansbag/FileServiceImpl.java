@@ -45,4 +45,14 @@ public class FileServiceImpl implements FileService {
             return stream.collect(Collectors.toList());
         }
     }
+
+    @Override
+    public byte[] readFileContents(Path path) throws IOException {
+        return Files.readAllBytes(path);
+    }
+
+    @Override
+    public boolean exists(Path path) {
+        return Files.exists(path);
+    }
 }

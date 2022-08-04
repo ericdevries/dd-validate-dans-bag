@@ -27,6 +27,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -119,8 +120,10 @@ class BagInfoCheckerImplTest {
         Mockito.when(fileService.isFile(Mockito.any()))
             .thenReturn(true);
 
-        assertDoesNotThrow(() -> checker.bagInfoExistsAndIsWellFormed().validate(Path.of("bagdir")));
+        Mockito.when(bagItMetadataReader.getBag(Mockito.any()))
+                .thenReturn(Optional.of(new Bag()));
 
+        assertDoesNotThrow(() -> checker.bagInfoExistsAndIsWellFormed().validate(Path.of("bagdir")));
     }
 
     @Test
@@ -144,7 +147,8 @@ class BagInfoCheckerImplTest {
         Mockito.when(fileService.isFile(Mockito.any()))
             .thenReturn(true);
 
-        Mockito.doThrow(IOException.class).when(bagItMetadataReader).getBag(Mockito.any());
+        Mockito.when(bagItMetadataReader.getBag(Mockito.any()))
+                .thenReturn(Optional.empty());
 
         assertThrows(RuleViolationDetailsException.class, () -> checker.bagInfoExistsAndIsWellFormed().validate(Path.of("bagdir")));
     }
@@ -259,7 +263,9 @@ class BagInfoCheckerImplTest {
 
         bag.setPayLoadManifests(Set.of(manifest));
 
-        Mockito.when(bagItMetadataReader.getBag(Mockito.any())).thenReturn(bag);
+        Mockito.when(bagItMetadataReader.getBag(Mockito.any())).thenReturn(Optional.of(bag));
+        Mockito.when(bagItMetadataReader.getBagManifest(Mockito.any(), Mockito.any()))
+            .thenReturn(Optional.of(manifest));
 
         assertDoesNotThrow(() -> checker.bagShaPayloadManifestContainsAllPayloadFiles().validate(Path.of("bagdir")));
     }
@@ -282,7 +288,7 @@ class BagInfoCheckerImplTest {
 
         bag.setPayLoadManifests(Set.of(manifest));
 
-        Mockito.when(bagItMetadataReader.getBag(Mockito.any())).thenReturn(bag);
+        Mockito.when(bagItMetadataReader.getBag(Mockito.any())).thenReturn(Optional.of(bag));
 
         assertThrows(RuleViolationDetailsException.class, () -> checker.bagShaPayloadManifestContainsAllPayloadFiles().validate(Path.of("bagdir")));
     }
@@ -306,7 +312,7 @@ class BagInfoCheckerImplTest {
 
         bag.setPayLoadManifests(Set.of(manifest));
 
-        Mockito.when(bagItMetadataReader.getBag(Mockito.any())).thenReturn(bag);
+        Mockito.when(bagItMetadataReader.getBag(Mockito.any())).thenReturn(Optional.of(bag));
 
         assertThrows(RuleViolationDetailsException.class, () -> checker.bagShaPayloadManifestContainsAllPayloadFiles().validate(Path.of("bagdir")));
     }

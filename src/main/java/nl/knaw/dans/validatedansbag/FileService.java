@@ -26,4 +26,8 @@ public interface FileService {
 
     List<Path> getAllFiles(Path path) throws IOException;
     List<Path> getAllFilesAndDirectories(Path path) throws IOException;
+
+    byte[] readFileContents(Path resolve) throws IOException;
+
+    boolean exists(Path path);
 }

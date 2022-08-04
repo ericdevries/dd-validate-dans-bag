@@ -16,6 +16,7 @@
 package nl.knaw.dans.validatedansbag;
 
 import gov.loc.repository.bagit.domain.Bag;
+import gov.loc.repository.bagit.domain.Manifest;
 import gov.loc.repository.bagit.exceptions.CorruptChecksumException;
 import gov.loc.repository.bagit.exceptions.FileNotInPayloadDirectoryException;
 import gov.loc.repository.bagit.exceptions.InvalidBagitFileFormatException;
@@ -26,14 +27,18 @@ import gov.loc.repository.bagit.exceptions.MissingPayloadManifestException;
 import gov.loc.repository.bagit.exceptions.UnparsableVersionException;
 import gov.loc.repository.bagit.exceptions.UnsupportedAlgorithmException;
 import gov.loc.repository.bagit.exceptions.VerificationException;
+import gov.loc.repository.bagit.hash.SupportedAlgorithm;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 
 public interface BagItMetadataReader {
 
-    Bag getBag(Path path) throws MaliciousPathException, UnparsableVersionException, UnsupportedAlgorithmException, InvalidBagitFileFormatException, IOException;
+    Optional<Bag> getBag(Path path);
+
+    Optional<Manifest> getBagManifest(Bag bag, SupportedAlgorithm algorithm);
 
     void verifyBag(Path path) throws MaliciousPathException, UnparsableVersionException, UnsupportedAlgorithmException, InvalidBagitFileFormatException, IOException, MissingPayloadManifestException,
         MissingPayloadDirectoryException, FileNotInPayloadDirectoryException, InterruptedException, MissingBagitFileException, CorruptChecksumException, VerificationException;
