@@ -13,12 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.validatedansbag;
+package nl.knaw.dans.validatedansbag.core.service;
 
+import org.w3c.dom.Document;
+import org.xml.sax.SAXException;
+
+import javax.xml.namespace.QName;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpressionException;
+import java.io.IOException;
 import java.nio.file.Path;
-import java.util.List;
 
-public interface RuleEngine {
+public interface BagXmlReader {
 
-    List<RuleValidationResult> validateRules(Path bag, NumberedRule[] rules);
+
+    Document readXmlFile(Path path) throws ParserConfigurationException, IOException, SAXException;
+
+    Object evaluateXpath(Document document, String expr, QName type) throws XPathExpressionException;
 }

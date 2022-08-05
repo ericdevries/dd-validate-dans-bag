@@ -13,25 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.validatedansbag;
+package nl.knaw.dans.validatedansbag.core.service;
 
 import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms;
 import org.joda.time.DateTime;
 import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
 import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathFactory;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class BagInfoCheckerImpl implements BagInfoChecker {
     private static final Logger log = LoggerFactory.getLogger(BagInfoCheckerImpl.class);
@@ -41,10 +41,17 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
     private final BagItMetadataReader bagItMetadataReader;
     private final BagXmlReader bagXmlReader;
 
-    public BagInfoCheckerImpl(FileService fileService, BagItMetadataReader bagItMetadataReader, BagXmlReader bagXmlReader) {
+    private final Pattern doiPattern = Pattern.compile("^10(\\.\\d+)+/.+");
+
+    private final String daiPrefix = "info:eu-repo/dai/nl/";
+
+    private final DaiDigestCalculator daiDigestCalculator;
+
+    public BagInfoCheckerImpl(FileService fileService, BagItMetadataReader bagItMetadataReader, BagXmlReader bagXmlReader, DaiDigestCalculator daiDigestCalculator) {
         this.fileService = fileService;
         this.bagItMetadataReader = bagItMetadataReader;
         this.bagXmlReader = bagXmlReader;
+        this.daiDigestCalculator = daiDigestCalculator;
     }
 
     @Override
@@ -217,9 +224,6 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
                 }
 
             }
-            catch (RuleViolationDetailsException e) {
-                throw e;
-            }
             catch (Exception e) {
                 throw new RuleViolationDetailsException("Unexpected error occurred", e);
             }
@@ -242,7 +246,7 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
             var files = manifest.getFileToChecksumMap().keySet()
                 .stream()
                 .filter(file -> {
-                    for (var c: invalidCharacters.toCharArray()) {
+                    for (var c : invalidCharacters.toCharArray()) {
                         if (file.toString().indexOf(c) > -1) {
                             return true;
                         }
@@ -290,17 +294,17 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
         return (path) -> {
             try {
                 var document = bagXmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
-                var expr = "/DDM/profile/audience";
-                var nodes = (NodeList)bagXmlReader.evaluateXpath(document, expr, XPathConstants.NODESET);
+                var expr = "//dcterms:identifier[@xsi:type=\"id-type:URN\"]";
+                var nodes = (NodeList) bagXmlReader.evaluateXpath(document, expr, XPathConstants.NODESET);
 
-                System.out.println("LENGTH: " + nodes.getLength());
-                for (int i = 0; i < nodes.getLength(); i++) {
-                    var value = (Element) nodes.item(i);
-                    System.out.println("VALUE: " + value);
-                }
-                System.out.println("DOCUMENT: " + document);
-            } catch (Exception e) {
-                e.printStackTrace();;
+                IntStream.range(0, nodes.getLength())
+                    .mapToObj(nodes::item)
+                    .filter((node) -> node.getTextContent().contains("urn:nbn"))
+                    .findFirst()
+                    .orElseThrow(() -> new RuleViolationDetailsException("URN:NBN identifier is missing"));
+            }
+            catch (Exception e) {
+                e.printStackTrace();
             }
         };
     }
@@ -308,13 +312,57 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
     @Override
     public BagValidatorRule ddmDoiIdentifiersAreValid() {
         return (path) -> {
+            try {
+                var document = bagXmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
+                var expr = "//dcterms:identifier[@xsi:type=\"id-type:DOI\"]";
+                var nodes = (NodeList) bagXmlReader.evaluateXpath(document, expr, XPathConstants.NODESET);
 
+                var match = IntStream.range(0, nodes.getLength())
+                    .mapToObj(nodes::item)
+                    .filter((node) -> {
+                        var text = node.getTextContent();
+                        return !doiPattern.matcher(text).matches();
+                    })
+                    .findFirst();
+
+                if (match.isPresent()) {
+                    throw new RuleViolationDetailsException("URN:NBN identifier is missing");
+                }
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+            }
         };
     }
 
     @Override
     public BagValidatorRule ddmDaisAreValid() {
         return (path) -> {
+
+            try {
+                var document = bagXmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
+                var expr = "//dcx-dai:DAI";
+                var nodes = (NodeList) bagXmlReader.evaluateXpath(document, expr, XPathConstants.NODESET);
+
+                var match = IntStream.range(0, nodes.getLength())
+                    .mapToObj(nodes::item)
+                    .map(node -> node.getTextContent().replaceFirst(daiPrefix, ""))
+                    .filter((id) -> {
+                        var sum = daiDigestCalculator.calculateChecksum(id.substring(0, id.length() - 1), 9);
+                        var last = id.charAt(id.length() - 1);
+
+                        return sum != last;
+                    })
+                    .collect(Collectors.toList());
+
+                if (!match.isEmpty()) {
+                    var message = String.join(", ", match);
+                    throw new RuleViolationDetailsException("Invalid DAIs: " + message);
+                }
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+            }
 
         };
     }

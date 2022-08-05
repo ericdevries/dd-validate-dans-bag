@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.validatedansbag;
+package nl.knaw.dans.validatedansbag.core.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +28,7 @@ import java.util.Map;
 
 public class RuleEngineImpl implements RuleEngine {
     private static final Logger log = LoggerFactory.getLogger(RuleEngineImpl.class);
+
     // returns true if all dependencies are marked as SUCCESS
     private boolean canBeExecuted(NumberedRule rule, Map<String, RuleValidationResult> results) {
         if (rule.getDependencies() != null && rule.getDependencies().size() > 0) {
@@ -75,6 +76,7 @@ public class RuleEngineImpl implements RuleEngine {
 
                 // will never be processed, so skip it and remove it from the remaining rules
                 if (shouldBeSkipped(rule, ruleResults)) {
+                    log.trace("Skipping task {} because dependencies are not succesful", rule.getNumber());
                     ruleResults.put(number, new RuleValidationResult(number, RuleValidationResult.RuleValidationResultStatus.SKIPPED));
                     toRemove.add(rule);
                 }
@@ -83,8 +85,12 @@ public class RuleEngineImpl implements RuleEngine {
                         rule.getRule().validate(bag);
                         ruleResults.put(number, new RuleValidationResult(number, RuleValidationResult.RuleValidationResultStatus.SUCCESS));
                     }
+                    catch (RuleViolationDetailsException e) {
+                        ruleResults.put(number, new RuleValidationResult(number, RuleValidationResult.RuleValidationResultStatus.FAILURE, e));
+                    }
                     catch (Throwable e) {
                         ruleResults.put(number, new RuleValidationResult(number, RuleValidationResult.RuleValidationResultStatus.FAILURE, e));
+                        log.error("Error happened while executing rule", e);
                     }
 
                     toRemove.add(rule);
@@ -99,9 +105,11 @@ public class RuleEngineImpl implements RuleEngine {
             if (toRemove.size() == 0) {
                 log.warn("No rules executed this round, but there are still rules to be checked; most likely a dependency configuration error!");
 
-                for (var rule: remainingRules) {
+                for (var rule : remainingRules) {
                     log.warn(" - Rule {} is yet to be executed", rule);
                 }
+
+                break;
             }
         }
 

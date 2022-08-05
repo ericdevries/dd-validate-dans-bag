@@ -13,13 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.validatedansbag;
+package nl.knaw.dans.validatedansbag.core.service;
 
-public class RuleViolationDetailsException extends Throwable {
-    public RuleViolationDetailsException(String message) {
-        super(message);
-    }
-    public RuleViolationDetailsException(String message, Throwable cause) {
-        super(message, cause);
-    }
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.List;
+
+public interface FileService {
+
+    boolean isDirectory(Path path) ;
+    boolean isFile(Path path) ;
+
+    List<Path> getAllFiles(Path path) throws IOException;
+    List<Path> getAllFilesAndDirectories(Path path) throws IOException;
+
+    byte[] readFileContents(Path resolve) throws IOException;
+
+    boolean exists(Path path);
 }

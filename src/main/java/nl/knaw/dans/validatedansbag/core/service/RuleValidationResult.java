@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.validatedansbag;
+package nl.knaw.dans.validatedansbag.core.service;
 
 public class RuleValidationResult {
 

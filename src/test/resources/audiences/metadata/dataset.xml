@@ -16,8 +16,10 @@
                 <dcx-dai:initials>I</dcx-dai:initials>
                 <dcx-dai:insertions></dcx-dai:insertions>
                 <dcx-dai:surname>Lastname</dcx-dai:surname>
+                <dcx-dai:DAI>123456789</dcx-dai:DAI>
                 <dcx-dai:organization>
                     <dcx-dai:name xml:lang="en">Example Org</dcx-dai:name>
+                    <dcx-dai:DAI>info:eu-repo/dai/nl/298814064</dcx-dai:DAI>
                 </dcx-dai:organization>
             </dcx-dai:author>
         </dcx-dai:creatorDetails>
@@ -32,9 +34,12 @@
         <ddm:accessRights>NO_ACCESS</ddm:accessRights>
     </ddm:profile>
     <ddm:dcmiMetadata>
+        <dcterms:identifier xsi:type="id-type:URN">urn:nbn:nl:ui:blabla</dcterms:identifier>
         <dcterms:hasVersion>1.1</dcterms:hasVersion>
         <dcterms:modified>2015-09-08</dcterms:modified>
         <dcterms:license xsi:type="dcterms:URI">http://opensource.org/licenses/MIT</dcterms:license>
         <dcterms:rightsHolder>I Lastname</dcterms:rightsHolder>
+        <dcterms:identifier xsi:type="id-type:DOI">10.1234/fantasy-doi-id</dcterms:identifier>
+        <dcterms:identifier xsi:type="id-type:DOI">10.1234.567/issn-987-654</dcterms:identifier>
     </ddm:dcmiMetadata>
 </ddm:DDM>

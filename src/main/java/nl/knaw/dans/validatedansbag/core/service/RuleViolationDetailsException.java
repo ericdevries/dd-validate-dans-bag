@@ -13,11 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.validatedansbag;
+package nl.knaw.dans.validatedansbag.core.service;
 
-import java.nio.file.Path;
-
-@FunctionalInterface
-interface BagValidatorRule {
-    void validate(Path path) throws RuleViolationDetailsException;
+public class RuleViolationDetailsException extends Throwable {
+    public RuleViolationDetailsException(String message) {
+        super(message);
+    }
+    public RuleViolationDetailsException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

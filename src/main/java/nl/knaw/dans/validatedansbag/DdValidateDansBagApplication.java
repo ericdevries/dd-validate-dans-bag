@@ -19,6 +19,13 @@ package nl.knaw.dans.validatedansbag;
 import io.dropwizard.Application;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
+import nl.knaw.dans.validatedansbag.core.service.BagInfoCheckerImpl;
+import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReaderImpl;
+import nl.knaw.dans.validatedansbag.core.service.BagXmlReaderImpl;
+import nl.knaw.dans.validatedansbag.core.service.DaiDigestCalculatorImpl;
+import nl.knaw.dans.validatedansbag.core.service.FileServiceImpl;
+import nl.knaw.dans.validatedansbag.core.service.NumberedRule;
+import nl.knaw.dans.validatedansbag.core.service.RuleEngineImpl;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -45,8 +52,10 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
         var fileService = new FileServiceImpl();
         var bagItMetadataReader = new BagItMetadataReaderImpl();
         var bagXmlReader = new BagXmlReaderImpl();
+        var digestCalculator = new DaiDigestCalculatorImpl();
 
-        var validator = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader);
+        var validator = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator);
+
 
         var rules = new NumberedRule[] {
             // validity
