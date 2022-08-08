@@ -20,18 +20,26 @@ import org.joda.time.DateTime;
 import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpressionException;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 public class BagInfoCheckerImpl implements BagInfoChecker {
     private static final Logger log = LoggerFactory.getLogger(BagInfoCheckerImpl.class);
@@ -43,15 +51,22 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
 
     private final Pattern doiPattern = Pattern.compile("^10(\\.\\d+)+/.+");
 
+    private final Pattern doiUrlPattern = Pattern.compile("^((https?://(dx\\.)?)?doi\\.org/(urn:)?(doi:)?)?10(\\.\\d+)+/.+");
+    private final Pattern urnPattern = Pattern.compile("^urn:[A-Za-z0-9][A-Za-z0-9-]{0,31}:[a-z0-9()+,\\-\\\\.:=@;$_!*'%/?#]+$");
+
     private final String daiPrefix = "info:eu-repo/dai/nl/";
 
     private final DaiDigestCalculator daiDigestCalculator;
 
-    public BagInfoCheckerImpl(FileService fileService, BagItMetadataReader bagItMetadataReader, BagXmlReader bagXmlReader, DaiDigestCalculator daiDigestCalculator) {
+    private final PolygonListValidator polygonListValidator;
+
+    public BagInfoCheckerImpl(FileService fileService, BagItMetadataReader bagItMetadataReader, BagXmlReader bagXmlReader, DaiDigestCalculator daiDigestCalculator,
+        PolygonListValidator polygonListValidator) {
         this.fileService = fileService;
         this.bagItMetadataReader = bagItMetadataReader;
         this.bagXmlReader = bagXmlReader;
         this.daiDigestCalculator = daiDigestCalculator;
+        this.polygonListValidator = polygonListValidator;
     }
 
     @Override
@@ -304,7 +319,7 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
                     .orElseThrow(() -> new RuleViolationDetailsException("URN:NBN identifier is missing"));
             }
             catch (Exception e) {
-                e.printStackTrace();
+                throw new RuleViolationDetailsException("Unexpected exception occurred while processing", e);
             }
         };
     }
@@ -323,14 +338,15 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
                         var text = node.getTextContent();
                         return !doiPattern.matcher(text).matches();
                     })
-                    .findFirst();
+                    .map(Node::getTextContent)
+                    .collect(Collectors.joining(", "));
 
-                if (match.isPresent()) {
-                    throw new RuleViolationDetailsException("URN:NBN identifier is missing");
+                if (match.length() > 0) {
+                    throw new RuleViolationDetailsException("Invalid DOIs: " + match);
                 }
             }
             catch (Exception e) {
-                e.printStackTrace();
+                throw new RuleViolationDetailsException("Unexpected exception occurred while processing", e);
             }
         };
     }
@@ -361,7 +377,7 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
                 }
             }
             catch (Exception e) {
-                e.printStackTrace();
+                throw new RuleViolationDetailsException("Unexpected exception occurred while processing", e);
             }
 
         };
@@ -371,34 +387,303 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
     public BagValidatorRule ddmGmlPolygonPosListIsWellFormed() {
         return (path) -> {
 
+            try {
+                var document = bagXmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
+                var expr = "//dcx-gml:spatial//*[local-name() = 'posList']";
+                var nodes = (NodeList) bagXmlReader.evaluateXpath(document, expr, XPathConstants.NODESET);
+
+                var match = IntStream.range(0, nodes.getLength())
+                    .mapToObj(nodes::item)
+                    .map(Node::getTextContent)
+                    .map((posList) -> {
+
+                        try {
+                            polygonListValidator.validatePolygonList(posList);
+                        }
+                        catch (PolygonListValidator.PolygonValidationException e) {
+                            return new RuleViolationDetailsException(e.getLocalizedMessage(), e);
+                        }
+
+                        return null;
+                    })
+                    .filter(Objects::nonNull)
+                    .map(Throwable::getLocalizedMessage)
+                    .collect(Collectors.toList());
+
+                if (!match.isEmpty()) {
+                    var message = String.join("\n", match);
+                    throw new RuleViolationDetailsException("Invalid posList: " + message);
+                }
+            }
+            catch (Exception e) {
+                throw new RuleViolationDetailsException("Unexpected exception occurred while processing", e);
+            }
         };
     }
 
     @Override
     public BagValidatorRule polygonsInSameMultiSurfaceHaveSameSrsName() {
         return (path) -> {
+            try {
+                var document = bagXmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
+                var expr = "//*[local-name() = 'MultiSurface']";
+                var nodes = (NodeList) bagXmlReader.evaluateXpath(document, expr, XPathConstants.NODESET);
 
+                var match = IntStream.range(0, nodes.getLength())
+                    .mapToObj(nodes::item)
+                    .filter(node -> {
+
+                        try {
+                            var poly = (NodeList) bagXmlReader.evaluateXpath(node, ".//*[local-name() = 'Polygon']", XPathConstants.NODESET);
+
+                            var srsNames = IntStream.range(0, poly.getLength())
+                                .mapToObj(poly::item)
+                                .map(p -> p.getAttributes().getNamedItem("srsName"))
+                                .filter(Objects::nonNull)
+                                .map(Node::getTextContent)
+                                .collect(Collectors.toSet());
+
+                            if (srsNames.size() > 1) {
+                                return true;
+                            }
+                        }
+                        catch (Throwable e) {
+                            log.error("Error checking srsNames attribute", e);
+                            return true;
+                        }
+
+                        return false;
+                    })
+                    .collect(Collectors.toList());
+
+                if (!match.isEmpty()) {
+                    throw new RuleViolationDetailsException("Found MultiSurface element containing polygons with different srsNames");
+                }
+            }
+            catch (Exception e) {
+                throw new RuleViolationDetailsException("Unexpected exception occurred while processing", e);
+            }
         };
     }
 
     @Override
     public BagValidatorRule pointsHaveAtLeastTwoValues() {
         return (path) -> {
+            try {
+                var document = bagXmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
 
+                // points
+                var expr = "//*[local-name() = 'Point' or local-name() = 'lowerCorner' or local-name() = 'upperCorner']";
+                var nodes = (NodeList) bagXmlReader.evaluateXpath(document, expr, XPathConstants.NODESET);
+
+                var match = IntStream.range(0, nodes.getLength())
+                    .mapToObj(nodes::item)
+                    .filter(node -> node.getNamespaceURI().equals("http://www.opengis.net/gml"))
+                    //.map(Node::getTextContent)
+                    //.map(String::trim)
+                    .collect(Collectors.toList());
+
+                var errors = new ArrayList<RuleViolationDetailsException>();
+
+                for (var value : match) {
+                    var attr = value.getParentNode().getAttributes().getNamedItem("srsName");
+                    var text = value.getTextContent();
+                    var isRD = attr != null && "urn:ogc:def:crs:EPSG::28992".equals(attr.getTextContent());
+
+                    try {
+                        var parts = Arrays.stream(text.split("\\s+"))
+                            .map(Float::parseFloat)
+                            .collect(Collectors.toList());
+
+                        if (parts.size() < 2) {
+                            errors.add(new RuleViolationDetailsException(String.format(
+                                "Point has less than two coordinates: %s", text
+                            )));
+                        }
+
+                        else if (isRD) {
+                            var x = parts.get(0);
+                            var y = parts.get(1);
+
+                            var valid = x >= -7000 && x <= 300000 && y >= 289000 && y <= 629000;
+
+                            if (!valid) {
+                                errors.add(new RuleViolationDetailsException(String.format(
+                                    "Point is outside RD bounds: %s", text
+                                )));
+                            }
+                        }
+                    }
+                    catch (NumberFormatException e) {
+                        errors.add(new RuleViolationDetailsException(String.format(
+                            "Point has non numeric coordinates: %s", text
+                        )));
+                    }
+                }
+
+                if (errors.size() > 0) {
+                    throw new RuleViolationDetailsException(errors);
+                }
+            }
+            catch (Exception e) {
+                throw new RuleViolationDetailsException("Error reading XML file", e);
+            }
         };
     }
 
     @Override
     public BagValidatorRule archisIdentifiersHaveAtMost10Characters() {
         return (path) -> {
+            try {
+                var document = bagXmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
 
+                // points
+                var expr = "//dcterms:identifier[@xsi:type = 'id-type:ARCHIS-ZAAK-IDENTIFICATIE']";
+                var nodes = (NodeList) bagXmlReader.evaluateXpath(document, expr, XPathConstants.NODESET);
+
+                var match = IntStream.range(0, nodes.getLength())
+                    .mapToObj(nodes::item)
+                    .map(Node::getTextContent)
+                    .filter(Objects::nonNull)
+                    .filter(text -> text.length() > 10)
+                    .collect(Collectors.toList());
+
+                if (match.size() > 0) {
+                    var exceptions = match.stream().map(e -> new RuleViolationDetailsException(String.format(
+                        "Archis identifier must be 10 or fewer characters long: %s", e
+                    ))).collect(Collectors.toList());
+
+                    throw new RuleViolationDetailsException(exceptions);
+                }
+            }
+            catch (Exception e) {
+                throw new RuleViolationDetailsException("Unexpected exception occurred while processing", e);
+            }
         };
+    }
+
+    Stream<Node> xpathToStream(Node node, String expression) throws XPathExpressionException {
+        var nodes = (NodeList) bagXmlReader.evaluateXpath(node, expression, XPathConstants.NODESET);
+
+        return IntStream.range(0, nodes.getLength())
+            .mapToObj(nodes::item);
     }
 
     @Override
     public BagValidatorRule allUrlsAreValid() {
         return (path) -> {
+            try {
+                var document = bagXmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
 
+                var hrefNodes = xpathToStream(document, "*/@href");
+                var schemeURINodes = xpathToStream(document, "//ddm:subject/@schemeURI");
+                var valueURINodes = xpathToStream(document, "//ddm:subject/@valueURI");
+
+                var elementSelectors = Stream.of(
+                        "//*[@xsi:type='dcterms:URI']",
+                        "//*[@xsi:type='dcterms:URL']",
+                        "//*[@xsi:type='URI']",
+                        "//*[@xsi:type='URL']",
+                        "//*[@scheme='dcterms:URI']",
+                        "//*[@scheme='dcterms:URL']",
+                        "//*[@scheme='URI']",
+                        "//*[@scheme='URL']"
+                    ).map(selector -> {
+                        try {
+                            return xpathToStream(document, selector);
+                        }
+                        catch (XPathExpressionException e) {
+                            log.error("Unable to parse document", e);
+                        }
+                        return null;
+                    })
+                    .filter(Objects::nonNull)
+                    .flatMap(i -> i);
+
+                var doiValues = Stream.of(
+                        "//*[@scheme = 'id-type:DOI']",
+                        "//*[@scheme = 'DOI']"
+                    ).map(selector -> {
+                        try {
+                            return xpathToStream(document, selector);
+                        }
+                        catch (XPathExpressionException e) {
+                            log.error("Unable to parse document", e);
+                        }
+                        return null;
+                    })
+                    .filter(Objects::nonNull)
+                    .flatMap(i -> i)
+                    .filter(node -> node.getAttributes().getNamedItem("href") == null);
+
+                var urnValues = Stream.of(
+                        "//*[@scheme = 'id-type:URN']",
+                        "//*[@scheme = 'URN']"
+                    ).map(selector -> {
+                        try {
+                            return xpathToStream(document, selector);
+                        }
+                        catch (XPathExpressionException e) {
+                            log.error("Unable to parse document", e);
+                        }
+                        return null;
+                    })
+                    .filter(Objects::nonNull)
+                    .flatMap(i -> i)
+                    .filter(node -> node.getAttributes().getNamedItem("href") == null);
+
+                var nodes = Stream.of(hrefNodes, schemeURINodes, valueURINodes, elementSelectors)
+                    .flatMap(i -> i)
+                    .map(node -> {
+                        var value = node.getTextContent();
+
+                        try {
+                            var uri = new URI(value);
+
+                            if (!List.of("http", "https").contains(uri.getScheme())) {
+                                return new RuleViolationDetailsException(String.format(
+                                    "protocol '%s' in uri '%s' is not one of the accepted protocols [http, https]", uri.getScheme(), uri
+                                ));
+                            }
+                        }
+                        catch (URISyntaxException e) {
+                            return new RuleViolationDetailsException(String.format(
+                                "'%s' is not a valid uri", value
+                            ));
+                        }
+
+                        return null;
+                    })
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+
+                var dois = doiValues
+                    .map(Node::getTextContent)
+                    .filter(textContent -> !doiUrlPattern.matcher(textContent).matches())
+                    .collect(Collectors.joining(", "));
+
+                var urns = urnValues
+                    .map(Node::getTextContent)
+                    .filter(textContent -> !urnPattern.matcher(textContent).matches())
+                    .collect(Collectors.joining(", "));
+
+                var errors = new ArrayList<>(nodes);
+
+                if (dois.length() > 0) {
+                    errors.add(new RuleViolationDetailsException(String.format("Invalid DOIs: %s", dois)));
+                }
+
+                if (urns.length() > 0) {
+                    errors.add(new RuleViolationDetailsException(String.format("Invalid URNs: %s", urns)));
+                }
+
+                if (errors.size() > 0) {
+                    throw new RuleViolationDetailsException(errors);
+                }
+            }
+            catch (Exception e) {
+                throw new RuleViolationDetailsException("Unexpected exception occurred while processing", e);
+            }
         };
     }
 
@@ -406,13 +691,52 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
     public BagValidatorRule ddmMustHaveRightsHolder() {
         return (path) -> {
 
+            try {
+                var document = bagXmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
+
+                // copied from easy-validate-dans-bag
+                // TODO FIXME: this will true if there is a <role>rightsholder</role> anywhere in the document
+                var inRole = xpathToStream(document, "//*[local-name() = 'role']")
+                    .filter(node -> node.getTextContent().contains("rightsholder"))
+                    .findFirst();
+
+                var rightsHolder = xpathToStream(document, "//ddm:dcmiMetadata//dcterms:rightsHolder")
+                    .map(Node::getTextContent)
+                    .filter(Objects::nonNull)
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .findFirst();
+
+                if (inRole.isEmpty() && rightsHolder.isEmpty()) {
+                    throw new RuleViolationDetailsException("No rightsholder");
+                }
+            }
+
+            catch (Exception e) {
+                throw new RuleViolationDetailsException("Unexpected exception occurred while processing", e);
+            }
         };
     }
 
     @Override
-    public BagValidatorRule xmlFileConfirmsToSchema(Path file) {
+    public BagValidatorRule xmlFileConfirmsToSchema(Path file, String schema) {
         return (path) -> {
 
+            try {
+                var document = bagXmlReader.readXmlFile(path.resolve(file));
+                var results = bagXmlReader.validateXmlWithSchema(document, "ddm");
+
+                if (results.size() > 0) {
+                    // TODO see how we can get all the errors in there
+                    throw new RuleViolationDetailsException(String.format(
+                        "%s does not confirm to %s", file, schema
+                    ));
+                }
+            } catch (Exception e) {
+                throw new RuleViolationDetailsException(String.format(
+                    "%s does not confirm to %s", file, schema
+                ), e);
+            }
         };
     }
 }

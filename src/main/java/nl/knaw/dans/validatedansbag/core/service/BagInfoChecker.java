@@ -61,5 +61,5 @@ public interface BagInfoChecker {
 
     BagValidatorRule ddmMustHaveRightsHolder();
 
-    BagValidatorRule xmlFileConfirmsToSchema(Path file);
+    BagValidatorRule xmlFileConfirmsToSchema(Path file, String schema);
 }

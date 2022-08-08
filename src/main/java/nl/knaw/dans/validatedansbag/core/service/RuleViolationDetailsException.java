@@ -15,11 +15,37 @@
  */
 package nl.knaw.dans.validatedansbag.core.service;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class RuleViolationDetailsException extends Throwable {
+    private final List<RuleViolationDetailsException> exceptions = new ArrayList<>();
+    private boolean isMultiException = false;
+
     public RuleViolationDetailsException(String message) {
         super(message);
     }
+    public RuleViolationDetailsException(String message, List<RuleViolationDetailsException> exceptions) {
+        super(message);
+        this.exceptions.addAll(exceptions);
+        this.isMultiException = true;
+    }
+
     public RuleViolationDetailsException(String message, Throwable cause) {
         super(message, cause);
+    }
+
+    public RuleViolationDetailsException(List<RuleViolationDetailsException> exceptions) {
+        super();
+        this.exceptions.addAll(exceptions);
+        this.isMultiException = true;
+    }
+
+    public boolean isMultiException() {
+        return isMultiException;
+    }
+
+    public List<RuleViolationDetailsException> getExceptions() {
+        return this.exceptions;
     }
 }

@@ -25,6 +25,7 @@ import nl.knaw.dans.validatedansbag.core.service.BagXmlReaderImpl;
 import nl.knaw.dans.validatedansbag.core.service.DaiDigestCalculatorImpl;
 import nl.knaw.dans.validatedansbag.core.service.FileServiceImpl;
 import nl.knaw.dans.validatedansbag.core.service.NumberedRule;
+import nl.knaw.dans.validatedansbag.core.service.PolygonListValidatorImpl;
 import nl.knaw.dans.validatedansbag.core.service.RuleEngineImpl;
 
 import java.nio.file.Path;
@@ -52,9 +53,10 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
         var fileService = new FileServiceImpl();
         var bagItMetadataReader = new BagItMetadataReaderImpl();
         var bagXmlReader = new BagXmlReaderImpl();
-        var digestCalculator = new DaiDigestCalculatorImpl();
+        var daiDigestCalculator = new DaiDigestCalculatorImpl();
+        var polygonListValidator = new PolygonListValidatorImpl();
 
-        var validator = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator);
+        var validator = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator);
 
 
         var rules = new NumberedRule[] {
@@ -100,7 +102,7 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
             new NumberedRule("2.7.1", validator.optionalFileIsUtf8Decodable(Path.of("original-filepaths.txt"))),
             new NumberedRule("2.7.2", validator.isOriginalFilepathsFileComplete(), List.of("1.1.1(datadir)", "2.7.1", "2.2(b)", "3.2.4")),
 
-            new NumberedRule("3.1.1", validator.xmlFileConfirmsToSchema(Path.of("metadata/dataset.xml")), List.of("2.2(a)")),
+            new NumberedRule("3.1.1", validator.xmlFileConfirmsToSchema(Path.of("metadata/dataset.xml"), "ddm"), List.of("2.2(a)")),
             // TODO figure this one out
 //            new NumberedRule("3.1.2", validator.ddmMayContainDctermsLicenseFromList(allowedLicences), List.of("3.1.1")),
             new NumberedRule("3.1.3(a)", validator.ddmContainsUrnNbnIdentifier(), List.of("3.1.1")),
