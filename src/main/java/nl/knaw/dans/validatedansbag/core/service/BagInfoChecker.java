@@ -62,4 +62,12 @@ public interface BagInfoChecker {
     BagValidatorRule ddmMustHaveRightsHolder();
 
     BagValidatorRule xmlFileConfirmsToSchema(Path file, String schema);
+
+    BagValidatorRule filesXmlHasDocumentElementFiles();
+
+    BagValidatorRule filesXmlHasOnlyFiles();
+
+    BagValidatorRule filesXmlFileElementsAllHaveFilepathAttribute();
+
+    BagValidatorRule filesXmlNoDuplicatesAndMatchesWithPayloadPlusPreStagedFiles();
 }

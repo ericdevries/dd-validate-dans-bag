@@ -53,16 +53,6 @@ public class BagXmlReaderImpl implements BagXmlReader {
 
     private final XPath xpath;
 
-    // TODO make configurable?
-    private final Map<String, String> schemaUrls = Map.of(
-        "ddm", "https://easy.dans.knaw.nl/schemas/md/ddm/ddm.xsd",
-        "files", "https://easy.dans.knaw.nl/schemas/bag/metadata/files/files.xsd",
-        "agreements", "https://easy.dans.knaw.nl/schemas/bag/metadata/agreements/agreements.xsd",
-        "provenance", "https://easy.dans.knaw.nl/schemas/bag/metadata/prov/provenance.xsd",
-        "amd", "https://easy.dans.knaw.nl/schemas/bag/metadata/amd/amd.xsd",
-        "emd", "https://easy.dans.knaw.nl/schemas/md/emd/emd.xsd"
-    );
-
     public BagXmlReaderImpl() {
         this.xpath = XPathFactory
             .newInstance()
@@ -119,38 +109,6 @@ public class BagXmlReaderImpl implements BagXmlReader {
     @Override
     public Object evaluateXpath(Node node, String expr, QName type) throws XPathExpressionException {
         return xpath.compile(expr).evaluate(node, type);
-    }
-
-    @Override
-    public List<SAXParseException> validateXmlWithSchema(Node node, String schema) throws IOException, SAXException {
-        var schemaFactory = SchemaFactory.newInstance("http://www.w3.org/2001/XMLSchema");
-
-        var s = schemaFactory.newSchema(new URL(schemaUrls.get(schema)));
-        // TODO cache the schema creation thing
-        var validator = s.newValidator();
-        var exceptions = new ArrayList<SAXParseException>();
-
-        validator.setErrorHandler(new ErrorHandler() {
-
-            @Override
-            public void warning(SAXParseException e) {
-                exceptions.add(e);
-            }
-
-            @Override
-            public void error(SAXParseException e) {
-                exceptions.add(e);
-            }
-
-            @Override
-            public void fatalError(SAXParseException e) {
-                exceptions.add(e);
-            }
-        });
-
-        validator.validate(new DOMSource(node));
-
-        return exceptions;
     }
 
     private DocumentBuilderFactory getFactory() throws ParserConfigurationException {

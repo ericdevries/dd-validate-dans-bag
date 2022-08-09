@@ -24,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.w3c.dom.Document;
 import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
 
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
@@ -46,59 +47,19 @@ class BagInfoCheckerImplTest {
     final DaiDigestCalculator daiDigestCalculator = new DaiDigestCalculatorImpl();
     final BagItMetadataReader bagItMetadataReader = Mockito.mock(BagItMetadataReader.class);
     final PolygonListValidator polygonListValidator = new PolygonListValidatorImpl();
-
-    final String validDocument = "<ddm:DDM\n"
-        + "        xmlns:dc=\"http://purl.org/dc/elements/1.1/\"\n"
-        + "        xmlns:dcx-dai=\"http://easy.dans.knaw.nl/schemas/dcx/dai/\"\n"
-        + "        xmlns:ddm=\"http://easy.dans.knaw.nl/schemas/md/ddm/\"\n"
-        + "        xmlns:dcterms=\"http://purl.org/dc/terms/\"\n"
-        + "        xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
-        + "        xmlns:id-type=\"http://easy.dans.knaw.nl/schemas/vocab/identifier-type/\">\n"
-        + "    <ddm:profile>\n"
-        + "        <dc:title>A bag containing multiple audiences</dc:title>\n"
-        + "        <dcterms:description>\n"
-        + "            This bag contains multiple ddm:audience entries, each audience is represented by a code for which the classification can be found at https://www.narcis.nl/content/pdf/classification_en.pdf\n"
-        + "        </dcterms:description>\n"
-        + "        <dcx-dai:creatorDetails>\n"
-        + "            <dcx-dai:author>\n"
-        + "                <dcx-dai:titles></dcx-dai:titles>\n"
-        + "                <dcx-dai:initials>I</dcx-dai:initials>\n"
-        + "                <dcx-dai:insertions></dcx-dai:insertions>\n"
-        + "                <dcx-dai:surname>Lastname</dcx-dai:surname>\n"
-        + "                <dcx-dai:DAI>123456789</dcx-dai:DAI>\n"
-        + "                <dcx-dai:organization>\n"
-        + "                    <dcx-dai:name xml:lang=\"en\">Example Org</dcx-dai:name>\n"
-        + "                    <dcx-dai:DAI>info:eu-repo/dai/nl/298814064</dcx-dai:DAI>\n"
-        + "                </dcx-dai:organization>\n"
-        + "            </dcx-dai:author>\n"
-        + "        </dcx-dai:creatorDetails>\n"
-        + "        <ddm:created>2015-09-09</ddm:created>\n"
-        + "        <ddm:available>2015-09-09</ddm:available>\n"
-        + "        <ddm:audience>D16300</ddm:audience>\n"
-        + "        <ddm:audience>D16100</ddm:audience>\n"
-        + "        <ddm:accessRights>NO_ACCESS</ddm:accessRights>\n"
-        + "    </ddm:profile>\n"
-        + "    <ddm:dcmiMetadata>\n"
-        + "        <dcterms:identifier xsi:type=\"id-type:URN\">urn:nbn:nl:ui:blabla</dcterms:identifier>\n"
-        + "        <dcterms:hasVersion>1.1</dcterms:hasVersion>\n"
-        + "        <dcterms:modified>2015-09-08</dcterms:modified>\n"
-        + "        <dcterms:license xsi:type=\"dcterms:URI\">http://opensource.org/licenses/MIT</dcterms:license>\n"
-        + "        <dcterms:rightsHolder>I Lastname</dcterms:rightsHolder>\n"
-        + "        <dcterms:identifier xsi:type=\"id-type:DOI\">10.1234/fantasy-doi-id</dcterms:identifier>\n"
-        + "        <dcterms:identifier xsi:type=\"id-type:DOI\">10.1234.567/issn-987-654</dcterms:identifier>\n"
-        + "    </ddm:dcmiMetadata>\n"
-        + "</ddm:DDM>";
+    final XmlValidator xmlValidator = Mockito.mock(XmlValidator.class);
 
     @AfterEach
     void afterEach() {
         Mockito.reset(fileService);
         Mockito.reset(bagXmlReader);
         Mockito.reset(bagItMetadataReader);
+        Mockito.reset(xmlValidator);
     }
 
     @Test
     void testBagIsValid() throws Exception {
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator, xmlValidator);
 
         assertDoesNotThrow(() -> checker.bagIsValid().validate(Path.of("testpath")));
 
@@ -108,7 +69,7 @@ class BagInfoCheckerImplTest {
 
     @Test
     void testBagIsNotValidWithExceptionThrown() throws Exception {
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator, xmlValidator);
 
         Mockito.doThrow(new InvalidBagitFileFormatException("Invalid file format"))
             .when(bagItMetadataReader).verifyBag(Mockito.any());
@@ -118,7 +79,7 @@ class BagInfoCheckerImplTest {
 
     @Test
     void containsDirWorks() throws RuleViolationDetailsException {
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator, xmlValidator);
 
         Mockito.when(fileService.isDirectory(Mockito.any()))
             .thenReturn(true);
@@ -130,7 +91,7 @@ class BagInfoCheckerImplTest {
 
     @Test
     void containsDirThrowsException() {
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator, xmlValidator);
 
         Mockito.when(fileService.isDirectory(Mockito.any()))
             .thenReturn(false);
@@ -140,7 +101,7 @@ class BagInfoCheckerImplTest {
 
     @Test
     void containsFileWorks() throws RuleViolationDetailsException {
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator, xmlValidator);
 
         Mockito.when(fileService.isFile(Mockito.any()))
             .thenReturn(true);
@@ -152,7 +113,7 @@ class BagInfoCheckerImplTest {
 
     @Test
     void containsFileThrowsException() {
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator, xmlValidator);
 
         Mockito.when(fileService.isFile(Mockito.any()))
             .thenReturn(false);
@@ -162,7 +123,7 @@ class BagInfoCheckerImplTest {
 
     @Test
     void bagInfoExistsAndIsWellFormed() {
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator, xmlValidator);
 
         Mockito.when(fileService.isFile(Mockito.any()))
             .thenReturn(true);
@@ -175,7 +136,7 @@ class BagInfoCheckerImplTest {
 
     @Test
     void bagInfoDoesNotExist() {
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator, xmlValidator);
 
         Mockito.when(fileService.isFile(Mockito.any()))
             .thenReturn(false);
@@ -185,7 +146,7 @@ class BagInfoCheckerImplTest {
 
     @Test
     void bagInfoDoesExistButItCouldNotBeOpened() throws Exception {
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator, xmlValidator);
 
         Mockito.when(fileService.isFile(Mockito.any()))
             .thenReturn(true);
@@ -199,7 +160,7 @@ class BagInfoCheckerImplTest {
     @Test
     void bagInfoCreatedElementIsIso8601Date() throws Exception {
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator, xmlValidator);
 
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Created")))
             .thenReturn(List.of("2022-01-01T01:23:45.678+00:00"));
@@ -210,7 +171,7 @@ class BagInfoCheckerImplTest {
     @Test
     void bagInfoCreatedElementIsNotAValidDate() throws Exception {
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator, xmlValidator);
 
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Created")))
             .thenReturn(List.of("2022-01-01 01:23:45.678"));
@@ -220,7 +181,7 @@ class BagInfoCheckerImplTest {
 
     @Test
     void bagInfoContainsExactlyOneOf() throws Exception {
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator, xmlValidator);
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Key")))
             .thenReturn(List.of("value"));
 
@@ -229,7 +190,7 @@ class BagInfoCheckerImplTest {
 
     @Test
     void bagInfoContainsExactlyOneOfButInRealityItIsTwo() throws Exception {
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator, xmlValidator);
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Key")))
             .thenReturn(List.of("value", "secondvalue"));
 
@@ -238,7 +199,7 @@ class BagInfoCheckerImplTest {
 
     @Test
     void bagInfoContainsExactlyOneOfButInRealityItIsZero() throws Exception {
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator, xmlValidator);
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Key")))
             .thenReturn(new ArrayList<>());
 
@@ -247,7 +208,7 @@ class BagInfoCheckerImplTest {
 
     @Test
     void bagInfoContainsAtMostOne() throws Exception {
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator, xmlValidator);
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Key")))
             .thenReturn(List.of("value"));
 
@@ -256,7 +217,7 @@ class BagInfoCheckerImplTest {
 
     @Test
     void bagInfoContainsAtMostOneButItReturnsTwo() throws Exception {
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator, xmlValidator);
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Key")))
             .thenReturn(List.of("value", "secondvalue"));
 
@@ -265,7 +226,7 @@ class BagInfoCheckerImplTest {
 
     @Test
     void bagInfoContainsAtMostOneOfButInRealityItIsZero() throws Exception {
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator, xmlValidator);
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Key")))
             .thenReturn(new ArrayList<>());
 
@@ -274,7 +235,7 @@ class BagInfoCheckerImplTest {
 
     @Test
     void bagShaPayloadManifestContainsAllPayloadFiles() throws Exception {
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator, xmlValidator);
 
         Mockito.when(fileService.getAllFiles(Mockito.any()))
             .thenReturn(List.of(Path.of("path/1.txt"), Path.of("path/2.txt")));
@@ -297,7 +258,7 @@ class BagInfoCheckerImplTest {
 
     @Test
     void bagShaPayloadManifestMissesSomeFiles() throws Exception {
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator, xmlValidator);
 
         Mockito.when(fileService.getAllFiles(Mockito.any()))
             .thenReturn(List.of(Path.of("path/1.txt"), Path.of("path/2.txt"), Path.of("path/3.txt")));
@@ -318,7 +279,7 @@ class BagInfoCheckerImplTest {
 
     @Test
     void bagShaPayloadManifestHasTooManyFiles() throws Exception {
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator, xmlValidator);
 
         Mockito.when(fileService.getAllFiles(Mockito.any()))
             .thenReturn(List.of(Path.of("path/1.txt"), Path.of("path/2.txt")));
@@ -340,7 +301,7 @@ class BagInfoCheckerImplTest {
 
     @Test
     void containsNothingElseThan() throws Exception {
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator, xmlValidator);
         var basePath = Path.of("bagdir/metadata");
 
         Mockito.when(fileService.getAllFilesAndDirectories(Mockito.eq(basePath)))
@@ -357,7 +318,7 @@ class BagInfoCheckerImplTest {
 
     @Test
     void containsNothingElseThanButThereAreInvalidFiles() throws Exception {
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator, xmlValidator);
 
         var basePath = Path.of("bagdir/metadata");
 
@@ -399,7 +360,7 @@ class BagInfoCheckerImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator, xmlValidator);
 
         assertDoesNotThrow(() -> {
             checker.ddmContainsUrnNbnIdentifier().validate(Path.of("bagdir"));
@@ -426,7 +387,7 @@ class BagInfoCheckerImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator, xmlValidator);
 
         assertThrows(RuleViolationDetailsException.class, () -> {
             checker.ddmContainsUrnNbnIdentifier().validate(Path.of("bagdir"));
@@ -454,7 +415,7 @@ class BagInfoCheckerImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator, xmlValidator);
 
         assertThrows(RuleViolationDetailsException.class, () -> {
             checker.ddmContainsUrnNbnIdentifier().validate(Path.of("bagdir"));
@@ -481,7 +442,7 @@ class BagInfoCheckerImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator, xmlValidator);
 
         assertDoesNotThrow(() -> checker.ddmDoiIdentifiersAreValid().validate(Path.of("bagdir")));
     }
@@ -506,7 +467,7 @@ class BagInfoCheckerImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator, xmlValidator);
 
         assertThrows(RuleViolationDetailsException.class, () -> checker.ddmDoiIdentifiersAreValid().validate(Path.of("bagdir")));
     }
@@ -537,7 +498,7 @@ class BagInfoCheckerImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator, xmlValidator);
 
         assertDoesNotThrow(() -> checker.ddmDaisAreValid().validate(Path.of("bagdir")));
     }
@@ -568,7 +529,7 @@ class BagInfoCheckerImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator, xmlValidator);
 
         assertThrows(RuleViolationDetailsException.class, () -> checker.ddmDaisAreValid().validate(Path.of("bagdir")));
     }
@@ -617,7 +578,7 @@ class BagInfoCheckerImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator, xmlValidator);
 
         assertDoesNotThrow(() -> checker.ddmGmlPolygonPosListIsWellFormed().validate(Path.of("bagdir")));
     }
@@ -666,7 +627,7 @@ class BagInfoCheckerImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator, xmlValidator);
 
         assertThrows(RuleViolationDetailsException.class, () -> checker.ddmGmlPolygonPosListIsWellFormed().validate(Path.of("bagdir")));
     }
@@ -705,7 +666,7 @@ class BagInfoCheckerImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator, xmlValidator);
 
         assertDoesNotThrow(() -> checker.polygonsInSameMultiSurfaceHaveSameSrsName().validate(Path.of("bagdir")));
     }
@@ -744,7 +705,7 @@ class BagInfoCheckerImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator, xmlValidator);
 
         assertThrows(RuleViolationDetailsException.class,
             () -> checker.polygonsInSameMultiSurfaceHaveSameSrsName().validate(Path.of("bagdir")));
@@ -786,7 +747,7 @@ class BagInfoCheckerImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator, xmlValidator);
 
         assertDoesNotThrow(() -> checker.polygonsInSameMultiSurfaceHaveSameSrsName().validate(Path.of("bagdir")));
     }
@@ -823,7 +784,7 @@ class BagInfoCheckerImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator, xmlValidator);
 
         var exception = assertThrows(RuleViolationDetailsException.class,
             () -> checker.pointsHaveAtLeastTwoValues().validate(Path.of("bagdir")));
@@ -852,7 +813,7 @@ class BagInfoCheckerImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator, xmlValidator);
 
         assertDoesNotThrow(() -> checker.archisIdentifiersHaveAtMost10Characters().validate(Path.of("bagdir")));
     }
@@ -878,7 +839,7 @@ class BagInfoCheckerImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator, xmlValidator);
 
         var exceptions = assertThrows(RuleViolationDetailsException.class,
             () -> checker.archisIdentifiersHaveAtMost10Characters().validate(Path.of("bagdir")));
@@ -947,7 +908,7 @@ class BagInfoCheckerImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator, xmlValidator);
 
         assertDoesNotThrow(() -> checker.allUrlsAreValid().validate(Path.of("bagdir")));
     }
@@ -1004,7 +965,7 @@ class BagInfoCheckerImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator, xmlValidator);
 
         var exceptions = assertThrows(RuleViolationDetailsException.class,
             () -> checker.allUrlsAreValid().validate(Path.of("bagdir")));
@@ -1039,12 +1000,13 @@ class BagInfoCheckerImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator, xmlValidator);
 
         assertDoesNotThrow(() -> checker.ddmMustHaveRightsHolder().validate(Path.of("bagdir")));
 
     }
 
+    @Test
     void ddmMustHaveRightsHolderButItDoesntExist() throws Exception {
         var xml = "<ddm:DDM xmlns:ddm=\"http://easy.dans.knaw.nl/schemas/md/ddm/\"\n"
             + "         xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
@@ -1070,7 +1032,7 @@ class BagInfoCheckerImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator, xmlValidator);
 
         assertThrows(RuleViolationDetailsException.class,
             () -> checker.ddmMustHaveRightsHolder().validate(Path.of("bagdir")));
@@ -1083,128 +1045,190 @@ class BagInfoCheckerImplTest {
             + "<ddm:DDM xmlns:ddm=\"http://easy.dans.knaw.nl/schemas/md/ddm/\" xmlns=\"http://easy.dans.knaw.nl/schemas/bag/metadata/files/\" xmlns:abr=\"http://www.den.nl/standaard/166/Archeologisch-Basisregister/\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:dcterms=\"http://purl.org/dc/terms/\" xmlns:dcx-dai=\"http://easy.dans.knaw.nl/schemas/dcx/dai/\" xmlns:dcx-gml=\"http://easy.dans.knaw.nl/schemas/dcx/gml/\" xmlns:id-type=\"http://easy.dans.knaw.nl/schemas/vocab/identifier-type/\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://easy.dans.knaw.nl/schemas/md/ddm/ https://easy.dans.knaw.nl/schemas/md/ddm/ddm.xsd\">\n"
             + "    <ddm:profile>\n"
             + "        <dc:title>PAN-00008136 - knobbed sickle</dc:title>\n"
-            + "        <dcterms:description xml:lang=\"en\">This find is registered at Portable Antiquities of the Netherlands with number PAN-00008136</dcterms:description>\n"
-            + "        <dcx-dai:creatorDetails>\n"
-            + "            <dcx-dai:organization>\n"
-            + "                <dcx-dai:name xml:lang=\"en\">Portable Antiquities of the Netherlands</dcx-dai:name>\n"
-            + "                <dcx-dai:role>DataCurator</dcx-dai:role>\n"
-            + "            </dcx-dai:organization>\n"
-            + "        </dcx-dai:creatorDetails>\n"
-            + "        <ddm:created>2017-10-23T17:06:11+02:00</ddm:created>\n"
-            + "        <ddm:available>2017-10-23T17:06:11+02:00</ddm:available>\n"
-            + "        <ddm:audience>D37000</ddm:audience>\n"
-            + "        <ddm:accessRights>OPEN_ACCESS</ddm:accessRights>\n"
             + "    </ddm:profile>\n"
-            + "    <ddm:dcmiMetadata>\n"
-            + "        <dcterms:spatial>Overbetuwe</dcterms:spatial>\n"
-            + "        <dcterms:isFormatOf>PAN-00008136</dcterms:isFormatOf>\n"
-            + "        <ddm:references href=\"https://www.portable-antiquities.nl/pan/#/object/public/8136\">Portable Antiquities of The Netherlands</ddm:references>\n"
-            + "        <ddm:references scheme=\"URL\">http://abc.def</ddm:references>\n"
-            + "        <ddm:references scheme=\"DOI\">10.17026/test-123-456</ddm:references>\n"
-            + "        <ddm:references scheme=\"DOI\">https://dx.doi.org/doi:10.17026/test-123-456</ddm:references>\n"
-            + "        <ddm:references scheme=\"DOI\" href=\"https://dx.doi.org/doi:10.17026/test-123-456\">a doi referencing my dataset</ddm:references>\n"
-            + "        <ddm:references scheme=\"DOI\">http://doi.org/10.17026/test-123-456</ddm:references>\n"
-            + "        <ddm:references scheme=\"URN\">urn:uuid:6e8bc430-9c3a-11d9-9669-0800200c9a66()+,-\\.:=@;$_!*'%/?#</ddm:references>\n"
-            + "        <ddm:references scheme=\"id-type:URL\">http://abc.def</ddm:references>\n"
-            + "        <ddm:references scheme=\"id-type:DOI\">10.17026/test-123-456</ddm:references>\n"
-            + "        <ddm:references scheme=\"id-type:DOI\">https://dx.doi.org/doi:10.17026/test-123-456</ddm:references>\n"
-            + "        <ddm:references scheme=\"id-type:DOI\" href=\"https://dx.doi.org/doi:10.17026/test-123-456\">a doi referencing my dataset</ddm:references>\n"
-            + "        <ddm:references scheme=\"id-type:DOI\">http://doi.org/10.17026/test-123-456</ddm:references>\n"
-            + "        <ddm:references scheme=\"id-type:URN\">urn:uuid:6e8bc430-9c3a-11d9-9669-0800200c9a66()+,-\\.:=@;$_!*'%/?#</ddm:references>\n"
-            + "        <ddm:subject schemeURI=\"https://data.cultureelerfgoed.nl/term/id/pan/PAN\" subjectScheme=\"PAN thesaurus ideaaltypes\" valueURI=\"https://data.cultureelerfgoed.nl/term/id/pan/17-01-01\" xml:lang=\"en\">knobbed sickle</ddm:subject>\n"
-            + "        <ddm:subject schemeURI=\"http://vocab.getty.edu/aat/\" subjectScheme=\"Art and Architecture Thesaurus\" valueURI=\"http://vocab.getty.edu/aat/300264860\" xml:lang=\"en\">Unknown</ddm:subject>\n"
-            + "        <dc:subject>metaal</dc:subject>\n"
-            + "        <dc:subject>koperlegering</dc:subject>\n"
-            + "        <dcterms:identifier>PAN-00008136</dcterms:identifier>\n"
-            + "        <dcterms:temporal xsi:type=\"abr:ABRperiode\">BRONSMB</dcterms:temporal>\n"
-            + "        <dcterms:temporal xsi:type=\"abr:ABRperiode\">BRONSL</dcterms:temporal>\n"
-            + "        <dcterms:temporal>-1500 until -800</dcterms:temporal>\n"
-            + "        <dc:language xsi:type=\"dcterms:ISO639-2\">eng</dc:language>\n"
-            + "        <dc:publisher xmlns:dc=\"http://purl.org/dc/terms/\">DANS/KNAW</dc:publisher>\n"
-            + "        <dc:type xsi:type=\"dcterms:DCMIType\" xmlns:dc=\"http://purl.org/dc/terms/\">Dataset</dc:type>\n"
-            + "        <dc:format xsi:type=\"dcterms:IMT\">image/jpeg</dc:format>\n"
-            + "        <dc:format xsi:type=\"dcterms:IMT\">application/xml</dc:format>\n"
-            + "        <dcterms:license xsi:type=\"dcterms:URI\">http://creativecommons.org/licenses/by-nc-sa/4.0/</dcterms:license>\n"
-            + "        <dcterms:rightsHolder>Vrije Universiteit Amsterdam</dcterms:rightsHolder>\n"
-            + "        <dcterms:identifier xsi:type=\"id-type:DOI\">10.1234/fantasy-doi-id</dcterms:identifier>\n"
-            + "        <dcterms:identifier xsi:type=\"id-type:DOI\">10.1234.567/issn-987-654</dcterms:identifier>\n"
-            + "    </ddm:dcmiMetadata>\n"
             + "</ddm:DDM>\n";
-
 
         var document = parseXmlString(xml);
         var reader = Mockito.spy(new BagXmlReaderImpl());
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
+        Mockito.doReturn(new ArrayList<SAXParseException>())
+            .when(xmlValidator).validateDocument(Mockito.any(), Mockito.anyString());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator);
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator, xmlValidator);
 
         assertDoesNotThrow(() -> checker.xmlFileConfirmsToSchema(Path.of("metadata/dataset.xml"), "ddm").validate(Path.of("bagdir")));
     }
+
     @Test
     void xmlFileDoesNotConformToSchema() throws Exception {
 
-        // title is missing from profile
         var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n"
             + "<ddm:DDM xmlns:ddm=\"http://easy.dans.knaw.nl/schemas/md/ddm/\" xmlns=\"http://easy.dans.knaw.nl/schemas/bag/metadata/files/\" xmlns:abr=\"http://www.den.nl/standaard/166/Archeologisch-Basisregister/\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:dcterms=\"http://purl.org/dc/terms/\" xmlns:dcx-dai=\"http://easy.dans.knaw.nl/schemas/dcx/dai/\" xmlns:dcx-gml=\"http://easy.dans.knaw.nl/schemas/dcx/gml/\" xmlns:id-type=\"http://easy.dans.knaw.nl/schemas/vocab/identifier-type/\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://easy.dans.knaw.nl/schemas/md/ddm/ https://easy.dans.knaw.nl/schemas/md/ddm/ddm.xsd\">\n"
             + "    <ddm:profile>\n"
             + "        <dcterms:description xml:lang=\"en\">This find is registered at Portable Antiquities of the Netherlands with number PAN-00008136</dcterms:description>\n"
-            + "        <dcx-dai:creatorDetails>\n"
-            + "            <dcx-dai:organization>\n"
-            + "                <dcx-dai:name xml:lang=\"en\">Portable Antiquities of the Netherlands</dcx-dai:name>\n"
-            + "                <dcx-dai:role>DataCurator</dcx-dai:role>\n"
-            + "            </dcx-dai:organization>\n"
-            + "        </dcx-dai:creatorDetails>\n"
-            + "        <ddm:created>2017-10-23T17:06:11+02:00</ddm:created>\n"
-            + "        <ddm:available>2017-10-23T17:06:11+02:00</ddm:available>\n"
-            + "        <ddm:audience>D37000</ddm:audience>\n"
-            + "        <ddm:accessRights>OPEN_ACCESS</ddm:accessRights>\n"
             + "    </ddm:profile>\n"
-            + "    <ddm:dcmiMetadata>\n"
-            + "        <dcterms:spatial>Overbetuwe</dcterms:spatial>\n"
-            + "        <dcterms:isFormatOf>PAN-00008136</dcterms:isFormatOf>\n"
-            + "        <ddm:references href=\"https://www.portable-antiquities.nl/pan/#/object/public/8136\">Portable Antiquities of The Netherlands</ddm:references>\n"
-            + "        <ddm:references scheme=\"URL\">http://abc.def</ddm:references>\n"
-            + "        <ddm:references scheme=\"DOI\">10.17026/test-123-456</ddm:references>\n"
-            + "        <ddm:references scheme=\"DOI\">https://dx.doi.org/doi:10.17026/test-123-456</ddm:references>\n"
-            + "        <ddm:references scheme=\"DOI\" href=\"https://dx.doi.org/doi:10.17026/test-123-456\">a doi referencing my dataset</ddm:references>\n"
-            + "        <ddm:references scheme=\"DOI\">http://doi.org/10.17026/test-123-456</ddm:references>\n"
-            + "        <ddm:references scheme=\"URN\">urn:uuid:6e8bc430-9c3a-11d9-9669-0800200c9a66()+,-\\.:=@;$_!*'%/?#</ddm:references>\n"
-            + "        <ddm:references scheme=\"id-type:URL\">http://abc.def</ddm:references>\n"
-            + "        <ddm:references scheme=\"id-type:DOI\">10.17026/test-123-456</ddm:references>\n"
-            + "        <ddm:references scheme=\"id-type:DOI\">https://dx.doi.org/doi:10.17026/test-123-456</ddm:references>\n"
-            + "        <ddm:references scheme=\"id-type:DOI\" href=\"https://dx.doi.org/doi:10.17026/test-123-456\">a doi referencing my dataset</ddm:references>\n"
-            + "        <ddm:references scheme=\"id-type:DOI\">http://doi.org/10.17026/test-123-456</ddm:references>\n"
-            + "        <ddm:references scheme=\"id-type:URN\">urn:uuid:6e8bc430-9c3a-11d9-9669-0800200c9a66()+,-\\.:=@;$_!*'%/?#</ddm:references>\n"
-            + "        <ddm:subject schemeURI=\"https://data.cultureelerfgoed.nl/term/id/pan/PAN\" subjectScheme=\"PAN thesaurus ideaaltypes\" valueURI=\"https://data.cultureelerfgoed.nl/term/id/pan/17-01-01\" xml:lang=\"en\">knobbed sickle</ddm:subject>\n"
-            + "        <ddm:subject schemeURI=\"http://vocab.getty.edu/aat/\" subjectScheme=\"Art and Architecture Thesaurus\" valueURI=\"http://vocab.getty.edu/aat/300264860\" xml:lang=\"en\">Unknown</ddm:subject>\n"
-            + "        <dc:subject>metaal</dc:subject>\n"
-            + "        <dc:subject>koperlegering</dc:subject>\n"
-            + "        <dcterms:identifier>PAN-00008136</dcterms:identifier>\n"
-            + "        <dcterms:temporal xsi:type=\"abr:ABRperiode\">BRONSMB</dcterms:temporal>\n"
-            + "        <dcterms:temporal xsi:type=\"abr:ABRperiode\">BRONSL</dcterms:temporal>\n"
-            + "        <dcterms:temporal>-1500 until -800</dcterms:temporal>\n"
-            + "        <dc:language xsi:type=\"dcterms:ISO639-2\">eng</dc:language>\n"
-            + "        <dc:publisher xmlns:dc=\"http://purl.org/dc/terms/\">DANS/KNAW</dc:publisher>\n"
-            + "        <dc:type xsi:type=\"dcterms:DCMIType\" xmlns:dc=\"http://purl.org/dc/terms/\">Dataset</dc:type>\n"
-            + "        <dc:format xsi:type=\"dcterms:IMT\">image/jpeg</dc:format>\n"
-            + "        <dc:format xsi:type=\"dcterms:IMT\">application/xml</dc:format>\n"
-            + "        <dcterms:license xsi:type=\"dcterms:URI\">http://creativecommons.org/licenses/by-nc-sa/4.0/</dcterms:license>\n"
-            + "        <dcterms:rightsHolder>Vrije Universiteit Amsterdam</dcterms:rightsHolder>\n"
-            + "        <dcterms:identifier xsi:type=\"id-type:DOI\">10.1234/fantasy-doi-id</dcterms:identifier>\n"
-            + "        <dcterms:identifier xsi:type=\"id-type:DOI\">10.1234.567/issn-987-654</dcterms:identifier>\n"
-            + "    </ddm:dcmiMetadata>\n"
             + "</ddm:DDM>\n";
-
 
         var document = parseXmlString(xml);
         var reader = Mockito.spy(new BagXmlReaderImpl());
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator);
+        Mockito.doReturn(List.of(new SAXParseException("msg", null)))
+            .when(xmlValidator).validateDocument(Mockito.any(), Mockito.anyString());
+
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator, xmlValidator);
 
         assertThrows(RuleViolationDetailsException.class,
             () -> checker.xmlFileConfirmsToSchema(Path.of("metadata/dataset.xml"), "ddm").validate(Path.of("bagdir")));
+    }
+
+    @Test
+    void filesXmlHasDocumentElementFiles() throws Exception {
+        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
+            + "    <file filepath=\"data/random images/image01.png\">\n"
+            + "        <dcterms:title>The first image</dcterms:title>\n"
+            + "        <dcterms:description>This description will be archived, but not displayed anywhere in the Web-UI</dcterms:description>\n"
+            + "        <dcterms:format>image/png</dcterms:format>\n"
+            + "        <dcterms:created>2016-11-11</dcterms:created>\n"
+            + "    </file>\n"
+            + "</files>\n"
+            + "\n";
+
+        var document = parseXmlString(xml);
+        var reader = Mockito.spy(new BagXmlReaderImpl());
+
+        Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
+
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator, xmlValidator);
+
+        assertDoesNotThrow(() -> checker.filesXmlHasDocumentElementFiles().validate(Path.of("bagdir")));
+
+    }
+
+    @Test
+    void filesXmlDoesNotHaveDocumentElementFiles() throws Exception {
+        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<notfiles xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
+            + "    <file filepath=\"data/random images/image01.png\">\n"
+            + "        <dcterms:title>The first image</dcterms:title>\n"
+            + "        <dcterms:description>This description will be archived, but not displayed anywhere in the Web-UI</dcterms:description>\n"
+            + "        <dcterms:format>image/png</dcterms:format>\n"
+            + "        <dcterms:created>2016-11-11</dcterms:created>\n"
+            + "    </file>\n"
+            + "</notfiles>\n"
+            + "\n";
+
+        var document = parseXmlString(xml);
+        var reader = Mockito.spy(new BagXmlReaderImpl());
+
+        Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
+
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator, xmlValidator);
+
+        var e = assertThrows(RuleViolationDetailsException.class,
+            () -> checker.filesXmlHasDocumentElementFiles().validate(Path.of("bagdir")));
+
+    }
+
+    @Test
+    void filesXmlHasOnlyFiles() throws Exception {
+        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
+            + "    <file filepath=\"data/random images/image01.png\">\n"
+            + "        <dcterms:title>The first image</dcterms:title>\n"
+            + "        <dcterms:description>This description will be archived, but not displayed anywhere in the Web-UI</dcterms:description>\n"
+            + "        <dcterms:format>image/png</dcterms:format>\n"
+            + "        <dcterms:created>2016-11-11</dcterms:created>\n"
+            + "    </file>\n"
+            + "</files>\n"
+            + "\n";
+
+        var document = parseXmlString(xml);
+        var reader = Mockito.spy(new BagXmlReaderImpl());
+
+        Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
+
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator, xmlValidator);
+
+        assertDoesNotThrow(() -> checker.filesXmlHasOnlyFiles().validate(Path.of("bagdir")));
+    }
+
+    @Test
+    void filesXmlHasMoreThanOnlyFiles() throws Exception {
+        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
+            + "    <file filepath=\"data/random images/image01.png\">\n"
+            + "        <dcterms:title>The first image</dcterms:title>\n"
+            + "        <dcterms:description>This description will be archived, but not displayed anywhere in the Web-UI</dcterms:description>\n"
+            + "        <dcterms:format>image/png</dcterms:format>\n"
+            + "        <dcterms:created>2016-11-11</dcterms:created>\n"
+            + "    </file>\n"
+            + "    <path></path>\n"
+            + "</files>\n"
+            + "\n";
+
+        var document = parseXmlString(xml);
+        var reader = Mockito.spy(new BagXmlReaderImpl());
+
+        Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
+
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator, xmlValidator);
+
+        var e = assertThrows(RuleViolationDetailsException.class,
+            () -> checker.filesXmlHasOnlyFiles().validate(Path.of("bagdir")));
+
+        assertTrue(e.getLocalizedMessage().contains("path"));
+    }
+
+    @Test
+    void filesXmlFileElementsAllHaveFilepathAttribute() throws Exception {
+        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
+            + "    <file filepath=\"data/random images/image01.png\">\n"
+            + "        <dcterms:title>The first image</dcterms:title>\n"
+            + "    </file>\n"
+            + "</files>\n"
+            + "\n";
+
+        var document = parseXmlString(xml);
+        var reader = Mockito.spy(new BagXmlReaderImpl());
+
+        Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
+
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator, xmlValidator);
+
+        assertDoesNotThrow(() -> checker.filesXmlFileElementsAllHaveFilepathAttribute().validate(Path.of("bagdir")));
+    }
+
+    @Test
+    void filesXmlFileElementsAllHaveFilepathAttributeButNotALl() throws Exception {
+        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
+            + "    <file filepath=\"data/random images/image01.png\">\n"
+            + "        <dcterms:title>The first image</dcterms:title>\n"
+            + "    </file>\n"
+            + "    <file>\n"
+            + "        <dcterms:title>The first image</dcterms:title>\n"
+            + "    </file>\n"
+            + "    <file filepath=\"\">\n"
+            + "        <dcterms:title>The first image</dcterms:title>\n"
+            + "    </file>\n"
+            + "</files>\n"
+            + "\n";
+
+        var document = parseXmlString(xml);
+        var reader = Mockito.spy(new BagXmlReaderImpl());
+
+        Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
+
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator, xmlValidator);
+
+        var e = assertThrows(RuleViolationDetailsException.class,
+            () -> checker.filesXmlFileElementsAllHaveFilepathAttribute().validate(Path.of("bagdir")));
+
+        assertTrue(e.getLocalizedMessage().startsWith("2"));
     }
 }

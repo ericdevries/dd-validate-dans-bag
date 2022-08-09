@@ -15,22 +15,14 @@
  */
 package nl.knaw.dans.validatedansbag.core.service;
 
-import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
 
-import javax.xml.namespace.QName;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.xpath.XPathExpressionException;
 import java.io.IOException;
-import java.nio.file.Path;
+import java.util.List;
 
-public interface BagXmlReader {
+public interface XmlValidator {
 
-    Document readXmlFile(Path path) throws ParserConfigurationException, IOException, SAXException;
-
-    Document readXmlString(String str) throws ParserConfigurationException, IOException, SAXException;
-
-    Object evaluateXpath(Node node, String expr, QName type) throws XPathExpressionException;
-
+    List<SAXParseException> validateDocument(Node node, String schema) throws IOException, SAXException;
 }

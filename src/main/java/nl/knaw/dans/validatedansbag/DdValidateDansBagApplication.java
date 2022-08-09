@@ -27,7 +27,10 @@ import nl.knaw.dans.validatedansbag.core.service.FileServiceImpl;
 import nl.knaw.dans.validatedansbag.core.service.NumberedRule;
 import nl.knaw.dans.validatedansbag.core.service.PolygonListValidatorImpl;
 import nl.knaw.dans.validatedansbag.core.service.RuleEngineImpl;
+import nl.knaw.dans.validatedansbag.core.service.XmlValidatorImpl;
+import org.xml.sax.SAXException;
 
+import java.net.MalformedURLException;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -48,7 +51,7 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
     }
 
     @Override
-    public void run(final DdValidateDansBagConfiguration configuration, final Environment environment) {
+    public void run(final DdValidateDansBagConfiguration configuration, final Environment environment) throws MalformedURLException, SAXException {
 
         var fileService = new FileServiceImpl();
         var bagItMetadataReader = new BagItMetadataReaderImpl();
@@ -56,8 +59,9 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
         var daiDigestCalculator = new DaiDigestCalculatorImpl();
         var polygonListValidator = new PolygonListValidatorImpl();
 
-        var validator = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator);
+        var xmlValidator = new XmlValidatorImpl();
 
+        var validator = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator, xmlValidator);
 
         var rules = new NumberedRule[] {
             // validity
@@ -104,7 +108,7 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
 
             new NumberedRule("3.1.1", validator.xmlFileConfirmsToSchema(Path.of("metadata/dataset.xml"), "ddm"), List.of("2.2(a)")),
             // TODO figure this one out
-//            new NumberedRule("3.1.2", validator.ddmMayContainDctermsLicenseFromList(allowedLicences), List.of("3.1.1")),
+            //            new NumberedRule("3.1.2", validator.ddmMayContainDctermsLicenseFromList(allowedLicences), List.of("3.1.1")),
             new NumberedRule("3.1.3(a)", validator.ddmContainsUrnNbnIdentifier(), List.of("3.1.1")),
             new NumberedRule("3.1.3(b)", validator.ddmDoiIdentifiersAreValid(), List.of("3.1.1")),
             new NumberedRule("3.1.4", validator.ddmDaisAreValid(), List.of("3.1.1")),
@@ -115,22 +119,11 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
             new NumberedRule("3.1.9", validator.allUrlsAreValid(), List.of("3.1.1")),
             new NumberedRule("3.1.10", validator.ddmMustHaveRightsHolder(), List.of("3.1.1")),
 
-            new NumberedRule("3.2.4", validator.ddmMustHaveRightsHolder(), List.of("3.1.1"))
-            /*
-                // dataset.xml
-     NumberedRule("3.1.1", xmlFileConformsToSchema(Paths.get("metadata/dataset.xml"), "DANS dataset metadata schema", xmlValidators("dataset.xml")), dependsOn = List("2.2(a)")),
-     NumberedRule("3.1.2", ddmMayContainDctermsLicenseFromList(allowedLicences), dependsOn = List("3.1.1")),
-     NumberedRule("3.1.3(a)", ddmContainsUrnNbnIdentifier, AIP, dependsOn = List("3.1.1")),
-     NumberedRule("3.1.3(b)", ddmDoiIdentifiersAreValid, dependsOn = List("3.1.1")),
-     NumberedRule("3.1.4", ddmDaisAreValid, dependsOn = List("3.1.1")),
-     NumberedRule("3.1.5", ddmGmlPolygonPosListIsWellFormed, dependsOn = List("3.1.1")),
-     NumberedRule("3.1.6", polygonsInSameMultiSurfaceHaveSameSrsName, dependsOn = List("3.1.1")),
-     NumberedRule("3.1.7", pointsHaveAtLeastTwoValues, dependsOn = List("3.1.1")),
-     NumberedRule("3.1.8", archisIdentifiersHaveAtMost10Characters, dependsOn = List("3.1.1")),
-     NumberedRule("3.1.9", allUrlsAreValid, dependsOn = List("3.1.1")),
-     NumberedRule("3.1.10", ddmMustHaveRightsHolder, dependsOn = List("3.1.1")),
-
-             */
+            new NumberedRule("3.2.1", validator.xmlFileConfirmsToSchema(Path.of("metadata/files.xml"), "files.xml"), List.of("3.1.1")),
+            new NumberedRule("3.2.2", validator.filesXmlHasDocumentElementFiles(), List.of("2.2(b)")),
+            new NumberedRule("3.2.3", validator.filesXmlHasOnlyFiles(), List.of("3.2.2")),
+            new NumberedRule("3.2.4", validator.filesXmlFileElementsAllHaveFilepathAttribute(), List.of("3.2.3")),
+            new NumberedRule("3.2.5", validator.filesXmlNoDuplicatesAndMatchesWithPayloadPlusPreStagedFiles(), List.of("1.1.1(datadir)", "3.2.4")),
         };
 
         var path = Path.of("/home/eric/workspace/dd-validate-dans-bag/src/test/resources/audiences");

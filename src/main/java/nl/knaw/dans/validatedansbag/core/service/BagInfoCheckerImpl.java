@@ -60,13 +60,18 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
 
     private final PolygonListValidator polygonListValidator;
 
+    private final XmlValidator xmlValidator;
+
+    private final String filesXmlNamespace = "http://easy.dans.knaw.nl/schemas/bag/metadata/files/";
+
     public BagInfoCheckerImpl(FileService fileService, BagItMetadataReader bagItMetadataReader, BagXmlReader bagXmlReader, DaiDigestCalculator daiDigestCalculator,
-        PolygonListValidator polygonListValidator) {
+        PolygonListValidator polygonListValidator, XmlValidator xmlValidator) {
         this.fileService = fileService;
         this.bagItMetadataReader = bagItMetadataReader;
         this.bagXmlReader = bagXmlReader;
         this.daiDigestCalculator = daiDigestCalculator;
         this.polygonListValidator = polygonListValidator;
+        this.xmlValidator = xmlValidator;
     }
 
     @Override
@@ -724,7 +729,7 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
 
             try {
                 var document = bagXmlReader.readXmlFile(path.resolve(file));
-                var results = bagXmlReader.validateXmlWithSchema(document, "ddm");
+                var results = xmlValidator.validateDocument(document, schema);
 
                 if (results.size() > 0) {
                     // TODO see how we can get all the errors in there
@@ -732,11 +737,96 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
                         "%s does not confirm to %s", file, schema
                     ));
                 }
-            } catch (Exception e) {
+            }
+            catch (Exception e) {
                 throw new RuleViolationDetailsException(String.format(
                     "%s does not confirm to %s", file, schema
                 ), e);
             }
         };
+    }
+
+    @Override
+    public BagValidatorRule filesXmlHasDocumentElementFiles() {
+        return (path) -> {
+            try {
+                var document = bagXmlReader.readXmlFile(path.resolve("metadata/files.xml"));
+                var rootNode = document.getDocumentElement();
+
+                if (rootNode == null || !"files".equals(rootNode.getNodeName())) {
+                    throw new RuleViolationDetailsException("files.xml document element must be 'files'");
+                }
+            }
+            catch (Exception e) {
+                throw new RuleViolationDetailsException("Error reading files.xml", e);
+            }
+        };
+    }
+
+    @Override
+    public BagValidatorRule filesXmlHasOnlyFiles() {
+        return (path) -> {
+            try {
+                var document = bagXmlReader.readXmlFile(path.resolve("metadata/files.xml"));
+                var namespace = document.getNamespaceURI();
+
+                if (filesXmlNamespace.equals(namespace)) {
+                    log.debug("Rule filesXmlHasOnlyFiles has been checked by files.xsd");
+                }
+                else {
+                    var nonFiles = xpathToStream(document, "/files/*[local-name() != 'file']")
+                        .collect(Collectors.toList());
+
+                    if (!nonFiles.isEmpty()) {
+                        var nodeNames = nonFiles.stream().map(Node::getNodeName).collect(Collectors.joining(", "));
+
+                        throw new RuleViolationDetailsException(String.format(
+                            "Files.xml children of document element must only be 'file'. Found non-file elements: %s", nodeNames
+                        ));
+                    }
+                }
+
+                var rootNode = document.getDocumentElement();
+
+                if (rootNode == null || !"files".equals(rootNode.getNodeName())) {
+                    throw new RuleViolationDetailsException("files.xml document element must be 'files'");
+                }
+            }
+            catch (Exception e) {
+                throw new RuleViolationDetailsException("Error reading files.xml", e);
+            }
+        };
+    }
+
+    @Override
+    public BagValidatorRule filesXmlFileElementsAllHaveFilepathAttribute() {
+        return (path) -> {
+            try {
+                var document = bagXmlReader.readXmlFile(path.resolve("metadata/files.xml"));
+
+                var missingAttributes = xpathToStream(document, "/files/file")
+                    .filter(node -> {
+                        var attributes = node.getAttributes();
+                        var attr = attributes.getNamedItem("filepath");
+
+                        return attr == null || attr.getTextContent().isEmpty();
+                    })
+                    .collect(Collectors.toList());
+
+                if (!missingAttributes.isEmpty()) {
+                    throw new RuleViolationDetailsException(String.format(
+                        "%s 'file' element(s) don't have a 'filepath' attribute", missingAttributes.size()
+                    ));
+                }
+            }
+            catch (Exception e) {
+                throw new RuleViolationDetailsException("Error reading files.xml", e);
+            }
+        };
+    }
+
+    @Override
+    public BagValidatorRule filesXmlNoDuplicatesAndMatchesWithPayloadPlusPreStagedFiles() {
+        return null;
     }
 }
