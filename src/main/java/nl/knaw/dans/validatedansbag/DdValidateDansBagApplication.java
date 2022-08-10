@@ -106,9 +106,8 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
             new NumberedRule("2.7.1", validator.optionalFileIsUtf8Decodable(Path.of("original-filepaths.txt"))),
             new NumberedRule("2.7.2", validator.isOriginalFilepathsFileComplete(), List.of("1.1.1(datadir)", "2.7.1", "2.2(b)", "3.2.4")),
 
-            new NumberedRule("3.1.1", validator.xmlFileConfirmsToSchema(Path.of("metadata/dataset.xml"), "ddm"), List.of("2.2(a)")),
-            // TODO figure this one out
-            //            new NumberedRule("3.1.2", validator.ddmMayContainDctermsLicenseFromList(allowedLicences), List.of("3.1.1")),
+            new NumberedRule("3.1.1", validator.xmlFileConfirmsToSchema(Path.of("metadata/dataset.xml"), "dataset.xml"), List.of("2.2(a)")),
+            new NumberedRule("3.1.2", validator.ddmMayContainDctermsLicenseFromList(), List.of("3.1.1")),
             new NumberedRule("3.1.3(a)", validator.ddmContainsUrnNbnIdentifier(), List.of("3.1.1")),
             new NumberedRule("3.1.3(b)", validator.ddmDoiIdentifiersAreValid(), List.of("3.1.1")),
             new NumberedRule("3.1.4", validator.ddmDaisAreValid(), List.of("3.1.1")),
@@ -124,9 +123,25 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
             new NumberedRule("3.2.3", validator.filesXmlHasOnlyFiles(), List.of("3.2.2")),
             new NumberedRule("3.2.4", validator.filesXmlFileElementsAllHaveFilepathAttribute(), List.of("3.2.3")),
             new NumberedRule("3.2.5", validator.filesXmlNoDuplicatesAndMatchesWithPayloadPlusPreStagedFiles(), List.of("1.1.1(datadir)", "3.2.4")),
+
+            new NumberedRule("3.2.6", validator.filesXmlAllFilesHaveFormat(), List.of("3.2.2")),
+            new NumberedRule("3.2.7", validator.filesXmlFilesHaveOnlyAllowedNamespaces(), List.of("3.2.2")),
+            new NumberedRule("3.2.8", validator.filesXmlFilesHaveOnlyAllowedAccessRights(), List.of("3.2.2")),
+
+            // agreements.xml
+            new NumberedRule("3.3.1", validator.xmlFileIfExistsConformsToSchema(Path.of("metadata/depositor-info/agreements.xml"), "agreements.xml")),
+
+            // amd.xml
+            new NumberedRule("3.6.1", validator.xmlFileIfExistsConformsToSchema(Path.of("metadata/amd.xml"), "amd.xml")),
+
+            // emd.xml
+            new NumberedRule("3.7.1", validator.xmlFileIfExistsConformsToSchema(Path.of("metadata/emd.xml"), "emd.xml")),
+
+            // provenance.xml
+            new NumberedRule("3.8.1", validator.xmlFileIfExistsConformsToSchema(Path.of("metadata/provenance.xml"), "provenance.xml")),
         };
 
-        var path = Path.of("/home/eric/workspace/dd-validate-dans-bag/src/test/resources/audiences");
+        var path = Path.of("/home/eric/workspace/dd-validate-dans-bag/src/test/resources/valid-bag");
 
         var engine = new RuleEngineImpl();
         var result = engine.validateRules(path, rules);

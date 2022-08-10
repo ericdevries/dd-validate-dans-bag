@@ -1231,4 +1231,305 @@ class BagInfoCheckerImplTest {
 
         assertTrue(e.getLocalizedMessage().startsWith("2"));
     }
+
+    @Test
+    void filesXmlNoDuplicatesAndMatchesWithPayloadPlusPreStagedFiles() throws Exception {
+
+        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
+            + "    <file filepath=\"data/random images/image01.png\">\n"
+            + "        <dcterms:title>The first image</dcterms:title>\n"
+            + "    </file>\n"
+            + "    <file filepath=\"data/random images/image02.png\">\n"
+            + "        <dcterms:title>The first image</dcterms:title>\n"
+            + "    </file>\n"
+            + "    <file filepath=\"data/random images/image03.png\">\n"
+            + "        <dcterms:title>The first image</dcterms:title>\n"
+            + "    </file>\n"
+            + "</files>\n"
+            + "\n";
+
+        var document = parseXmlString(xml);
+        var reader = Mockito.spy(new BagXmlReaderImpl());
+
+        var files = List.of(
+            Path.of("bagdir/data/random images/image01.png"),
+            Path.of("bagdir/data/random images/image02.png"),
+            Path.of("bagdir/data/random images/image03.png")
+        );
+        Mockito.doReturn(files).when(fileService).getAllFiles(Mockito.any());
+
+        Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
+
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator, xmlValidator);
+
+        assertDoesNotThrow(() -> checker.filesXmlNoDuplicatesAndMatchesWithPayloadPlusPreStagedFiles().validate(Path.of("bagdir")));
+    }
+
+    @Test
+    void filesXmlNoDuplicatesAndMatchesWithPayloadPlusPreStagedFilesWithNamespace() throws Exception {
+
+        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<files xmlns=\"http://easy.dans.knaw.nl/schemas/bag/metadata/files/\" xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
+            + "    <file filepath=\"data/random images/image01.png\">\n"
+            + "        <dcterms:title>The first image</dcterms:title>\n"
+            + "    </file>\n"
+            + "    <file filepath=\"data/random images/image02.png\">\n"
+            + "        <dcterms:title>The first image</dcterms:title>\n"
+            + "    </file>\n"
+            + "    <file filepath=\"data/random images/image03.png\">\n"
+            + "        <dcterms:title>The first image</dcterms:title>\n"
+            + "    </file>\n"
+            + "</files>\n"
+            + "\n";
+
+        var document = parseXmlString(xml);
+        var reader = Mockito.spy(new BagXmlReaderImpl());
+
+        var files = List.of(
+            Path.of("bagdir/data/random images/image01.png"),
+            Path.of("bagdir/data/random images/image02.png"),
+            Path.of("bagdir/data/random images/image03.png")
+        );
+        Mockito.doReturn(files).when(fileService).getAllFiles(Mockito.any());
+        Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
+
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator, xmlValidator);
+
+        assertDoesNotThrow(() -> checker.filesXmlNoDuplicatesAndMatchesWithPayloadPlusPreStagedFiles().validate(Path.of("bagdir")));
+    }
+
+    @Test
+    void filesXmlNoDuplicatesAndMatchesWithPayloadPlusPreStagedFilesWithErrors() throws Exception {
+
+        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
+            + "    <file filepath=\"data/random images/image01.png\">\n"
+            + "        <dcterms:title>The first image</dcterms:title>\n"
+            + "    </file>\n"
+            + "    <file filepath=\"data/random images/image02.png\">\n"
+            + "        <dcterms:title>The first image</dcterms:title>\n"
+            + "    </file>\n"
+            + "    <file filepath=\"data/random images/image03.png\">\n"
+            + "        <dcterms:title>The first image</dcterms:title>\n"
+            + "    </file>\n"
+            + "</files>\n"
+            + "\n";
+
+        var document = parseXmlString(xml);
+        var reader = Mockito.spy(new BagXmlReaderImpl());
+
+        var files = List.of(
+            Path.of("data/random images/image01.png"),
+            Path.of("data/random images/image02.png"),
+            Path.of("data/random images/image04.png")
+        );
+        Mockito.doReturn(files).when(fileService).getAllFiles(Mockito.any());
+
+        Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
+
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator, xmlValidator);
+
+        var e = assertThrows(RuleViolationDetailsException.class,
+            () -> checker.filesXmlNoDuplicatesAndMatchesWithPayloadPlusPreStagedFiles().validate(Path.of("bagdir")));
+
+        assertTrue(e.getLocalizedMessage().contains("image03.png"));
+        assertTrue(e.getLocalizedMessage().contains("image04.png"));
+    }
+
+    @Test
+    void filesXmlAllFilesHaveFormat() throws Exception {
+        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
+            + "    <file filepath=\"data/random images/image01.png\">\n"
+            + "        <dcterms:title>The first image</dcterms:title>\n"
+            + "        <dcterms:description>This description will be archived, but not displayed anywhere in the Web-UI</dcterms:description>\n"
+            + "        <dcterms:format>image/png</dcterms:format>\n"
+            + "        <dcterms:created>2016-11-11</dcterms:created>\n"
+            + "    </file>\n"
+            + "    <file filepath=\"data/random images/image02.jpeg\">\n"
+            + "        <dcterms:format>image/jpeg</dcterms:format>\n"
+            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
+            + "    </file>\n"
+            + "    <file filepath=\"data/random images/image03.jpeg\">\n"
+            + "        <dcterms:format>image/jpeg</dcterms:format>\n"
+            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
+            + "    </file>\n"
+            + "    <file filepath=\"data/a/deeper/path/With some file.txt\">\n"
+            + "        <dcterms:format>text/plain</dcterms:format>\n"
+            + "        <dcterms:created>2016-11-09</dcterms:created>\n"
+            + "    </file>\n"
+            + "</files>\n"
+            + "\n";
+        var document = parseXmlString(xml);
+        var reader = Mockito.spy(new BagXmlReaderImpl());
+        Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
+
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator, xmlValidator);
+
+        assertDoesNotThrow(() -> checker.filesXmlAllFilesHaveFormat().validate(Path.of("bagdir")));
+    }
+
+    @Test
+    void filesXmlAllFilesHaveFormatButSomeDont() throws Exception {
+        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
+            + "    <file filepath=\"data/random images/image01.png\">\n"
+            + "        <dcterms:title>The first image</dcterms:title>\n"
+            + "        <dcterms:description>This description will be archived, but not displayed anywhere in the Web-UI</dcterms:description>\n"
+            + "        <dcterms:format>image/png</dcterms:format>\n"
+            + "        <dcterms:created>2016-11-11</dcterms:created>\n"
+            + "    </file>\n"
+            + "    <file filepath=\"data/random images/image02.jpeg\">\n"
+            + "        <dcterms:format>image/jpeg</dcterms:format>\n"
+            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
+            + "    </file>\n"
+            + "    <file filepath=\"data/random images/image03.jpeg\">\n"
+            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
+            + "    </file>\n"
+            + "    <file filepath=\"data/a/deeper/path/With some file.txt\">\n"
+            + "        <dcterms:format>text/plain</dcterms:format>\n"
+            + "        <dcterms:created>2016-11-09</dcterms:created>\n"
+            + "    </file>\n"
+            + "</files>\n"
+            + "\n";
+        var document = parseXmlString(xml);
+        var reader = Mockito.spy(new BagXmlReaderImpl());
+        Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
+
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator, xmlValidator);
+
+        assertThrows(RuleViolationDetailsException.class,
+            () -> checker.filesXmlAllFilesHaveFormat().validate(Path.of("bagdir")));
+    }
+
+    @Test
+    void filesXmlFilesHaveOnlyAllowedNamespaces() throws Exception {
+        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\" xmlns:something=\"http://dans.knaw.nl/\">\n"
+            + "    <file filepath=\"data/random images/image01.png\">\n"
+            + "        <dcterms:title>The first image</dcterms:title>\n"
+            + "        <dcterms:description>This description will be archived, but not displayed anywhere in the Web-UI</dcterms:description>\n"
+            + "        <dcterms:format>image/png</dcterms:format>\n"
+            + "        <dcterms:created>2016-11-11</dcterms:created>\n"
+            + "    </file>\n"
+            + "    <file filepath=\"data/random images/image02.jpeg\">\n"
+            + "        <dcterms:format>image/jpeg</dcterms:format>\n"
+            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
+            + "    </file>\n"
+            + "    <file filepath=\"data/random images/image03.jpeg\">\n"
+            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
+            + "    </file>\n"
+            + "    <file filepath=\"data/a/deeper/path/With some file.txt\">\n"
+            + "        <dcterms:format>text/plain</dcterms:format>\n"
+            + "        <dcterms:created>2016-11-09</dcterms:created>\n"
+            + "    </file>\n"
+            + "</files>\n"
+            + "\n";
+        var document = parseXmlString(xml);
+        var reader = Mockito.spy(new BagXmlReaderImpl());
+        Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
+
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator, xmlValidator);
+
+        assertDoesNotThrow(() -> checker.filesXmlFilesHaveOnlyAllowedNamespaces().validate(Path.of("bagdir")));
+    }
+
+    @Test
+    void filesXmlFilesHaveOnlyAllowedNamespacesButOneIsDifferent() throws Exception {
+        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\" xmlns:something=\"http://dans.knaw.nl/\">\n"
+            + "    <file filepath=\"data/random images/image01.png\">\n"
+            + "        <dcterms:title>The first image</dcterms:title>\n"
+            + "        <dcterms:description>This description will be archived, but not displayed anywhere in the Web-UI</dcterms:description>\n"
+            + "        <dcterms:format>image/png</dcterms:format>\n"
+            + "        <dcterms:created>2016-11-11</dcterms:created>\n"
+            + "    </file>\n"
+            + "    <file filepath=\"data/random images/image02.jpeg\">\n"
+            + "        <something:format>image/jpeg</something:format>\n"
+            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
+            + "    </file>\n"
+            + "    <file filepath=\"data/random images/image03.jpeg\">\n"
+            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
+            + "    </file>\n"
+            + "    <file filepath=\"data/a/deeper/path/With some file.txt\">\n"
+            + "        <dcterms:format>text/plain</dcterms:format>\n"
+            + "        <dcterms:created>2016-11-09</dcterms:created>\n"
+            + "    </file>\n"
+            + "</files>\n"
+            + "\n";
+        var document = parseXmlString(xml);
+        var reader = Mockito.spy(new BagXmlReaderImpl());
+        Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
+
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator, xmlValidator);
+
+        assertThrows(RuleViolationDetailsException.class,
+            () -> checker.filesXmlFilesHaveOnlyAllowedNamespaces().validate(Path.of("bagdir")));
+    }
+
+    @Test
+    void filesXmlFilesHaveOnlyAllowedAccessRights() throws Exception {
+        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
+            + "    <file filepath=\"data/random images/image01.png\">\n"
+            + "        <dcterms:title>The first image</dcterms:title>\n"
+            + "        <dcterms:description>This description will be archived, but not displayed anywhere in the Web-UI</dcterms:description>\n"
+            + "        <dcterms:format>image/png</dcterms:format>\n"
+            + "        <dcterms:created>2016-11-11</dcterms:created>\n"
+            + "    </file>\n"
+            + "    <file filepath=\"data/random images/image02.jpeg\">\n"
+            + "        <dcterms:format>image/jpeg</dcterms:format>\n"
+            + "        <dcterms:accessRights>ANONYMOUS</dcterms:accessRights>\n"
+            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
+            + "    </file>\n"
+            + "    <file filepath=\"data/random images/image03.jpeg\">\n"
+            + "        <dcterms:format>image/jpeg</dcterms:format>\n"
+            + "        <dcterms:accessRights>RESTRICTED_REQUEST</dcterms:accessRights>\n"
+            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
+            + "    </file>\n"
+            + "    <file filepath=\"data/random images/image04.jpeg\">\n"
+            + "        <dcterms:format>image/jpeg</dcterms:format>\n"
+            + "        <dcterms:accessRights>NONE</dcterms:accessRights>\n"
+            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
+            + "    </file>\n"
+            + "</files>\n"
+            + "\n";
+        var document = parseXmlString(xml);
+        var reader = Mockito.spy(new BagXmlReaderImpl());
+        Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
+
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator, xmlValidator);
+
+        assertDoesNotThrow(() -> checker.filesXmlFilesHaveOnlyAllowedAccessRights().validate(Path.of("bagdir")));
+    }
+
+    @Test
+    void filesXmlFilesHaveOnlyAllowedAccessRightsButOneIsIncorrected() throws Exception {
+        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
+            + "    <file filepath=\"data/random images/image01.png\">\n"
+            + "        <dcterms:title>The first image</dcterms:title>\n"
+            + "        <dcterms:description>This description will be archived, but not displayed anywhere in the Web-UI</dcterms:description>\n"
+            + "        <dcterms:format>image/png</dcterms:format>\n"
+            + "        <dcterms:created>2016-11-11</dcterms:created>\n"
+            + "    </file>\n"
+            + "    <file filepath=\"data/random images/image02.jpeg\">\n"
+            + "        <dcterms:format>image/jpeg</dcterms:format>\n"
+            + "        <dcterms:accessRights>WRONG_VALUE</dcterms:accessRights>\n"
+            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
+            + "    </file>\n"
+            + "</files>\n"
+            + "\n";
+        var document = parseXmlString(xml);
+        var reader = Mockito.spy(new BagXmlReaderImpl());
+        Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
+
+        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, daiDigestCalculator, polygonListValidator, xmlValidator);
+
+        var e = assertThrows(RuleViolationDetailsException.class,
+            () -> checker.filesXmlFilesHaveOnlyAllowedAccessRights().validate(Path.of("bagdir")));
+
+        assertTrue(e.getExceptions().get(0).getLocalizedMessage().contains("WRONG_VALUE"));
+    }
 }

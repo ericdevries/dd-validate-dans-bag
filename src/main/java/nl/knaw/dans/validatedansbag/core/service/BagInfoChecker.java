@@ -16,6 +16,7 @@
 package nl.knaw.dans.validatedansbag.core.service;
 
 import java.nio.file.Path;
+import java.util.List;
 
 public interface BagInfoChecker {
 
@@ -43,6 +44,8 @@ public interface BagInfoChecker {
 
     BagValidatorRule isOriginalFilepathsFileComplete();
 
+    BagValidatorRule ddmMayContainDctermsLicenseFromList();
+
     BagValidatorRule ddmContainsUrnNbnIdentifier();
 
     BagValidatorRule ddmDoiIdentifiersAreValid();
@@ -63,6 +66,8 @@ public interface BagInfoChecker {
 
     BagValidatorRule xmlFileConfirmsToSchema(Path file, String schema);
 
+    BagValidatorRule xmlFileIfExistsConformsToSchema(Path file, String schema);
+
     BagValidatorRule filesXmlHasDocumentElementFiles();
 
     BagValidatorRule filesXmlHasOnlyFiles();
@@ -70,4 +75,11 @@ public interface BagInfoChecker {
     BagValidatorRule filesXmlFileElementsAllHaveFilepathAttribute();
 
     BagValidatorRule filesXmlNoDuplicatesAndMatchesWithPayloadPlusPreStagedFiles();
+
+    BagValidatorRule filesXmlAllFilesHaveFormat();
+
+    BagValidatorRule filesXmlFilesHaveOnlyAllowedNamespaces();
+
+    BagValidatorRule filesXmlFilesHaveOnlyAllowedAccessRights();
+
 }

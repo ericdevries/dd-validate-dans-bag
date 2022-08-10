@@ -16,6 +16,7 @@
 package nl.knaw.dans.validatedansbag.core.service;
 
 import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms;
+import org.apache.commons.collections4.CollectionUtils;
 import org.joda.time.DateTime;
 import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
@@ -35,7 +36,9 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -63,6 +66,43 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
     private final XmlValidator xmlValidator;
 
     private final String filesXmlNamespace = "http://easy.dans.knaw.nl/schemas/bag/metadata/files/";
+
+    private final String namespaceDcterms = "http://purl.org/dc/terms/";
+    private final Set<String> allowedFilesXmlNamespaces = Set.of(
+        "http://purl.org/dc/terms/",
+        "http://purl.org/dc/elements/1.1/"
+    );
+    private final Set<String> validLicenses = Set.of(
+        "http://creativecommons.org/licenses/by-nc-nd/4.0/",
+        "http://creativecommons.org/licenses/by-nc-sa/3.0",
+        "http://creativecommons.org/licenses/by-nc-sa/4.0/",
+        "http://creativecommons.org/licenses/by-nc/3.0",
+        "http://creativecommons.org/licenses/by-nc/4.0/",
+        "http://creativecommons.org/licenses/by-nd/4.0/",
+        "http://creativecommons.org/licenses/by-sa/4.0/",
+        "http://creativecommons.org/licenses/by/4.0",
+        "http://creativecommons.org/publicdomain/zero/1.0",
+        "http://opendatacommons.org/licenses/by/1-0/index.html",
+        "http://opensource.org/licenses/BSD-2-Clause",
+        "http://opensource.org/licenses/BSD-3-Clause",
+        "http://opensource.org/licenses/MIT",
+        "http://www.apache.org/licenses/LICENSE-2.0",
+        "http://www.cecill.info/licences/Licence_CeCILL-B_V1-en.html",
+        "http://www.cecill.info/licences/Licence_CeCILL_V2-en.html",
+        "http://www.gnu.org/licenses/gpl-3.0.en.html",
+        "http://www.gnu.org/licenses/lgpl-3.0.txt",
+        "http://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html",
+        "http://www.mozilla.org/en-US/MPL/2.0/FAQ/",
+        "http://www.ohwr.org/attachments/2388/cern_ohl_v_1_2.txt",
+        "http://www.ohwr.org/attachments/735/CERNOHLv1_1.txt",
+        "http://www.ohwr.org/projects/cernohl/wiki",
+        "http://www.tapr.org/TAPR_Open_Hardware_License_v1.0.txt",
+        "http://www.tapr.org/ohl.html",
+        "http://dans.knaw.nl/en/about/organisation-and-policy/legal-information/DANSGeneralconditionsofuseUKDEF.pdf",
+        "http://dans.knaw.nl/en/about/organisation-and-policy/legal-information/DANSLicence.pdf"
+    );
+
+    private final Set<String> allowedAccessRights = Set.of("ANONYMOUS", "RESTRICTED_REQUEST", "NONE");
 
     public BagInfoCheckerImpl(FileService fileService, BagItMetadataReader bagItMetadataReader, BagXmlReader bagXmlReader, DaiDigestCalculator daiDigestCalculator,
         PolygonListValidator polygonListValidator, XmlValidator xmlValidator) {
@@ -310,6 +350,43 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
     }
 
     @Override
+    public BagValidatorRule ddmMayContainDctermsLicenseFromList() {
+        return (path) -> {
+            try {
+                var document = bagXmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
+                var expr = "//ddm:dcmiMetadata/dcterms:license[@xsi:type]";
+
+                var nodes = xpathToStream(document, expr).collect(Collectors.toList());
+
+                if (nodes.size() == 0) {
+                    throw new RuleViolationDetailsException("No licenses found");
+                }
+
+                var node = nodes.get(0);
+                var license = nodes.get(0).getTextContent();
+                var attr = node.getAttributes().getNamedItem("xsi:type").getTextContent();
+
+                var prefix = document.lookupPrefix(namespaceDcterms);
+                if (!attr.equals(String.format("%s:URI", prefix))) {
+                    throw new RuleViolationDetailsException("No license with xsi:type=\"dcterms:URI\"");
+                }
+
+                var licenses = validLicenses.stream().map(l -> l.replaceAll("/+$", "")).collect(Collectors.toSet());
+
+                if (!licenses.contains(license)) {
+                    throw new RuleViolationDetailsException(String.format(
+                        "Found unknown or unsupported license: %s", license
+                    ));
+                }
+            }
+            catch (Exception e) {
+                log.error("Error reading ddm file", e);
+                throw new RuleViolationDetailsException("Unexpected exception occurred while processing", e);
+            }
+        };
+    }
+
+    @Override
     public BagValidatorRule ddmContainsUrnNbnIdentifier() {
         return (path) -> {
             try {
@@ -324,6 +401,7 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
                     .orElseThrow(() -> new RuleViolationDetailsException("URN:NBN identifier is missing"));
             }
             catch (Exception e) {
+                log.error("Error reading ddm file", e);
                 throw new RuleViolationDetailsException("Unexpected exception occurred while processing", e);
             }
         };
@@ -732,13 +810,52 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
                 var results = xmlValidator.validateDocument(document, schema);
 
                 if (results.size() > 0) {
+                    var errorList = results.stream()
+                        .map(Throwable::getLocalizedMessage)
+                        .map(e -> String.format(" - %s", e))
+                        .collect(Collectors.joining("\n"));
+
                     // TODO see how we can get all the errors in there
                     throw new RuleViolationDetailsException(String.format(
-                        "%s does not confirm to %s", file, schema
+                        "%s does not confirm to %s: \n%s", file, schema, errorList
                     ));
                 }
             }
             catch (Exception e) {
+                e.printStackTrace();
+                throw new RuleViolationDetailsException(String.format(
+                    "%s does not confirm to %s", file, schema
+                ), e);
+            }
+        };
+    }
+
+    @Override
+    public BagValidatorRule xmlFileIfExistsConformsToSchema(Path file, String schema) {
+        return (path) -> {
+            try {
+                // TODO combine this with the other check
+                var fileName = path.resolve(file);
+
+                if (fileService.exists(fileName)) {
+                    var document = bagXmlReader.readXmlFile(fileName);
+                    var results = xmlValidator.validateDocument(document, schema);
+
+                    if (results.size() > 0) {
+                        var errorList = results.stream()
+                            .map(Throwable::getLocalizedMessage)
+                            .map(e -> String.format(" - %s", e))
+                            .collect(Collectors.joining("\n"));
+
+                        // TODO see how we can get all the errors in there
+                        throw new RuleViolationDetailsException(String.format(
+                            "%s does not confirm to %s: \n%s", file, schema, errorList
+                        ));
+                    }
+                }
+            }
+            catch (Exception e) {
+                e.printStackTrace();
                 throw new RuleViolationDetailsException(String.format(
                     "%s does not confirm to %s", file, schema
                 ), e);
@@ -827,6 +944,171 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
 
     @Override
     public BagValidatorRule filesXmlNoDuplicatesAndMatchesWithPayloadPlusPreStagedFiles() {
-        return null;
+        /// TODO implement prestaged file logics
+        return (path) -> {
+            try {
+                var dataPath = path.resolve("data");
+                var document = bagXmlReader.readXmlFile(path.resolve("metadata/files.xml"));
+
+                if (fileService.exists(path.resolve("original-filepaths.txt"))) {
+                    log.debug("original-filepaths.txt exists, so checking is not needed");
+                    return;
+                }
+
+                var searchExpressions = List.of(
+                    "/files:files/files:file/@filepath",
+                    "/files/file/@filepath");
+
+                var filePathNodes = searchExpressions.stream().map(e -> {
+                    try {
+                        return xpathToStream(document, e);
+                    }
+                    catch (XPathExpressionException ex) {
+                        return null;
+                    }
+                }).filter(Objects::nonNull).flatMap(i -> i).collect(Collectors.toList());
+
+                var duplicatePaths = filePathNodes.stream()
+                    .map(Node::getTextContent)
+                    .map(Path::of)
+                    .collect(Collectors.groupingBy(Path::normalize))
+                    .entrySet()
+                    .stream()
+                    .filter(item -> item.getValue().size() > 1)
+                    .collect(Collectors.toSet());
+
+                var bagPaths = fileService.getAllFiles(dataPath)
+                    .stream()
+                    .map(path::relativize)
+                    .collect(Collectors.toSet());
+
+                var xmlPaths = filePathNodes.stream()
+                    .map(Node::getTextContent)
+                    .map(Path::of)
+                    .map(Path::normalize)
+                    .collect(Collectors.toSet());
+
+                var onlyInBag = CollectionUtils.subtract(bagPaths, xmlPaths);
+                var onlyInXml = CollectionUtils.subtract(xmlPaths, bagPaths);
+
+                var message = new StringBuilder();
+
+                if (duplicatePaths.size() > 0 || onlyInBag.size() > 0 || onlyInXml.size() > 0) {
+
+                    if (duplicatePaths.size() > 0) {
+                        message.append("  - Duplicate filepaths found: ");
+                        message.append(duplicatePaths.stream().map(Map.Entry::getKey).map(Path::toString).collect(Collectors.joining(", ")));
+                        message.append("\n");
+                    }
+
+                    if (onlyInBag.size() > 0 || onlyInXml.size() > 0) {
+                        message.append("  - Filepaths in files.xml not equal to files found in data folder. Difference - ");
+                        message.append("only in bag: {");
+                        message.append(onlyInBag.stream().map(Path::toString).collect(Collectors.joining(", ")));
+                        message.append("} only in files.xml: {");
+                        message.append(onlyInXml.stream().map(Path::toString).collect(Collectors.joining(", ")));
+                        message.append("}");
+                    }
+
+                    throw new RuleViolationDetailsException(String.format(
+                        "files.xml errors in filepath-attributes: \n%s", message
+                    ));
+                }
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+                throw new RuleViolationDetailsException("Error reading files.xml", e);
+            }
+        };
+    }
+
+    @Override
+    public BagValidatorRule filesXmlAllFilesHaveFormat() {
+        return (path) -> {
+
+            try {
+                var document = bagXmlReader.readXmlFile(path.resolve("metadata/files.xml"));
+                var expr = "//file";
+
+                var wrongNodes = xpathToStream(document, expr).filter(node -> {
+                    try {
+                        var size = xpathToStream(node, ".//dcterms:format").collect(Collectors.toSet()).size();
+
+                        if (size == 0) {
+                            return true;
+                        }
+                    }
+                    catch (Exception e) {
+                        log.error("Error running xpath expression", e);
+                        return true;
+                    }
+
+                    return false;
+                }).collect(Collectors.toList());
+
+                if (wrongNodes.size() > 0) {
+                    throw new RuleViolationDetailsException("files.xml not all <file> elements contain a <dcterms:format>");
+                }
+            }
+            catch (Exception e) {
+                log.error("Error reading files.xml", e);
+                throw new RuleViolationDetailsException("Error reading files.xml", e);
+            }
+        };
+    }
+
+    @Override
+    public BagValidatorRule filesXmlFilesHaveOnlyAllowedNamespaces() {
+        return (path) -> {
+            try {
+                var document = bagXmlReader.readXmlFile(path.resolve("metadata/files.xml"));
+
+                if (filesXmlNamespace.equals(document.getNamespaceURI())) {
+                    log.debug("Rule filesXmlFilesHaveOnlyAllowedNamespaces has been checked by files.xsd");
+                }
+
+                var errors = xpathToStream(document, "//file/*")
+                    .filter(node -> !allowedFilesXmlNamespaces.contains(node.getNamespaceURI()))
+                    .collect(Collectors.toList());
+
+                if (errors.size() > 0) {
+                    throw new RuleViolationDetailsException("files.xml: non-dc/dcterms elements found in some file elements");
+                }
+            }
+            catch (Exception e) {
+                log.error("Error reading files.xml", e);
+                throw new RuleViolationDetailsException("Error reading files.xml", e);
+            }
+        };
+    }
+
+    @Override
+    public BagValidatorRule filesXmlFilesHaveOnlyAllowedAccessRights() {
+        return (path) -> {
+            try {
+                var document = bagXmlReader.readXmlFile(path.resolve("metadata/files.xml"));
+
+                var invalidNodes = xpathToStream(document, "//file/dcterms:accessRights")
+                    .filter(node -> !allowedAccessRights.contains(node.getTextContent()))
+                    .map(node -> {
+                        var filePath = node.getParentNode().getAttributes().getNamedItem("filepath").getTextContent();
+
+                        return new RuleViolationDetailsException(String.format(
+                            "files.xml: invalid access rights %s in accessRights element for file: '%s'; allowed values %s",
+                            node.getTextContent(), filePath, allowedAccessRights
+                        ));
+                    })
+                    .collect(Collectors.toList());
+
+                if (invalidNodes.size() > 0) {
+                    throw new RuleViolationDetailsException(invalidNodes);
+                }
+
+            }
+            catch (Exception e) {
+                log.error("Error reading files.xml", e);
+                throw new RuleViolationDetailsException("Error reading files.xml", e);
+            }
+        };
     }
 }

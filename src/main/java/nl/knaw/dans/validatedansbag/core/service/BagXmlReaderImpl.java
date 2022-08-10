@@ -17,28 +17,21 @@ package nl.knaw.dans.validatedansbag.core.service;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
-import org.xml.sax.ErrorHandler;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
-import org.xml.sax.SAXParseException;
 
 import javax.xml.XMLConstants;
 import javax.xml.namespace.NamespaceContext;
 import javax.xml.namespace.QName;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.validation.SchemaFactory;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 import java.io.IOException;
 import java.io.StringReader;
-import java.net.URL;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
 public class BagXmlReaderImpl implements BagXmlReader {
@@ -50,6 +43,8 @@ public class BagXmlReaderImpl implements BagXmlReader {
     private final String namespaceIdType = "http://easy.dans.knaw.nl/schemas/vocab/identifier-type/";
 
     private final String namespaceDcxGml = "http://easy.dans.knaw.nl/schemas/dcx/gml/";
+
+    private final String namespaceFilesXml = "http://easy.dans.knaw.nl/schemas/bag/metadata/files/";
 
     private final XPath xpath;
 
@@ -65,7 +60,8 @@ public class BagXmlReaderImpl implements BagXmlReader {
             "dcterms", namespaceDcterms,
             "xsi", namespaceXsi,
             "id-type", namespaceIdType,
-            "dcx-gml", namespaceDcxGml
+            "dcx-gml", namespaceDcxGml,
+            "files", namespaceFilesXml
         );
 
         xpath.setNamespaceContext(new NamespaceContext() {
