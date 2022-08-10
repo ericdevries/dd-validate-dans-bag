@@ -1,0 +1,5 @@
+data/12.txt data/leeg.txt
+data/13.txt data/sub/leeg2.txt
+data/14.txt data/sub/sub/vacio.txt
+data/15.txt data/sine-md5.txt
+data/16.txt data/sub/sub/sine-md5.txt

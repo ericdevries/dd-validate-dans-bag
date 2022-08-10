@@ -17,6 +17,7 @@ package nl.knaw.dans.validatedansbag.core.service;
 
 import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.joda.time.DateTime;
 import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
@@ -35,6 +36,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -178,11 +180,13 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
                     DateTime.parse(created, ISODateTimeFormat.dateTime());
                 }
                 catch (Exception e) {
-                    throw new RuleViolationDetailsException("Error", e);
+                    throw new RuleViolationDetailsException(String.format(
+                        "Date '%s' is not valid", created
+                    ), e);
                 }
             }
             catch (Exception e) {
-                throw new RuleViolationDetailsException("Error", e);
+                throw new RuleViolationDetailsException("Unexpected error occurred", e);
             }
         };
     }
@@ -252,9 +256,6 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
                     var filenames = filesInPayload.stream().map(Path::toString).collect(Collectors.joining(", "));
                     throw new RuleViolationDetailsException(String.format("All payload files must have an SHA-1 checksum. Files missing from SHA-1 manifest: %s", filenames));
                 }
-            }
-            catch (RuleViolationDetailsException e) {
-                throw e;
             }
             catch (Exception e) {
                 throw new RuleViolationDetailsException("Unexpected error occurred while validating manifest", e);
@@ -332,6 +333,9 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
                     var contents = fileService.readFileContents(path.resolve(filename));
                     StandardCharsets.UTF_8.newDecoder().decode(ByteBuffer.wrap(contents));
                 }
+                else {
+                    throw new RuleSkippedException();
+                }
             }
             catch (CharacterCodingException e) {
                 throw new RuleViolationDetailsException("Input not valid UTF-8: " + e.getMessage());
@@ -345,7 +349,59 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
     @Override
     public BagValidatorRule isOriginalFilepathsFileComplete() {
         return (path) -> {
-            // TODO read files xml, apply original-filepaths.txt to it and do the magic
+            try {
+                var bytes = fileService.readFileContents(path.resolve("original-filepaths.txt"));
+                var content = new String(bytes);
+
+                // the mapping between files on disk and what they used to be called
+                var mapping = Arrays.stream(content.split("\n"))
+                    .filter(s -> !s.isBlank())
+                    .map(s -> s.split("\\s+", 2))
+                    .filter(p -> p.length == 2)
+                    .map(p -> Pair.of(Path.of(p[0]), Path.of(p[1])))
+                    .collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
+
+                var document = bagXmlReader.readXmlFile(path.resolve("metadata/files.xml"));
+                var searchExpressions = List.of(
+                    "/files:files/files:file/@filepath",
+                    "/files/file/@filepath");
+
+                // the files defined in metadata/files.xml
+                var fileXmlPaths = searchExpressions.stream().map(e -> {
+                        try {
+                            return xpathToStream(document, e);
+                        }
+                        catch (XPathExpressionException ex) {
+                            return null;
+                        }
+                    })
+                    .filter(Objects::nonNull)
+                    .flatMap(i -> i)
+                    .map(Node::getTextContent)
+                    .map(Path::of)
+                    .collect(Collectors.toSet());
+
+                // the files on disk
+                var actualFiles = fileService.getAllFiles(path.resolve("data"))
+                    .stream()
+                    .filter(i -> !path.resolve("data").equals(i))
+                    .map(path::relativize)
+                    .collect(Collectors.toSet());
+
+
+                //  items that exist only in actual files, but not in the keyset of mapping and not in the files.xml
+                //  var onlyInBag = CollectionUtils.subtract(actualFiles
+
+                //  items that exist only in files.xml, but not in the actual file set
+
+                System.out.println("XML FILES: " + fileXmlPaths);
+                System.out.println("ACTUAL FILES: " + actualFiles);
+                System.out.println("MAPPING: " + mapping);
+
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+            }
         };
     }
 

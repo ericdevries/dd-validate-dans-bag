@@ -85,6 +85,9 @@ public class RuleEngineImpl implements RuleEngine {
                         rule.getRule().validate(bag);
                         ruleResults.put(number, new RuleValidationResult(number, RuleValidationResult.RuleValidationResultStatus.SUCCESS));
                     }
+                    catch (RuleSkippedException e) {
+                        ruleResults.put(number, new RuleValidationResult(number, RuleValidationResult.RuleValidationResultStatus.SKIPPED));
+                    }
                     catch (RuleViolationDetailsException e) {
                         ruleResults.put(number, new RuleValidationResult(number, RuleValidationResult.RuleValidationResultStatus.FAILURE, e));
                     }
@@ -118,7 +121,6 @@ public class RuleEngineImpl implements RuleEngine {
             var state = result.getStatus().toString();
 
             if (result.getStatus().equals(RuleValidationResult.RuleValidationResultStatus.FAILURE)) {
-
                 System.out.println("RULE [" + rule.getNumber() + "] " + state + ": " + result.getException().getLocalizedMessage());
             }
             else {

@@ -15,9 +15,6 @@
  */
 package nl.knaw.dans.validatedansbag.core.service;
 
-import java.nio.file.Path;
+public class RuleSkippedException extends Throwable {
 
-@FunctionalInterface
-interface BagValidatorRule {
-    void validate(Path path) throws RuleViolationDetailsException, RuleSkippedException;
 }

@@ -78,13 +78,13 @@ class BagInfoCheckerImplTest {
     }
 
     @Test
-    void containsDirWorks() throws RuleViolationDetailsException {
+    void containsDirWorks() throws Exception {
         var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator, xmlValidator);
 
         Mockito.when(fileService.isDirectory(Mockito.any()))
             .thenReturn(true);
 
-        checker.containsDir(Path.of("testpath")).validate(Path.of("bagdir"));
+        assertDoesNotThrow(() -> checker.containsDir(Path.of("testpath")).validate(Path.of("bagdir")));
 
         Mockito.verify(fileService).isDirectory(Path.of("bagdir/testpath"));
     }
@@ -100,13 +100,13 @@ class BagInfoCheckerImplTest {
     }
 
     @Test
-    void containsFileWorks() throws RuleViolationDetailsException {
+    void containsFileWorks() {
         var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator, xmlValidator);
 
         Mockito.when(fileService.isFile(Mockito.any()))
             .thenReturn(true);
 
-        checker.containsFile(Path.of("testpath")).validate(Path.of("bagdir"));
+        assertDoesNotThrow(() -> checker.containsFile(Path.of("testpath")).validate(Path.of("bagdir")));
 
         Mockito.verify(fileService).isFile(Path.of("bagdir/testpath"));
     }

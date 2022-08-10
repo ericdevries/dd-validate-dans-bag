@@ -141,7 +141,7 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
             new NumberedRule("3.8.1", validator.xmlFileIfExistsConformsToSchema(Path.of("metadata/provenance.xml"), "provenance.xml")),
         };
 
-        var path = Path.of("/home/eric/workspace/dd-validate-dans-bag/src/test/resources/valid-bag");
+        var path = Path.of("/home/eric/workspace/dd-validate-dans-bag/src/test/resources/original-filepaths-valid-bag");
 
         var engine = new RuleEngineImpl();
         var result = engine.validateRules(path, rules);
