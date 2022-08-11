@@ -25,6 +25,7 @@ import nl.knaw.dans.validatedansbag.core.service.BagXmlReaderImpl;
 import nl.knaw.dans.validatedansbag.core.service.DaiDigestCalculatorImpl;
 import nl.knaw.dans.validatedansbag.core.service.FileServiceImpl;
 import nl.knaw.dans.validatedansbag.core.service.NumberedRule;
+import nl.knaw.dans.validatedansbag.core.service.OriginalFilepathsServiceImpl;
 import nl.knaw.dans.validatedansbag.core.service.PolygonListValidatorImpl;
 import nl.knaw.dans.validatedansbag.core.service.RuleEngineImpl;
 import nl.knaw.dans.validatedansbag.core.service.XmlValidatorImpl;
@@ -58,10 +59,11 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
         var bagXmlReader = new BagXmlReaderImpl();
         var daiDigestCalculator = new DaiDigestCalculatorImpl();
         var polygonListValidator = new PolygonListValidatorImpl();
+        var originalFilepathsService = new OriginalFilepathsServiceImpl(fileService);
 
         var xmlValidator = new XmlValidatorImpl();
 
-        var validator = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var validator = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
 
         var rules = new NumberedRule[] {
             // validity

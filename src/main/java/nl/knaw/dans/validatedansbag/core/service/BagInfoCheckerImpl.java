@@ -17,7 +17,6 @@ package nl.knaw.dans.validatedansbag.core.service;
 
 import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.joda.time.DateTime;
 import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
@@ -49,6 +48,8 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
 
     private final BagItMetadataReader bagItMetadataReader;
     private final BagXmlReader bagXmlReader;
+
+    private final OriginalFilepathsService originalFilepathsService;
 
     private final Pattern doiPattern = Pattern.compile("^10(\\.\\d+)+/.+");
 
@@ -102,11 +103,13 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
 
     private final Set<String> allowedAccessRights = Set.of("ANONYMOUS", "RESTRICTED_REQUEST", "NONE");
 
-    public BagInfoCheckerImpl(FileService fileService, BagItMetadataReader bagItMetadataReader, BagXmlReader bagXmlReader, DaiDigestCalculator daiDigestCalculator,
+    public BagInfoCheckerImpl(FileService fileService, BagItMetadataReader bagItMetadataReader, BagXmlReader bagXmlReader, OriginalFilepathsService originalFilepathsService,
+        DaiDigestCalculator daiDigestCalculator,
         PolygonListValidator polygonListValidator, XmlValidator xmlValidator) {
         this.fileService = fileService;
         this.bagItMetadataReader = bagItMetadataReader;
         this.bagXmlReader = bagXmlReader;
+        this.originalFilepathsService = originalFilepathsService;
         this.daiDigestCalculator = daiDigestCalculator;
         this.polygonListValidator = polygonListValidator;
         this.xmlValidator = xmlValidator;
@@ -346,16 +349,7 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
     public BagValidatorRule isOriginalFilepathsFileComplete() {
         return (path) -> {
             try {
-                var bytes = fileService.readFileContents(path.resolve("original-filepaths.txt"));
-                var content = new String(bytes);
-
-                // the mapping between files on disk and what they used to be called
-                var mapping = Arrays.stream(content.split("\n"))
-                    .filter(s -> !s.isBlank())
-                    .map(s -> s.split("\\s+", 2))
-                    .filter(p -> p.length == 2)
-                    .map(p -> Pair.of(Path.of(p[0]), Path.of(p[1])))
-                    .collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
+                var mapping = originalFilepathsService.getMapping(path);
 
                 var document = bagXmlReader.readXmlFile(path.resolve("metadata/files.xml"));
                 var searchExpressions = List.of(
@@ -384,21 +378,24 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
                     .map(path::relativize)
                     .collect(Collectors.toSet());
 
-                var physicalFileSetsDiffer = CollectionUtils.disjunction(actualFiles, mapping.keySet()).size() > 0;
-                var originalFileSetsDiffer = CollectionUtils.disjunction(fileXmlPaths, mapping.values()).size() > 0;
+                var renamedFiles = mapping.stream().map(OriginalFilepathsService.OriginalFilePathItem::getRenamedFilename).collect(Collectors.toSet());
+                var originalFiles = mapping.stream().map(OriginalFilepathsService.OriginalFilePathItem::getOriginalFilename).collect(Collectors.toSet());
+
+                var physicalFileSetsDiffer = CollectionUtils.disjunction(actualFiles, renamedFiles).size() > 0;
+                var originalFileSetsDiffer = CollectionUtils.disjunction(fileXmlPaths, originalFiles).size() > 0;
 
                 if (physicalFileSetsDiffer || originalFileSetsDiffer) {
                     //  items that exist only in actual files, but not in the keyset of mapping and not in the files.xml
-                    var onlyInBag = CollectionUtils.subtract(actualFiles, mapping.keySet());
+                    var onlyInBag = CollectionUtils.subtract(actualFiles, renamedFiles);
 
                     // files that only exist in files.xml, but not in the original-filepaths.txt
-                    var onlyInFilesXml = CollectionUtils.subtract(fileXmlPaths, mapping.values());
+                    var onlyInFilesXml = CollectionUtils.subtract(fileXmlPaths, originalFiles);
 
                     // files that only exist in original-filepaths.txt, but not on the disk
-                    var onlyInFilepathsPhysical = CollectionUtils.subtract(mapping.keySet(), actualFiles);
+                    var onlyInFilepathsPhysical = CollectionUtils.subtract(renamedFiles, actualFiles);
 
                     // files that only exist in original-filepaths.txt, but not in files.xml
-                    var onlyInFilepathsOriginal = CollectionUtils.subtract(mapping.values(), fileXmlPaths);
+                    var onlyInFilepathsOriginal = CollectionUtils.subtract(originalFiles, fileXmlPaths);
 
                     var message = new StringBuilder();
 
@@ -954,7 +951,7 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
                 var dataPath = path.resolve("data");
                 var document = bagXmlReader.readXmlFile(path.resolve("metadata/files.xml"));
 
-                if (fileService.exists(path.resolve("original-filepaths.txt"))) {
+                if (originalFilepathsService.exists(path)) {
                     log.debug("original-filepaths.txt exists, so checking is not needed");
                     return;
                 }
