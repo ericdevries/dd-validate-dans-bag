@@ -17,13 +17,18 @@ package nl.knaw.dans.validatedansbag.core.service;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import javax.xml.namespace.QName;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Collection;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 public interface BagXmlReader {
 
@@ -32,5 +37,8 @@ public interface BagXmlReader {
     Document readXmlString(String str) throws ParserConfigurationException, IOException, SAXException;
 
     Object evaluateXpath(Node node, String expr, QName type) throws XPathExpressionException;
+
+    Stream<Node> xpathToStream(Node node, String expression) throws XPathExpressionException;
+    Stream<Node> xpathsToStream(Node node, Collection<String> expressions) throws XPathExpressionException;
 
 }

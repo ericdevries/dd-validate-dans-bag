@@ -17,6 +17,7 @@ package nl.knaw.dans.validatedansbag.core.service;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
@@ -26,13 +27,18 @@ import javax.xml.namespace.QName;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 import java.io.IOException;
 import java.io.StringReader;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 public class BagXmlReaderImpl implements BagXmlReader {
     private final String namespaceDc = "http://purl.org/dc/elements/1.1/";
@@ -45,6 +51,8 @@ public class BagXmlReaderImpl implements BagXmlReader {
     private final String namespaceDcxGml = "http://easy.dans.knaw.nl/schemas/dcx/gml/";
 
     private final String namespaceFilesXml = "http://easy.dans.knaw.nl/schemas/bag/metadata/files/";
+
+    private final String namespaceOpenGis = "http://www.opengis.net/gml";
 
     private final XPath xpath;
 
@@ -61,7 +69,8 @@ public class BagXmlReaderImpl implements BagXmlReader {
             "xsi", namespaceXsi,
             "id-type", namespaceIdType,
             "dcx-gml", namespaceDcxGml,
-            "files", namespaceFilesXml
+            "files", namespaceFilesXml,
+            "gml", namespaceOpenGis
         );
 
         xpath.setNamespaceContext(new NamespaceContext() {
@@ -105,6 +114,26 @@ public class BagXmlReaderImpl implements BagXmlReader {
     @Override
     public Object evaluateXpath(Node node, String expr, QName type) throws XPathExpressionException {
         return xpath.compile(expr).evaluate(node, type);
+    }
+
+    @Override
+    public Stream<Node> xpathToStream(Node node, String expression) throws XPathExpressionException {
+        var nodes = (NodeList) evaluateXpath(node, expression, XPathConstants.NODESET);
+
+        return IntStream.range(0, nodes.getLength())
+            .mapToObj(nodes::item);
+    }
+
+    @Override
+    public Stream<Node> xpathsToStream(Node node, Collection<String> expressions) throws XPathExpressionException {
+        var items = new ArrayList<Stream<Node>>();
+
+        for (var expr: expressions) {
+            var item = xpathToStream(node, expr);
+            items.add(item);
+        }
+
+        return items.stream().flatMap(i -> i);
     }
 
     private DocumentBuilderFactory getFactory() throws ParserConfigurationException {

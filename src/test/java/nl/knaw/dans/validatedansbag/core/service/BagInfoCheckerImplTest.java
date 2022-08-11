@@ -243,8 +243,8 @@ class BagInfoCheckerImplTest {
         var bag = new Bag();
         var manifest = new Manifest(StandardSupportedAlgorithms.SHA1);
         manifest.setFileToChecksumMap(Map.of(
-            Path.of("path/1.txt"), "checksum1",
-            Path.of("path/2.txt"), "checksum2"
+            Path.of("path/2.txt"), "checksum2",
+            Path.of("path/1.txt"), "checksum1"
         ));
 
         bag.setPayLoadManifests(Set.of(manifest));

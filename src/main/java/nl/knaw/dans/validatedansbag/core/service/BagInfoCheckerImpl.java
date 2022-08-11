@@ -23,9 +23,7 @@ import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 
-import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
 import java.io.IOException;
 import java.net.URI;
@@ -36,14 +34,12 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class BagInfoCheckerImpl implements BagInfoChecker {
@@ -369,7 +365,7 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
                 // the files defined in metadata/files.xml
                 var fileXmlPaths = searchExpressions.stream().map(e -> {
                         try {
-                            return xpathToStream(document, e);
+                            return bagXmlReader.xpathToStream(document, e);
                         }
                         catch (XPathExpressionException ex) {
                             return null;
@@ -388,19 +384,54 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
                     .map(path::relativize)
                     .collect(Collectors.toSet());
 
+                var physicalFileSetsDiffer = CollectionUtils.disjunction(actualFiles, mapping.keySet()).size() > 0;
+                var originalFileSetsDiffer = CollectionUtils.disjunction(fileXmlPaths, mapping.values()).size() > 0;
 
-                //  items that exist only in actual files, but not in the keyset of mapping and not in the files.xml
-                //  var onlyInBag = CollectionUtils.subtract(actualFiles
+                if (physicalFileSetsDiffer || originalFileSetsDiffer) {
+                    //  items that exist only in actual files, but not in the keyset of mapping and not in the files.xml
+                    var onlyInBag = CollectionUtils.subtract(actualFiles, mapping.keySet());
 
-                //  items that exist only in files.xml, but not in the actual file set
+                    // files that only exist in files.xml, but not in the original-filepaths.txt
+                    var onlyInFilesXml = CollectionUtils.subtract(fileXmlPaths, mapping.values());
 
-                System.out.println("XML FILES: " + fileXmlPaths);
-                System.out.println("ACTUAL FILES: " + actualFiles);
-                System.out.println("MAPPING: " + mapping);
+                    // files that only exist in original-filepaths.txt, but not on the disk
+                    var onlyInFilepathsPhysical = CollectionUtils.subtract(mapping.keySet(), actualFiles);
 
+                    // files that only exist in original-filepaths.txt, but not in files.xml
+                    var onlyInFilepathsOriginal = CollectionUtils.subtract(mapping.values(), fileXmlPaths);
+
+                    var message = new StringBuilder();
+
+                    if (physicalFileSetsDiffer) {
+                        message.append("  - Physical file paths in original-filepaths.txt not equal to payload in data dir. Difference - ");
+                        message.append("only in payload: {")
+                            .append(onlyInBag.stream().map(Path::toString).collect(Collectors.joining(", ")))
+                            .append("}");
+                        message.append(", only in physical-bag-relative-path: {")
+                            .append(onlyInFilepathsPhysical.stream().map(Path::toString).collect(Collectors.joining(", ")))
+                            .append("}");
+                        message.append("\n");
+                    }
+
+                    if (originalFileSetsDiffer) {
+                        message.append("  - Original file paths in original-filepaths.txt not equal to filepaths in files.xml. Difference - ");
+                        message.append("only in files.xml: {")
+                            .append(onlyInFilesXml.stream().map(Path::toString).collect(Collectors.joining(", ")))
+                            .append("}");
+                        message.append(", only in original-bag-relative-path: {")
+                            .append(onlyInFilepathsOriginal.stream().map(Path::toString).collect(Collectors.joining(", ")))
+                            .append("}");
+                        message.append("\n");
+                    }
+
+                    throw new RuleViolationDetailsException(String.format(
+                        "original-filepaths.txt errors: \n%s", message
+                    ));
+                }
             }
             catch (Exception e) {
-                e.printStackTrace();
+                log.error("Unexpected error occurred", e);
+                throw new RuleViolationDetailsException("Unexpected error occurred", e);
             }
         };
     }
@@ -412,7 +443,7 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
                 var document = bagXmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
                 var expr = "//ddm:dcmiMetadata/dcterms:license[@xsi:type]";
 
-                var nodes = xpathToStream(document, expr).collect(Collectors.toList());
+                var nodes = bagXmlReader.xpathToStream(document, expr).collect(Collectors.toList());
 
                 if (nodes.size() == 0) {
                     throw new RuleViolationDetailsException("No licenses found");
@@ -422,11 +453,14 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
                 var license = nodes.get(0).getTextContent();
                 var attr = node.getAttributes().getNamedItem("xsi:type").getTextContent();
 
+                // converts a namespace uri into a prefix that is used in the document
                 var prefix = document.lookupPrefix(namespaceDcterms);
+
                 if (!attr.equals(String.format("%s:URI", prefix))) {
                     throw new RuleViolationDetailsException("No license with xsi:type=\"dcterms:URI\"");
                 }
 
+                // strip trailing slashes so url's are more consistent
                 var licenses = validLicenses.stream().map(l -> l.replaceAll("/+$", "")).collect(Collectors.toSet());
 
                 if (!licenses.contains(license)) {
@@ -436,7 +470,7 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
                 }
             }
             catch (Exception e) {
-                log.error("Error reading ddm file", e);
+                log.error("Error reading dataset.xml file", e);
                 throw new RuleViolationDetailsException("Unexpected exception occurred while processing", e);
             }
         };
@@ -448,16 +482,15 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
             try {
                 var document = bagXmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
                 var expr = "//dcterms:identifier[@xsi:type=\"id-type:URN\"]";
-                var nodes = (NodeList) bagXmlReader.evaluateXpath(document, expr, XPathConstants.NODESET);
 
-                IntStream.range(0, nodes.getLength())
-                    .mapToObj(nodes::item)
-                    .filter((node) -> node.getTextContent().contains("urn:nbn"))
+                var nodes = bagXmlReader.xpathToStream(document, expr);
+
+                nodes.filter((node) -> node.getTextContent().contains("urn:nbn"))
                     .findFirst()
                     .orElseThrow(() -> new RuleViolationDetailsException("URN:NBN identifier is missing"));
             }
             catch (Exception e) {
-                log.error("Error reading ddm file", e);
+                log.error("Error reading dataset.xml file", e);
                 throw new RuleViolationDetailsException("Unexpected exception occurred while processing", e);
             }
         };
@@ -469,11 +502,9 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
             try {
                 var document = bagXmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
                 var expr = "//dcterms:identifier[@xsi:type=\"id-type:DOI\"]";
-                var nodes = (NodeList) bagXmlReader.evaluateXpath(document, expr, XPathConstants.NODESET);
 
-                var match = IntStream.range(0, nodes.getLength())
-                    .mapToObj(nodes::item)
-                    .filter((node) -> {
+                var nodes = bagXmlReader.xpathToStream(document, expr);
+                var match = nodes.filter((node) -> {
                         var text = node.getTextContent();
                         return !doiPattern.matcher(text).matches();
                     })
@@ -497,10 +528,7 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
             try {
                 var document = bagXmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
                 var expr = "//dcx-dai:DAI";
-                var nodes = (NodeList) bagXmlReader.evaluateXpath(document, expr, XPathConstants.NODESET);
-
-                var match = IntStream.range(0, nodes.getLength())
-                    .mapToObj(nodes::item)
+                var match = bagXmlReader.xpathToStream(document, expr)
                     .map(node -> node.getTextContent().replaceFirst(daiPrefix, ""))
                     .filter((id) -> {
                         var sum = daiDigestCalculator.calculateChecksum(id.substring(0, id.length() - 1), 9);
@@ -529,11 +557,9 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
             try {
                 var document = bagXmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
                 var expr = "//dcx-gml:spatial//*[local-name() = 'posList']";
-                var nodes = (NodeList) bagXmlReader.evaluateXpath(document, expr, XPathConstants.NODESET);
+                var nodes = bagXmlReader.xpathToStream(document, expr);
 
-                var match = IntStream.range(0, nodes.getLength())
-                    .mapToObj(nodes::item)
-                    .map(Node::getTextContent)
+                var match = nodes.map(Node::getTextContent)
                     .map((posList) -> {
 
                         try {
@@ -566,17 +592,10 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
             try {
                 var document = bagXmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
                 var expr = "//*[local-name() = 'MultiSurface']";
-                var nodes = (NodeList) bagXmlReader.evaluateXpath(document, expr, XPathConstants.NODESET);
-
-                var match = IntStream.range(0, nodes.getLength())
-                    .mapToObj(nodes::item)
-                    .filter(node -> {
-
+                var nodes = bagXmlReader.xpathToStream(document, expr);
+                var match = nodes.filter(node -> {
                         try {
-                            var poly = (NodeList) bagXmlReader.evaluateXpath(node, ".//*[local-name() = 'Polygon']", XPathConstants.NODESET);
-
-                            var srsNames = IntStream.range(0, poly.getLength())
-                                .mapToObj(poly::item)
+                            var srsNames = bagXmlReader.xpathToStream(node, ".//*[local-name() = 'Polygon']")
                                 .map(p -> p.getAttributes().getNamedItem("srsName"))
                                 .filter(Objects::nonNull)
                                 .map(Node::getTextContent)
@@ -612,15 +631,8 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
                 var document = bagXmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
 
                 // points
-                var expr = "//*[local-name() = 'Point' or local-name() = 'lowerCorner' or local-name() = 'upperCorner']";
-                var nodes = (NodeList) bagXmlReader.evaluateXpath(document, expr, XPathConstants.NODESET);
-
-                var match = IntStream.range(0, nodes.getLength())
-                    .mapToObj(nodes::item)
-                    .filter(node -> node.getNamespaceURI().equals("http://www.opengis.net/gml"))
-                    //.map(Node::getTextContent)
-                    //.map(String::trim)
-                    .collect(Collectors.toList());
+                var expr = "//gml:Point | //gml:lowerCorner | //gml:upperCorner";
+                var match = bagXmlReader.xpathToStream(document, expr).collect(Collectors.toList());
 
                 var errors = new ArrayList<RuleViolationDetailsException>();
 
@@ -678,10 +690,7 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
 
                 // points
                 var expr = "//dcterms:identifier[@xsi:type = 'id-type:ARCHIS-ZAAK-IDENTIFICATIE']";
-                var nodes = (NodeList) bagXmlReader.evaluateXpath(document, expr, XPathConstants.NODESET);
-
-                var match = IntStream.range(0, nodes.getLength())
-                    .mapToObj(nodes::item)
+                var match = bagXmlReader.xpathToStream(document, expr)
                     .map(Node::getTextContent)
                     .filter(Objects::nonNull)
                     .filter(text -> text.length() > 10)
@@ -701,74 +710,33 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
         };
     }
 
-    Stream<Node> xpathToStream(Node node, String expression) throws XPathExpressionException {
-        var nodes = (NodeList) bagXmlReader.evaluateXpath(node, expression, XPathConstants.NODESET);
-
-        return IntStream.range(0, nodes.getLength())
-            .mapToObj(nodes::item);
-    }
-
     @Override
     public BagValidatorRule allUrlsAreValid() {
         return (path) -> {
             try {
                 var document = bagXmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
 
-                var hrefNodes = xpathToStream(document, "*/@href");
-                var schemeURINodes = xpathToStream(document, "//ddm:subject/@schemeURI");
-                var valueURINodes = xpathToStream(document, "//ddm:subject/@valueURI");
+                var hrefNodes = bagXmlReader.xpathToStream(document, "*/@href");
+                var schemeURINodes = bagXmlReader.xpathToStream(document, "//ddm:subject/@schemeURI");
+                var valueURINodes = bagXmlReader.xpathToStream(document, "//ddm:subject/@valueURI");
 
-                var elementSelectors = Stream.of(
-                        "//*[@xsi:type='dcterms:URI']",
-                        "//*[@xsi:type='dcterms:URL']",
-                        "//*[@xsi:type='URI']",
-                        "//*[@xsi:type='URL']",
-                        "//*[@scheme='dcterms:URI']",
-                        "//*[@scheme='dcterms:URL']",
-                        "//*[@scheme='URI']",
-                        "//*[@scheme='URL']"
-                    ).map(selector -> {
-                        try {
-                            return xpathToStream(document, selector);
-                        }
-                        catch (XPathExpressionException e) {
-                            log.error("Unable to parse document", e);
-                        }
-                        return null;
-                    })
-                    .filter(Objects::nonNull)
-                    .flatMap(i -> i);
+                var expr = List.of(
+                    "//*[@xsi:type='dcterms:URI']",
+                    "//*[@xsi:type='dcterms:URL']",
+                    "//*[@xsi:type='URI']",
+                    "//*[@xsi:type='URL']",
+                    "//*[@scheme='dcterms:URI']",
+                    "//*[@scheme='dcterms:URL']",
+                    "//*[@scheme='URI']",
+                    "//*[@scheme='URL']"
+                );
 
-                var doiValues = Stream.of(
-                        "//*[@scheme = 'id-type:DOI']",
-                        "//*[@scheme = 'DOI']"
-                    ).map(selector -> {
-                        try {
-                            return xpathToStream(document, selector);
-                        }
-                        catch (XPathExpressionException e) {
-                            log.error("Unable to parse document", e);
-                        }
-                        return null;
-                    })
-                    .filter(Objects::nonNull)
-                    .flatMap(i -> i)
+                var elementSelectors = bagXmlReader.xpathsToStream(document, expr);
+
+                var doiValues = bagXmlReader.xpathsToStream(document, List.of("//*[@scheme = 'id-type:DOI']", "//*[@scheme = 'DOI']"))
                     .filter(node -> node.getAttributes().getNamedItem("href") == null);
 
-                var urnValues = Stream.of(
-                        "//*[@scheme = 'id-type:URN']",
-                        "//*[@scheme = 'URN']"
-                    ).map(selector -> {
-                        try {
-                            return xpathToStream(document, selector);
-                        }
-                        catch (XPathExpressionException e) {
-                            log.error("Unable to parse document", e);
-                        }
-                        return null;
-                    })
-                    .filter(Objects::nonNull)
-                    .flatMap(i -> i)
+                var urnValues = bagXmlReader.xpathsToStream(document, List.of("//*[@scheme = 'id-type:URN']", "//*[@scheme = 'URN']"))
                     .filter(node -> node.getAttributes().getNamedItem("href") == null);
 
                 var nodes = Stream.of(hrefNodes, schemeURINodes, valueURINodes, elementSelectors)
@@ -835,11 +803,11 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
 
                 // copied from easy-validate-dans-bag
                 // TODO FIXME: this will true if there is a <role>rightsholder</role> anywhere in the document
-                var inRole = xpathToStream(document, "//*[local-name() = 'role']")
+                var inRole = bagXmlReader.xpathToStream(document, "//*[local-name() = 'role']")
                     .filter(node -> node.getTextContent().contains("rightsholder"))
                     .findFirst();
 
-                var rightsHolder = xpathToStream(document, "//ddm:dcmiMetadata//dcterms:rightsHolder")
+                var rightsHolder = bagXmlReader.xpathToStream(document, "//ddm:dcmiMetadata//dcterms:rightsHolder")
                     .map(Node::getTextContent)
                     .filter(Objects::nonNull)
                     .map(String::trim)
@@ -857,64 +825,44 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
         };
     }
 
+    private void validateXmlFile(Path file, String schema) throws RuleViolationDetailsException {
+        try {
+            var document = bagXmlReader.readXmlFile(file);
+            var results = xmlValidator.validateDocument(document, schema);
+
+            if (results.size() > 0) {
+                var errorList = results.stream()
+                    .map(Throwable::getLocalizedMessage)
+                    .map(e -> String.format(" - %s", e))
+                    .collect(Collectors.joining("\n"));
+
+                // TODO see how we can get all the errors in there
+                throw new RuleViolationDetailsException(String.format(
+                    "%s does not confirm to %s: \n%s", file, schema, errorList
+                ));
+            }
+        }
+        catch (Exception e) {
+            throw new RuleViolationDetailsException(String.format(
+                "%s does not confirm to %s", file, schema
+            ), e);
+        }
+    }
+
     @Override
     public BagValidatorRule xmlFileConfirmsToSchema(Path file, String schema) {
         return (path) -> {
-
-            try {
-                var document = bagXmlReader.readXmlFile(path.resolve(file));
-                var results = xmlValidator.validateDocument(document, schema);
-
-                if (results.size() > 0) {
-                    var errorList = results.stream()
-                        .map(Throwable::getLocalizedMessage)
-                        .map(e -> String.format(" - %s", e))
-                        .collect(Collectors.joining("\n"));
-
-                    // TODO see how we can get all the errors in there
-                    throw new RuleViolationDetailsException(String.format(
-                        "%s does not confirm to %s: \n%s", file, schema, errorList
-                    ));
-                }
-            }
-            catch (Exception e) {
-                e.printStackTrace();
-                throw new RuleViolationDetailsException(String.format(
-                    "%s does not confirm to %s", file, schema
-                ), e);
-            }
+            validateXmlFile(path.resolve(file), schema);
         };
     }
 
     @Override
     public BagValidatorRule xmlFileIfExistsConformsToSchema(Path file, String schema) {
         return (path) -> {
-            try {
-                // TODO combine this with the other check
-                var fileName = path.resolve(file);
+            var fileName = path.resolve(file);
 
-                if (fileService.exists(fileName)) {
-                    var document = bagXmlReader.readXmlFile(fileName);
-                    var results = xmlValidator.validateDocument(document, schema);
-
-                    if (results.size() > 0) {
-                        var errorList = results.stream()
-                            .map(Throwable::getLocalizedMessage)
-                            .map(e -> String.format(" - %s", e))
-                            .collect(Collectors.joining("\n"));
-
-                        // TODO see how we can get all the errors in there
-                        throw new RuleViolationDetailsException(String.format(
-                            "%s does not confirm to %s: \n%s", file, schema, errorList
-                        ));
-                    }
-                }
-            }
-            catch (Exception e) {
-                e.printStackTrace();
-                throw new RuleViolationDetailsException(String.format(
-                    "%s does not confirm to %s", file, schema
-                ), e);
+            if (fileService.exists(fileName)) {
+                validateXmlFile(fileName, schema);
             }
         };
     }
@@ -947,7 +895,7 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
                     log.debug("Rule filesXmlHasOnlyFiles has been checked by files.xsd");
                 }
                 else {
-                    var nonFiles = xpathToStream(document, "/files/*[local-name() != 'file']")
+                    var nonFiles = bagXmlReader.xpathToStream(document, "/files/*[local-name() != 'file']")
                         .collect(Collectors.toList());
 
                     if (!nonFiles.isEmpty()) {
@@ -977,7 +925,7 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
             try {
                 var document = bagXmlReader.readXmlFile(path.resolve("metadata/files.xml"));
 
-                var missingAttributes = xpathToStream(document, "/files/file")
+                var missingAttributes = bagXmlReader.xpathToStream(document, "/files/file")
                     .filter(node -> {
                         var attributes = node.getAttributes();
                         var attr = attributes.getNamedItem("filepath");
@@ -1015,14 +963,7 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
                     "/files:files/files:file/@filepath",
                     "/files/file/@filepath");
 
-                var filePathNodes = searchExpressions.stream().map(e -> {
-                    try {
-                        return xpathToStream(document, e);
-                    }
-                    catch (XPathExpressionException ex) {
-                        return null;
-                    }
-                }).filter(Objects::nonNull).flatMap(i -> i).collect(Collectors.toList());
+                var filePathNodes = bagXmlReader.xpathsToStream(document, searchExpressions).collect(Collectors.toList());
 
                 var duplicatePaths = filePathNodes.stream()
                     .map(Node::getTextContent)
@@ -1086,9 +1027,9 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
                 var document = bagXmlReader.readXmlFile(path.resolve("metadata/files.xml"));
                 var expr = "//file";
 
-                var wrongNodes = xpathToStream(document, expr).filter(node -> {
+                var wrongNodes = bagXmlReader.xpathToStream(document, expr).filter(node -> {
                     try {
-                        var size = xpathToStream(node, ".//dcterms:format").collect(Collectors.toSet()).size();
+                        var size = bagXmlReader.xpathToStream(node, ".//dcterms:format").collect(Collectors.toSet()).size();
 
                         if (size == 0) {
                             return true;
@@ -1123,7 +1064,7 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
                     log.debug("Rule filesXmlFilesHaveOnlyAllowedNamespaces has been checked by files.xsd");
                 }
 
-                var errors = xpathToStream(document, "//file/*")
+                var errors = bagXmlReader.xpathToStream(document, "//file/*")
                     .filter(node -> !allowedFilesXmlNamespaces.contains(node.getNamespaceURI()))
                     .collect(Collectors.toList());
 
@@ -1144,7 +1085,7 @@ public class BagInfoCheckerImpl implements BagInfoChecker {
             try {
                 var document = bagXmlReader.readXmlFile(path.resolve("metadata/files.xml"));
 
-                var invalidNodes = xpathToStream(document, "//file/dcterms:accessRights")
+                var invalidNodes = bagXmlReader.xpathToStream(document, "//file/dcterms:accessRights")
                     .filter(node -> !allowedAccessRights.contains(node.getTextContent()))
                     .map(node -> {
                         var filePath = node.getParentNode().getAttributes().getNamedItem("filepath").getTextContent();
