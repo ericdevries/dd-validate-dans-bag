@@ -13,12 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.validatedansbag.core.service;
+package nl.knaw.dans.validatedansbag.core.engine;
 
-import java.nio.file.Path;
-import java.util.List;
+public class RuleSkippedException extends Throwable {
 
-public interface RuleEngine {
-
-    List<RuleValidationResult> validateRules(Path bag, NumberedRule[] rules);
 }

@@ -16,18 +16,24 @@
 package nl.knaw.dans.validatedansbag.core.service;
 
 import java.io.IOException;
+import java.nio.CharBuffer;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.List;
 
 public interface FileService {
 
-    boolean isDirectory(Path path) ;
-    boolean isFile(Path path) ;
+    boolean isDirectory(Path path);
+
+    boolean isFile(Path path);
 
     List<Path> getAllFiles(Path path) throws IOException;
+
     List<Path> getAllFilesAndDirectories(Path path) throws IOException;
 
-    byte[] readFileContents(Path resolve) throws IOException;
+    byte[] readFileContents(Path path) throws IOException;
 
     boolean exists(Path path);
+
+    CharBuffer readFileContents(Path path, Charset charset) throws IOException;
 }

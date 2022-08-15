@@ -23,7 +23,6 @@ import org.xml.sax.SAXParseException;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
-import javax.xml.validation.Validator;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -32,7 +31,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class XmlValidatorImpl implements XmlValidator {
+public class XmlSchemaValidatorImpl implements XmlSchemaValidator {
 
     // TODO make configurable?
     protected final Map<String, String> schemaUrls = Map.of(
@@ -55,7 +54,7 @@ public class XmlValidatorImpl implements XmlValidator {
 
     protected final Map<String, Schema> validators = new HashMap<>();
 
-    public XmlValidatorImpl() throws MalformedURLException, SAXException {
+    public XmlSchemaValidatorImpl() throws MalformedURLException, SAXException {
         var schemaFactory = SchemaFactory.newInstance("http://www.w3.org/2001/XMLSchema");
 
         for (var entry : schemaToFilenameMap.entrySet()) {

@@ -40,37 +40,25 @@ import java.util.Map;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-public class BagXmlReaderImpl implements BagXmlReader {
-    private final String namespaceDc = "http://purl.org/dc/elements/1.1/";
-    private final String namespaceDcxDai = "http://easy.dans.knaw.nl/schemas/dcx/dai/";
-    private final String namespaceDdm = "http://easy.dans.knaw.nl/schemas/md/ddm/";
-    private final String namespaceDcterms = "http://purl.org/dc/terms/";
-    private final String namespaceXsi = "http://www.w3.org/2001/XMLSchema-instance";
-    private final String namespaceIdType = "http://easy.dans.knaw.nl/schemas/vocab/identifier-type/";
-
-    private final String namespaceDcxGml = "http://easy.dans.knaw.nl/schemas/dcx/gml/";
-
-    private final String namespaceFilesXml = "http://easy.dans.knaw.nl/schemas/bag/metadata/files/";
-
-    private final String namespaceOpenGis = "http://www.opengis.net/gml";
+public class XmlReaderImpl implements XmlReader {
 
     private final XPath xpath;
 
-    public BagXmlReaderImpl() {
+    public XmlReaderImpl() {
         this.xpath = XPathFactory
             .newInstance()
             .newXPath();
 
         final var namespaceMap = Map.of(
-            "dc", namespaceDc,
-            "dcx-dai", namespaceDcxDai,
-            "ddm", namespaceDdm,
-            "dcterms", namespaceDcterms,
-            "xsi", namespaceXsi,
-            "id-type", namespaceIdType,
-            "dcx-gml", namespaceDcxGml,
-            "files", namespaceFilesXml,
-            "gml", namespaceOpenGis
+            "dc", NAMESPACE_DC,
+            "dcx-dai", NAMESPACE_DCX_DAI,
+            "ddm", NAMESPACE_DDM,
+            "dcterms", NAMESPACE_DCTERMS,
+            "xsi", NAMESPACE_XSI,
+            "id-type", NAMESPACE_ID_TYPE,
+            "dcx-gml", NAMESPACE_DCX_GML,
+            "files", NAMESPACE_FILES_XML,
+            "gml", NAMESPACE_OPEN_GIS
         );
 
         xpath.setNamespaceContext(new NamespaceContext() {
@@ -128,7 +116,7 @@ public class BagXmlReaderImpl implements BagXmlReader {
     public Stream<Node> xpathsToStream(Node node, Collection<String> expressions) throws XPathExpressionException {
         var items = new ArrayList<Stream<Node>>();
 
-        for (var expr: expressions) {
+        for (var expr : expressions) {
             var item = xpathToStream(node, expr);
             items.add(item);
         }

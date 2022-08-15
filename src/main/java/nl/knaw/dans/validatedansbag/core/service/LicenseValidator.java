@@ -15,9 +15,7 @@
  */
 package nl.knaw.dans.validatedansbag.core.service;
 
-import java.nio.file.Path;
+public interface LicenseValidator {
 
-@FunctionalInterface
-interface BagValidatorRule {
-    void validate(Path path) throws RuleViolationDetailsException, RuleSkippedException;
+    boolean isValidLicense(String license);
 }

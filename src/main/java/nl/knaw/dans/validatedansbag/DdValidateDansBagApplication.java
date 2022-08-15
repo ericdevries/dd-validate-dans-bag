@@ -19,16 +19,18 @@ package nl.knaw.dans.validatedansbag;
 import io.dropwizard.Application;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
-import nl.knaw.dans.validatedansbag.core.service.BagInfoCheckerImpl;
+import nl.knaw.dans.validatedansbag.core.validator.BagValidatorImpl;
 import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReaderImpl;
-import nl.knaw.dans.validatedansbag.core.service.BagXmlReaderImpl;
+import nl.knaw.dans.validatedansbag.core.service.XmlReaderImpl;
 import nl.knaw.dans.validatedansbag.core.service.DaiDigestCalculatorImpl;
 import nl.knaw.dans.validatedansbag.core.service.FileServiceImpl;
-import nl.knaw.dans.validatedansbag.core.service.NumberedRule;
+import nl.knaw.dans.validatedansbag.core.validator.FilesXmlValidatorImpl;
+import nl.knaw.dans.validatedansbag.core.service.LicenseValidatorImpl;
+import nl.knaw.dans.validatedansbag.core.engine.NumberedRule;
 import nl.knaw.dans.validatedansbag.core.service.OriginalFilepathsServiceImpl;
 import nl.knaw.dans.validatedansbag.core.service.PolygonListValidatorImpl;
-import nl.knaw.dans.validatedansbag.core.service.RuleEngineImpl;
-import nl.knaw.dans.validatedansbag.core.service.XmlValidatorImpl;
+import nl.knaw.dans.validatedansbag.core.engine.RuleEngineImpl;
+import nl.knaw.dans.validatedansbag.core.service.XmlSchemaValidatorImpl;
 import org.xml.sax.SAXException;
 
 import java.net.MalformedURLException;
@@ -56,35 +58,47 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
 
         var fileService = new FileServiceImpl();
         var bagItMetadataReader = new BagItMetadataReaderImpl();
-        var bagXmlReader = new BagXmlReaderImpl();
+        var bagXmlReader = new XmlReaderImpl();
         var daiDigestCalculator = new DaiDigestCalculatorImpl();
         var polygonListValidator = new PolygonListValidatorImpl();
         var originalFilepathsService = new OriginalFilepathsServiceImpl(fileService);
+        var licenseValidator = new LicenseValidatorImpl();
 
-        var xmlValidator = new XmlValidatorImpl();
+        var xmlValidator = new XmlSchemaValidatorImpl();
 
-        var validator = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var validator = new BagValidatorImpl(fileService, bagItMetadataReader, bagXmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator, licenseValidator);
+
+        var filesXmlValidator = new FilesXmlValidatorImpl(bagXmlReader, fileService, originalFilepathsService);
+
+        var dataPath = Path.of("data");
+        var datasetPath = Path.of("metadata/dataset.xml");
+        var metadataPath = Path.of("metadata");
+        var metadataFilesPath = Path.of("metadata/files.xml");
 
         var rules = new NumberedRule[] {
             // validity
             new NumberedRule("1.1.1", validator.bagIsValid()),
-            new NumberedRule("1.1.1(datadir)", validator.containsDir(Path.of("data"))),
+            new NumberedRule("1.1.1(datadir)", validator.containsDir(dataPath)),
 
             // bag-info.txt
             new NumberedRule("1.2.1", validator.bagInfoExistsAndIsWellFormed()),
-            new NumberedRule("1.2.4(a)", validator.bagInfoContainsExactlyOneOf("Created"), List.of("1.2.1")),
-            new NumberedRule("1.2.4(b)", validator.bagInfoCreatedElementIsIso8601Date(), List.of("1.2.4(a)")),
-            new NumberedRule("1.2.5", validator.bagInfoContainsAtMostOneOf("Is-Version-Of"), List.of("1.2.1")),
+            new NumberedRule("1.2.2(a)", validator.bagInfoContainsExactlyOneOf("Created"), List.of("1.2.1")),
+            new NumberedRule("1.2.2(b)", validator.bagInfoCreatedElementIsIso8601Date(), List.of("1.2.2(a)")),
+            new NumberedRule("1.2.3", validator.bagInfoContainsAtMostOneOf("Data-Station-User-Account"), List.of("1.2.1")),
+            new NumberedRule("1.2.4(a)", validator.bagInfoContainsAtMostOneOf("Is-Version-Of"), List.of("1.2.1")),
+            new NumberedRule("1.2.4(b)", validator.bagInfoIsVersionOfIsValidUrnUuid(), List.of("1.2.4(a)")),
+            new NumberedRule("1.2.5", validator.bagInfoContainsAtMostOneOf("Has-Organizational-Identifier"), List.of("1.2.1")),
+            // TODO 1.2.5 it needs to verify other bags as well
 
             // manifests
             new NumberedRule("1.3.1(a)", validator.containsFile(Path.of("manifest-sha1.txt"))),
             new NumberedRule("1.3.1(b)", validator.bagShaPayloadManifestContainsAllPayloadFiles()),
 
             // Structural
-            new NumberedRule("2.1", validator.containsDir(Path.of("metadata"))),
-            new NumberedRule("2.2(a)", validator.containsFile(Path.of("metadata/dataset.xml")), List.of("2.1")),
-            new NumberedRule("2.2(b)", validator.containsFile(Path.of("metadata/files.xml")), List.of("2.1")),
-            new NumberedRule("2.5", validator.containsNothingElseThan(Path.of("metadata"), new String[] {
+            new NumberedRule("2.1", validator.containsDir(metadataPath)),
+            new NumberedRule("2.2(a)", validator.containsFile(datasetPath), List.of("2.1")),
+            new NumberedRule("2.2(b)", validator.containsFile(metadataFilesPath), List.of("2.1")),
+            new NumberedRule("2.5", validator.containsNothingElseThan(metadataPath, new String[] {
                 "dataset.xml",
                 "provenance.xml",
                 "pre-staged.csv",
@@ -105,31 +119,35 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
             }), List.of("2.1")),
 
             new NumberedRule("2.6", validator.hasOnlyValidFileNames(), List.of("1.3.1(b)")),
+            // TODO see where these map to the specs, there seems to be a formatting error
             new NumberedRule("2.7.1", validator.optionalFileIsUtf8Decodable(Path.of("original-filepaths.txt"))),
             new NumberedRule("2.7.2", validator.isOriginalFilepathsFileComplete(), List.of("1.1.1(datadir)", "2.7.1", "2.2(b)", "3.2.4")),
 
-            new NumberedRule("3.1.1", validator.xmlFileConfirmsToSchema(Path.of("metadata/dataset.xml"), "dataset.xml"), List.of("2.2(a)")),
+            new NumberedRule("3.1.1", validator.xmlFileConfirmsToSchema(datasetPath, "dataset.xml"), List.of("2.2(a)")),
             new NumberedRule("3.1.2", validator.ddmMayContainDctermsLicenseFromList(), List.of("3.1.1")),
             new NumberedRule("3.1.3(a)", validator.ddmContainsUrnNbnIdentifier(), List.of("3.1.1")),
             new NumberedRule("3.1.3(b)", validator.ddmDoiIdentifiersAreValid(), List.of("3.1.1")),
+            // TODO check how we can validate each kind of identifier
             new NumberedRule("3.1.4", validator.ddmDaisAreValid(), List.of("3.1.1")),
             new NumberedRule("3.1.5", validator.ddmGmlPolygonPosListIsWellFormed(), List.of("3.1.1")),
             new NumberedRule("3.1.6", validator.polygonsInSameMultiSurfaceHaveSameSrsName(), List.of("3.1.1")),
             new NumberedRule("3.1.7", validator.pointsHaveAtLeastTwoValues(), List.of("3.1.1")),
             new NumberedRule("3.1.8", validator.archisIdentifiersHaveAtMost10Characters(), List.of("3.1.1")),
             new NumberedRule("3.1.9", validator.allUrlsAreValid(), List.of("3.1.1")),
+            // TODO differentiate between MIGRATE and DEPOSIT
             new NumberedRule("3.1.10", validator.ddmMustHaveRightsHolder(), List.of("3.1.1")),
 
-            new NumberedRule("3.2.1", validator.xmlFileConfirmsToSchema(Path.of("metadata/files.xml"), "files.xml"), List.of("3.1.1")),
-            new NumberedRule("3.2.2", validator.filesXmlHasDocumentElementFiles(), List.of("2.2(b)")),
-            new NumberedRule("3.2.3", validator.filesXmlHasOnlyFiles(), List.of("3.2.2")),
-            new NumberedRule("3.2.4", validator.filesXmlFileElementsAllHaveFilepathAttribute(), List.of("3.2.3")),
-            new NumberedRule("3.2.5", validator.filesXmlNoDuplicatesAndMatchesWithPayloadPlusPreStagedFiles(), List.of("1.1.1(datadir)", "3.2.4")),
+            new NumberedRule("3.2.1", validator.xmlFileConfirmsToSchema(metadataFilesPath, "files.xml"), List.of("3.1.1")),
+            new NumberedRule("3.2.2", filesXmlValidator.filesXmlHasDocumentElementFiles(), List.of("2.2(b)")),
+            new NumberedRule("3.2.3", filesXmlValidator.filesXmlHasOnlyFiles(), List.of("3.2.2")),
+            new NumberedRule("3.2.4", filesXmlValidator.filesXmlFileElementsAllHaveFilepathAttribute(), List.of("3.2.3")),
+            new NumberedRule("3.2.5", filesXmlValidator.filesXmlNoDuplicatesAndMatchesWithPayloadPlusPreStagedFiles(), List.of("1.1.1(datadir)", "3.2.4")),
 
-            new NumberedRule("3.2.6", validator.filesXmlAllFilesHaveFormat(), List.of("3.2.2")),
-            new NumberedRule("3.2.7", validator.filesXmlFilesHaveOnlyAllowedNamespaces(), List.of("3.2.2")),
-            new NumberedRule("3.2.8", validator.filesXmlFilesHaveOnlyAllowedAccessRights(), List.of("3.2.2")),
+            new NumberedRule("3.2.6", filesXmlValidator.filesXmlAllFilesHaveFormat(), List.of("3.2.2")),
+            new NumberedRule("3.2.7", filesXmlValidator.filesXmlFilesHaveOnlyAllowedNamespaces(), List.of("3.2.2")),
+            new NumberedRule("3.2.8", filesXmlValidator.filesXmlFilesHaveOnlyAllowedAccessRights(), List.of("3.2.2")),
 
+            // TODO these should only apply to MIGRATION status
             // agreements.xml
             new NumberedRule("3.3.1", validator.xmlFileIfExistsConformsToSchema(Path.of("metadata/depositor-info/agreements.xml"), "agreements.xml")),
 
@@ -141,6 +159,9 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
 
             // provenance.xml
             new NumberedRule("3.8.1", validator.xmlFileIfExistsConformsToSchema(Path.of("metadata/provenance.xml"), "provenance.xml")),
+
+
+            // TODO 4.x rules should check for the existence of certain users in another system
         };
 
         var path = Path.of("/home/eric/workspace/dd-validate-dans-bag/src/test/resources/original-filepaths-valid-bag");

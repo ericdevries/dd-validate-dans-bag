@@ -19,6 +19,8 @@ import gov.loc.repository.bagit.domain.Bag;
 import gov.loc.repository.bagit.domain.Manifest;
 import gov.loc.repository.bagit.exceptions.InvalidBagitFileFormatException;
 import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms;
+import nl.knaw.dans.validatedansbag.core.engine.RuleViolationDetailsException;
+import nl.knaw.dans.validatedansbag.core.validator.BagValidatorImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -40,28 +42,30 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class BagInfoCheckerImplTest {
+class BagValidatorImplTest {
 
     final FileService fileService = Mockito.mock(FileService.class);
-    final BagXmlReader bagXmlReader = Mockito.mock(BagXmlReader.class);
+    final XmlReader xmlReader = Mockito.mock(XmlReader.class);
     final DaiDigestCalculator daiDigestCalculator = new DaiDigestCalculatorImpl();
     final BagItMetadataReader bagItMetadataReader = Mockito.mock(BagItMetadataReader.class);
     final PolygonListValidator polygonListValidator = new PolygonListValidatorImpl();
-    final XmlValidator xmlValidator = Mockito.mock(XmlValidator.class);
+    final XmlSchemaValidator xmlSchemaValidator = Mockito.mock(XmlSchemaValidator.class);
     final OriginalFilepathsService originalFilepathsService = Mockito.mock(OriginalFilepathsService.class);
+
+    final LicenseValidator licenseValidator = new LicenseValidatorImpl();
 
     @AfterEach
     void afterEach() {
         Mockito.reset(fileService);
-        Mockito.reset(bagXmlReader);
+        Mockito.reset(xmlReader);
         Mockito.reset(bagItMetadataReader);
-        Mockito.reset(xmlValidator);
+        Mockito.reset(xmlSchemaValidator);
         Mockito.reset(originalFilepathsService);
     }
 
     @Test
     void testBagIsValid() throws Exception {
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
 
         assertDoesNotThrow(() -> checker.bagIsValid().validate(Path.of("testpath")));
 
@@ -71,7 +75,7 @@ class BagInfoCheckerImplTest {
 
     @Test
     void testBagIsNotValidWithExceptionThrown() throws Exception {
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
 
         Mockito.doThrow(new InvalidBagitFileFormatException("Invalid file format"))
             .when(bagItMetadataReader).verifyBag(Mockito.any());
@@ -81,7 +85,7 @@ class BagInfoCheckerImplTest {
 
     @Test
     void containsDirWorks() throws Exception {
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
 
         Mockito.when(fileService.isDirectory(Mockito.any()))
             .thenReturn(true);
@@ -93,7 +97,7 @@ class BagInfoCheckerImplTest {
 
     @Test
     void containsDirThrowsException() {
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
 
         Mockito.when(fileService.isDirectory(Mockito.any()))
             .thenReturn(false);
@@ -103,7 +107,7 @@ class BagInfoCheckerImplTest {
 
     @Test
     void containsFileWorks() {
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
 
         Mockito.when(fileService.isFile(Mockito.any()))
             .thenReturn(true);
@@ -115,7 +119,7 @@ class BagInfoCheckerImplTest {
 
     @Test
     void containsFileThrowsException() {
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
 
         Mockito.when(fileService.isFile(Mockito.any()))
             .thenReturn(false);
@@ -125,7 +129,7 @@ class BagInfoCheckerImplTest {
 
     @Test
     void bagInfoExistsAndIsWellFormed() {
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
 
         Mockito.when(fileService.isFile(Mockito.any()))
             .thenReturn(true);
@@ -138,7 +142,7 @@ class BagInfoCheckerImplTest {
 
     @Test
     void bagInfoDoesNotExist() {
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
 
         Mockito.when(fileService.isFile(Mockito.any()))
             .thenReturn(false);
@@ -148,7 +152,7 @@ class BagInfoCheckerImplTest {
 
     @Test
     void bagInfoDoesExistButItCouldNotBeOpened() throws Exception {
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
 
         Mockito.when(fileService.isFile(Mockito.any()))
             .thenReturn(true);
@@ -162,7 +166,7 @@ class BagInfoCheckerImplTest {
     @Test
     void bagInfoCreatedElementIsIso8601Date() throws Exception {
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
 
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Created")))
             .thenReturn(List.of("2022-01-01T01:23:45.678+00:00"));
@@ -173,7 +177,7 @@ class BagInfoCheckerImplTest {
     @Test
     void bagInfoCreatedElementIsNotAValidDate() throws Exception {
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
 
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Created")))
             .thenReturn(List.of("2022-01-01 01:23:45.678"));
@@ -183,7 +187,7 @@ class BagInfoCheckerImplTest {
 
     @Test
     void bagInfoContainsExactlyOneOf() throws Exception {
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Key")))
             .thenReturn(List.of("value"));
 
@@ -192,7 +196,7 @@ class BagInfoCheckerImplTest {
 
     @Test
     void bagInfoContainsExactlyOneOfButInRealityItIsTwo() throws Exception {
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Key")))
             .thenReturn(List.of("value", "secondvalue"));
 
@@ -201,7 +205,7 @@ class BagInfoCheckerImplTest {
 
     @Test
     void bagInfoContainsExactlyOneOfButInRealityItIsZero() throws Exception {
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Key")))
             .thenReturn(new ArrayList<>());
 
@@ -210,7 +214,7 @@ class BagInfoCheckerImplTest {
 
     @Test
     void bagInfoContainsAtMostOne() throws Exception {
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Key")))
             .thenReturn(List.of("value"));
 
@@ -218,8 +222,35 @@ class BagInfoCheckerImplTest {
     }
 
     @Test
+    void bagInfoIsVersionOfIsValidUrnUuid() throws Exception {
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
+
+        Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Is-Version-Of")))
+            .thenReturn(List.of("urn:uuid:76cfdebf-e43d-4c56-a886-e8375c745429"));
+
+        assertDoesNotThrow(() -> checker.bagInfoIsVersionOfIsValidUrnUuid().validate(Path.of("bagdir")));
+    }
+
+    @Test
+    void bagInfoIsVersionOfIsNotValidUrnUuid() throws Exception {
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
+
+        Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Is-Version-Of")))
+            .thenReturn(List.of("http://google.com"))
+            .thenReturn(List.of("urn:uuid:1234"))
+            .thenReturn(List.of("urn:not uuid:1234"));
+
+        assertThrows(RuleViolationDetailsException.class,
+            () -> checker.bagInfoIsVersionOfIsValidUrnUuid().validate(Path.of("bagdir")));
+        assertThrows(RuleViolationDetailsException.class,
+            () -> checker.bagInfoIsVersionOfIsValidUrnUuid().validate(Path.of("bagdir")));
+        assertThrows(RuleViolationDetailsException.class,
+            () -> checker.bagInfoIsVersionOfIsValidUrnUuid().validate(Path.of("bagdir")));
+    }
+
+    @Test
     void bagInfoContainsAtMostOneButItReturnsTwo() throws Exception {
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Key")))
             .thenReturn(List.of("value", "secondvalue"));
 
@@ -228,7 +259,7 @@ class BagInfoCheckerImplTest {
 
     @Test
     void bagInfoContainsAtMostOneOfButInRealityItIsZero() throws Exception {
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Key")))
             .thenReturn(new ArrayList<>());
 
@@ -237,7 +268,7 @@ class BagInfoCheckerImplTest {
 
     @Test
     void bagShaPayloadManifestContainsAllPayloadFiles() throws Exception {
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
 
         Mockito.when(fileService.getAllFiles(Mockito.any()))
             .thenReturn(List.of(Path.of("path/1.txt"), Path.of("path/2.txt")));
@@ -260,7 +291,7 @@ class BagInfoCheckerImplTest {
 
     @Test
     void bagShaPayloadManifestMissesSomeFiles() throws Exception {
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
 
         Mockito.when(fileService.getAllFiles(Mockito.any()))
             .thenReturn(List.of(Path.of("path/1.txt"), Path.of("path/2.txt"), Path.of("path/3.txt")));
@@ -281,7 +312,7 @@ class BagInfoCheckerImplTest {
 
     @Test
     void bagShaPayloadManifestHasTooManyFiles() throws Exception {
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
 
         Mockito.when(fileService.getAllFiles(Mockito.any()))
             .thenReturn(List.of(Path.of("path/1.txt"), Path.of("path/2.txt")));
@@ -303,7 +334,7 @@ class BagInfoCheckerImplTest {
 
     @Test
     void containsNothingElseThan() throws Exception {
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
         var basePath = Path.of("bagdir/metadata");
 
         Mockito.when(fileService.getAllFilesAndDirectories(Mockito.eq(basePath)))
@@ -320,7 +351,7 @@ class BagInfoCheckerImplTest {
 
     @Test
     void containsNothingElseThanButThereAreInvalidFiles() throws Exception {
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, bagXmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
 
         var basePath = Path.of("bagdir/metadata");
 
@@ -338,7 +369,7 @@ class BagInfoCheckerImplTest {
     }
 
     private Document parseXmlString(String str) throws ParserConfigurationException, IOException, SAXException {
-        return new BagXmlReaderImpl().readXmlString(str);
+        return new XmlReaderImpl().readXmlString(str);
     }
 
     @Test
@@ -358,11 +389,11 @@ class BagInfoCheckerImplTest {
             + "</ddm:DDM>";
 
         var document = parseXmlString(validDocument);
-        var reader = Mockito.spy(new BagXmlReaderImpl());
+        var reader = Mockito.spy(new XmlReaderImpl());
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
 
         assertDoesNotThrow(() -> {
             checker.ddmContainsUrnNbnIdentifier().validate(Path.of("bagdir"));
@@ -385,11 +416,11 @@ class BagInfoCheckerImplTest {
             + "</ddm:DDM>";
 
         var document = parseXmlString(xml);
-        var reader = Mockito.spy(new BagXmlReaderImpl());
+        var reader = Mockito.spy(new XmlReaderImpl());
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
 
         assertThrows(RuleViolationDetailsException.class, () -> {
             checker.ddmContainsUrnNbnIdentifier().validate(Path.of("bagdir"));
@@ -413,11 +444,11 @@ class BagInfoCheckerImplTest {
             + "</ddm:DDM>";
 
         var document = parseXmlString(xml);
-        var reader = Mockito.spy(new BagXmlReaderImpl());
+        var reader = Mockito.spy(new XmlReaderImpl());
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
 
         assertThrows(RuleViolationDetailsException.class, () -> {
             checker.ddmContainsUrnNbnIdentifier().validate(Path.of("bagdir"));
@@ -440,11 +471,11 @@ class BagInfoCheckerImplTest {
             + "</ddm:DDM>";
 
         var document = parseXmlString(xml);
-        var reader = Mockito.spy(new BagXmlReaderImpl());
+        var reader = Mockito.spy(new XmlReaderImpl());
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
 
         assertDoesNotThrow(() -> checker.ddmDoiIdentifiersAreValid().validate(Path.of("bagdir")));
     }
@@ -465,11 +496,11 @@ class BagInfoCheckerImplTest {
             + "</ddm:DDM>";
 
         var document = parseXmlString(xml);
-        var reader = Mockito.spy(new BagXmlReaderImpl());
+        var reader = Mockito.spy(new XmlReaderImpl());
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
 
         assertThrows(RuleViolationDetailsException.class, () -> checker.ddmDoiIdentifiersAreValid().validate(Path.of("bagdir")));
     }
@@ -496,11 +527,11 @@ class BagInfoCheckerImplTest {
             + "</ddm:DDM>";
 
         var document = parseXmlString(xml);
-        var reader = Mockito.spy(new BagXmlReaderImpl());
+        var reader = Mockito.spy(new XmlReaderImpl());
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
 
         assertDoesNotThrow(() -> checker.ddmDaisAreValid().validate(Path.of("bagdir")));
     }
@@ -527,11 +558,11 @@ class BagInfoCheckerImplTest {
             + "</ddm:DDM>";
 
         var document = parseXmlString(xml);
-        var reader = Mockito.spy(new BagXmlReaderImpl());
+        var reader = Mockito.spy(new XmlReaderImpl());
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
 
         assertThrows(RuleViolationDetailsException.class, () -> checker.ddmDaisAreValid().validate(Path.of("bagdir")));
     }
@@ -576,11 +607,11 @@ class BagInfoCheckerImplTest {
             + "</ddm:DDM>";
 
         var document = parseXmlString(xml);
-        var reader = Mockito.spy(new BagXmlReaderImpl());
+        var reader = Mockito.spy(new XmlReaderImpl());
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
 
         assertDoesNotThrow(() -> checker.ddmGmlPolygonPosListIsWellFormed().validate(Path.of("bagdir")));
     }
@@ -625,11 +656,11 @@ class BagInfoCheckerImplTest {
             + "</ddm:DDM>";
 
         var document = parseXmlString(xml);
-        var reader = Mockito.spy(new BagXmlReaderImpl());
+        var reader = Mockito.spy(new XmlReaderImpl());
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
 
         assertThrows(RuleViolationDetailsException.class, () -> checker.ddmGmlPolygonPosListIsWellFormed().validate(Path.of("bagdir")));
     }
@@ -664,11 +695,11 @@ class BagInfoCheckerImplTest {
             + "</ddm:DDM>";
 
         var document = parseXmlString(xml);
-        var reader = Mockito.spy(new BagXmlReaderImpl());
+        var reader = Mockito.spy(new XmlReaderImpl());
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
 
         assertDoesNotThrow(() -> checker.polygonsInSameMultiSurfaceHaveSameSrsName().validate(Path.of("bagdir")));
     }
@@ -703,11 +734,11 @@ class BagInfoCheckerImplTest {
             + "</ddm:DDM>";
 
         var document = parseXmlString(xml);
-        var reader = Mockito.spy(new BagXmlReaderImpl());
+        var reader = Mockito.spy(new XmlReaderImpl());
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
 
         assertThrows(RuleViolationDetailsException.class,
             () -> checker.polygonsInSameMultiSurfaceHaveSameSrsName().validate(Path.of("bagdir")));
@@ -745,11 +776,11 @@ class BagInfoCheckerImplTest {
             + "</ddm:DDM>";
 
         var document = parseXmlString(xml);
-        var reader = Mockito.spy(new BagXmlReaderImpl());
+        var reader = Mockito.spy(new XmlReaderImpl());
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
 
         assertDoesNotThrow(() -> checker.polygonsInSameMultiSurfaceHaveSameSrsName().validate(Path.of("bagdir")));
     }
@@ -782,11 +813,11 @@ class BagInfoCheckerImplTest {
             + "</ddm:DDM>";
 
         var document = parseXmlString(xml);
-        var reader = Mockito.spy(new BagXmlReaderImpl());
+        var reader = Mockito.spy(new XmlReaderImpl());
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
 
         var exception = assertThrows(RuleViolationDetailsException.class,
             () -> checker.pointsHaveAtLeastTwoValues().validate(Path.of("bagdir")));
@@ -811,11 +842,11 @@ class BagInfoCheckerImplTest {
             + "</ddm:DDM>\n";
 
         var document = parseXmlString(xml);
-        var reader = Mockito.spy(new BagXmlReaderImpl());
+        var reader = Mockito.spy(new XmlReaderImpl());
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
 
         assertDoesNotThrow(() -> checker.archisIdentifiersHaveAtMost10Characters().validate(Path.of("bagdir")));
     }
@@ -837,11 +868,11 @@ class BagInfoCheckerImplTest {
             + "</ddm:DDM>\n";
 
         var document = parseXmlString(xml);
-        var reader = Mockito.spy(new BagXmlReaderImpl());
+        var reader = Mockito.spy(new XmlReaderImpl());
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
 
         var exceptions = assertThrows(RuleViolationDetailsException.class,
             () -> checker.archisIdentifiersHaveAtMost10Characters().validate(Path.of("bagdir")));
@@ -906,11 +937,11 @@ class BagInfoCheckerImplTest {
             + "</ddm:DDM>\n";
 
         var document = parseXmlString(xml);
-        var reader = Mockito.spy(new BagXmlReaderImpl());
+        var reader = Mockito.spy(new XmlReaderImpl());
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
 
         assertDoesNotThrow(() -> checker.allUrlsAreValid().validate(Path.of("bagdir")));
     }
@@ -963,11 +994,11 @@ class BagInfoCheckerImplTest {
             + "</ddm:DDM>\n";
 
         var document = parseXmlString(xml);
-        var reader = Mockito.spy(new BagXmlReaderImpl());
+        var reader = Mockito.spy(new XmlReaderImpl());
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
 
         var exceptions = assertThrows(RuleViolationDetailsException.class,
             () -> checker.allUrlsAreValid().validate(Path.of("bagdir")));
@@ -998,11 +1029,11 @@ class BagInfoCheckerImplTest {
             + "</ddm:DDM>\n";
 
         var document = parseXmlString(xml);
-        var reader = Mockito.spy(new BagXmlReaderImpl());
+        var reader = Mockito.spy(new XmlReaderImpl());
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
 
         assertDoesNotThrow(() -> checker.ddmMustHaveRightsHolder().validate(Path.of("bagdir")));
 
@@ -1030,11 +1061,11 @@ class BagInfoCheckerImplTest {
             + "</ddm:DDM>\n";
 
         var document = parseXmlString(xml);
-        var reader = Mockito.spy(new BagXmlReaderImpl());
+        var reader = Mockito.spy(new XmlReaderImpl());
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
 
         assertThrows(RuleViolationDetailsException.class,
             () -> checker.ddmMustHaveRightsHolder().validate(Path.of("bagdir")));
@@ -1051,13 +1082,13 @@ class BagInfoCheckerImplTest {
             + "</ddm:DDM>\n";
 
         var document = parseXmlString(xml);
-        var reader = Mockito.spy(new BagXmlReaderImpl());
+        var reader = Mockito.spy(new XmlReaderImpl());
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
         Mockito.doReturn(new ArrayList<SAXParseException>())
-            .when(xmlValidator).validateDocument(Mockito.any(), Mockito.anyString());
+            .when(xmlSchemaValidator).validateDocument(Mockito.any(), Mockito.anyString());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
 
         assertDoesNotThrow(() -> checker.xmlFileConfirmsToSchema(Path.of("metadata/dataset.xml"), "ddm").validate(Path.of("bagdir")));
     }
@@ -1073,465 +1104,17 @@ class BagInfoCheckerImplTest {
             + "</ddm:DDM>\n";
 
         var document = parseXmlString(xml);
-        var reader = Mockito.spy(new BagXmlReaderImpl());
+        var reader = Mockito.spy(new XmlReaderImpl());
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
         Mockito.doReturn(List.of(new SAXParseException("msg", null)))
-            .when(xmlValidator).validateDocument(Mockito.any(), Mockito.anyString());
+            .when(xmlSchemaValidator).validateDocument(Mockito.any(), Mockito.anyString());
 
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
+        var checker = new BagValidatorImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlSchemaValidator, licenseValidator);
 
         assertThrows(RuleViolationDetailsException.class,
             () -> checker.xmlFileConfirmsToSchema(Path.of("metadata/dataset.xml"), "ddm").validate(Path.of("bagdir")));
     }
 
-    @Test
-    void filesXmlHasDocumentElementFiles() throws Exception {
-        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
-            + "    <file filepath=\"data/random images/image01.png\">\n"
-            + "        <dcterms:title>The first image</dcterms:title>\n"
-            + "        <dcterms:description>This description will be archived, but not displayed anywhere in the Web-UI</dcterms:description>\n"
-            + "        <dcterms:format>image/png</dcterms:format>\n"
-            + "        <dcterms:created>2016-11-11</dcterms:created>\n"
-            + "    </file>\n"
-            + "</files>\n"
-            + "\n";
-
-        var document = parseXmlString(xml);
-        var reader = Mockito.spy(new BagXmlReaderImpl());
-
-        Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
-
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
-
-        assertDoesNotThrow(() -> checker.filesXmlHasDocumentElementFiles().validate(Path.of("bagdir")));
-
-    }
-
-    @Test
-    void filesXmlDoesNotHaveDocumentElementFiles() throws Exception {
-        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-            + "<notfiles xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
-            + "    <file filepath=\"data/random images/image01.png\">\n"
-            + "        <dcterms:title>The first image</dcterms:title>\n"
-            + "        <dcterms:description>This description will be archived, but not displayed anywhere in the Web-UI</dcterms:description>\n"
-            + "        <dcterms:format>image/png</dcterms:format>\n"
-            + "        <dcterms:created>2016-11-11</dcterms:created>\n"
-            + "    </file>\n"
-            + "</notfiles>\n"
-            + "\n";
-
-        var document = parseXmlString(xml);
-        var reader = Mockito.spy(new BagXmlReaderImpl());
-
-        Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
-
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
-
-        var e = assertThrows(RuleViolationDetailsException.class,
-            () -> checker.filesXmlHasDocumentElementFiles().validate(Path.of("bagdir")));
-
-    }
-
-    @Test
-    void filesXmlHasOnlyFiles() throws Exception {
-        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
-            + "    <file filepath=\"data/random images/image01.png\">\n"
-            + "        <dcterms:title>The first image</dcterms:title>\n"
-            + "        <dcterms:description>This description will be archived, but not displayed anywhere in the Web-UI</dcterms:description>\n"
-            + "        <dcterms:format>image/png</dcterms:format>\n"
-            + "        <dcterms:created>2016-11-11</dcterms:created>\n"
-            + "    </file>\n"
-            + "</files>\n"
-            + "\n";
-
-        var document = parseXmlString(xml);
-        var reader = Mockito.spy(new BagXmlReaderImpl());
-
-        Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
-
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
-
-        assertDoesNotThrow(() -> checker.filesXmlHasOnlyFiles().validate(Path.of("bagdir")));
-    }
-
-    @Test
-    void filesXmlHasMoreThanOnlyFiles() throws Exception {
-        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
-            + "    <file filepath=\"data/random images/image01.png\">\n"
-            + "        <dcterms:title>The first image</dcterms:title>\n"
-            + "        <dcterms:description>This description will be archived, but not displayed anywhere in the Web-UI</dcterms:description>\n"
-            + "        <dcterms:format>image/png</dcterms:format>\n"
-            + "        <dcterms:created>2016-11-11</dcterms:created>\n"
-            + "    </file>\n"
-            + "    <path></path>\n"
-            + "</files>\n"
-            + "\n";
-
-        var document = parseXmlString(xml);
-        var reader = Mockito.spy(new BagXmlReaderImpl());
-
-        Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
-
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
-
-        var e = assertThrows(RuleViolationDetailsException.class,
-            () -> checker.filesXmlHasOnlyFiles().validate(Path.of("bagdir")));
-
-        assertTrue(e.getLocalizedMessage().contains("path"));
-    }
-
-    @Test
-    void filesXmlFileElementsAllHaveFilepathAttribute() throws Exception {
-        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
-            + "    <file filepath=\"data/random images/image01.png\">\n"
-            + "        <dcterms:title>The first image</dcterms:title>\n"
-            + "    </file>\n"
-            + "</files>\n"
-            + "\n";
-
-        var document = parseXmlString(xml);
-        var reader = Mockito.spy(new BagXmlReaderImpl());
-
-        Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
-
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
-
-        assertDoesNotThrow(() -> checker.filesXmlFileElementsAllHaveFilepathAttribute().validate(Path.of("bagdir")));
-    }
-
-    @Test
-    void filesXmlFileElementsAllHaveFilepathAttributeButNotALl() throws Exception {
-        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
-            + "    <file filepath=\"data/random images/image01.png\">\n"
-            + "        <dcterms:title>The first image</dcterms:title>\n"
-            + "    </file>\n"
-            + "    <file>\n"
-            + "        <dcterms:title>The first image</dcterms:title>\n"
-            + "    </file>\n"
-            + "    <file filepath=\"\">\n"
-            + "        <dcterms:title>The first image</dcterms:title>\n"
-            + "    </file>\n"
-            + "</files>\n"
-            + "\n";
-
-        var document = parseXmlString(xml);
-        var reader = Mockito.spy(new BagXmlReaderImpl());
-
-        Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
-
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
-
-        var e = assertThrows(RuleViolationDetailsException.class,
-            () -> checker.filesXmlFileElementsAllHaveFilepathAttribute().validate(Path.of("bagdir")));
-
-        assertTrue(e.getLocalizedMessage().startsWith("2"));
-    }
-
-    @Test
-    void filesXmlNoDuplicatesAndMatchesWithPayloadPlusPreStagedFiles() throws Exception {
-
-        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
-            + "    <file filepath=\"data/random images/image01.png\">\n"
-            + "        <dcterms:title>The first image</dcterms:title>\n"
-            + "    </file>\n"
-            + "    <file filepath=\"data/random images/image02.png\">\n"
-            + "        <dcterms:title>The first image</dcterms:title>\n"
-            + "    </file>\n"
-            + "    <file filepath=\"data/random images/image03.png\">\n"
-            + "        <dcterms:title>The first image</dcterms:title>\n"
-            + "    </file>\n"
-            + "</files>\n"
-            + "\n";
-
-        var document = parseXmlString(xml);
-        var reader = Mockito.spy(new BagXmlReaderImpl());
-
-        var files = List.of(
-            Path.of("bagdir/data/random images/image01.png"),
-            Path.of("bagdir/data/random images/image02.png"),
-            Path.of("bagdir/data/random images/image03.png")
-        );
-        Mockito.doReturn(files).when(fileService).getAllFiles(Mockito.any());
-
-        Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
-
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
-
-        assertDoesNotThrow(() -> checker.filesXmlNoDuplicatesAndMatchesWithPayloadPlusPreStagedFiles().validate(Path.of("bagdir")));
-    }
-
-    @Test
-    void filesXmlNoDuplicatesAndMatchesWithPayloadPlusPreStagedFilesWithNamespace() throws Exception {
-
-        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-            + "<files xmlns=\"http://easy.dans.knaw.nl/schemas/bag/metadata/files/\" xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
-            + "    <file filepath=\"data/random images/image01.png\">\n"
-            + "        <dcterms:title>The first image</dcterms:title>\n"
-            + "    </file>\n"
-            + "    <file filepath=\"data/random images/image02.png\">\n"
-            + "        <dcterms:title>The first image</dcterms:title>\n"
-            + "    </file>\n"
-            + "    <file filepath=\"data/random images/image03.png\">\n"
-            + "        <dcterms:title>The first image</dcterms:title>\n"
-            + "    </file>\n"
-            + "</files>\n"
-            + "\n";
-
-        var document = parseXmlString(xml);
-        var reader = Mockito.spy(new BagXmlReaderImpl());
-
-        var files = List.of(
-            Path.of("bagdir/data/random images/image01.png"),
-            Path.of("bagdir/data/random images/image02.png"),
-            Path.of("bagdir/data/random images/image03.png")
-        );
-        Mockito.doReturn(files).when(fileService).getAllFiles(Mockito.any());
-        Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
-
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
-
-        assertDoesNotThrow(() -> checker.filesXmlNoDuplicatesAndMatchesWithPayloadPlusPreStagedFiles().validate(Path.of("bagdir")));
-    }
-
-    @Test
-    void filesXmlNoDuplicatesAndMatchesWithPayloadPlusPreStagedFilesWithErrors() throws Exception {
-
-        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
-            + "    <file filepath=\"data/random images/image01.png\">\n"
-            + "        <dcterms:title>The first image</dcterms:title>\n"
-            + "    </file>\n"
-            + "    <file filepath=\"data/random images/image02.png\">\n"
-            + "        <dcterms:title>The first image</dcterms:title>\n"
-            + "    </file>\n"
-            + "    <file filepath=\"data/random images/image03.png\">\n"
-            + "        <dcterms:title>The first image</dcterms:title>\n"
-            + "    </file>\n"
-            + "</files>\n"
-            + "\n";
-
-        var document = parseXmlString(xml);
-        var reader = Mockito.spy(new BagXmlReaderImpl());
-
-        var files = List.of(
-            Path.of("data/random images/image01.png"),
-            Path.of("data/random images/image02.png"),
-            Path.of("data/random images/image04.png")
-        );
-        Mockito.doReturn(files).when(fileService).getAllFiles(Mockito.any());
-
-        Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
-
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
-
-        var e = assertThrows(RuleViolationDetailsException.class,
-            () -> checker.filesXmlNoDuplicatesAndMatchesWithPayloadPlusPreStagedFiles().validate(Path.of("bagdir")));
-
-        assertTrue(e.getLocalizedMessage().contains("image03.png"));
-        assertTrue(e.getLocalizedMessage().contains("image04.png"));
-    }
-
-    @Test
-    void filesXmlAllFilesHaveFormat() throws Exception {
-        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
-            + "    <file filepath=\"data/random images/image01.png\">\n"
-            + "        <dcterms:title>The first image</dcterms:title>\n"
-            + "        <dcterms:description>This description will be archived, but not displayed anywhere in the Web-UI</dcterms:description>\n"
-            + "        <dcterms:format>image/png</dcterms:format>\n"
-            + "        <dcterms:created>2016-11-11</dcterms:created>\n"
-            + "    </file>\n"
-            + "    <file filepath=\"data/random images/image02.jpeg\">\n"
-            + "        <dcterms:format>image/jpeg</dcterms:format>\n"
-            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
-            + "    </file>\n"
-            + "    <file filepath=\"data/random images/image03.jpeg\">\n"
-            + "        <dcterms:format>image/jpeg</dcterms:format>\n"
-            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
-            + "    </file>\n"
-            + "    <file filepath=\"data/a/deeper/path/With some file.txt\">\n"
-            + "        <dcterms:format>text/plain</dcterms:format>\n"
-            + "        <dcterms:created>2016-11-09</dcterms:created>\n"
-            + "    </file>\n"
-            + "</files>\n"
-            + "\n";
-        var document = parseXmlString(xml);
-        var reader = Mockito.spy(new BagXmlReaderImpl());
-        Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
-
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
-
-        assertDoesNotThrow(() -> checker.filesXmlAllFilesHaveFormat().validate(Path.of("bagdir")));
-    }
-
-    @Test
-    void filesXmlAllFilesHaveFormatButSomeDont() throws Exception {
-        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
-            + "    <file filepath=\"data/random images/image01.png\">\n"
-            + "        <dcterms:title>The first image</dcterms:title>\n"
-            + "        <dcterms:description>This description will be archived, but not displayed anywhere in the Web-UI</dcterms:description>\n"
-            + "        <dcterms:format>image/png</dcterms:format>\n"
-            + "        <dcterms:created>2016-11-11</dcterms:created>\n"
-            + "    </file>\n"
-            + "    <file filepath=\"data/random images/image02.jpeg\">\n"
-            + "        <dcterms:format>image/jpeg</dcterms:format>\n"
-            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
-            + "    </file>\n"
-            + "    <file filepath=\"data/random images/image03.jpeg\">\n"
-            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
-            + "    </file>\n"
-            + "    <file filepath=\"data/a/deeper/path/With some file.txt\">\n"
-            + "        <dcterms:format>text/plain</dcterms:format>\n"
-            + "        <dcterms:created>2016-11-09</dcterms:created>\n"
-            + "    </file>\n"
-            + "</files>\n"
-            + "\n";
-        var document = parseXmlString(xml);
-        var reader = Mockito.spy(new BagXmlReaderImpl());
-        Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
-
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
-
-        assertThrows(RuleViolationDetailsException.class,
-            () -> checker.filesXmlAllFilesHaveFormat().validate(Path.of("bagdir")));
-    }
-
-    @Test
-    void filesXmlFilesHaveOnlyAllowedNamespaces() throws Exception {
-        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\" xmlns:something=\"http://dans.knaw.nl/\">\n"
-            + "    <file filepath=\"data/random images/image01.png\">\n"
-            + "        <dcterms:title>The first image</dcterms:title>\n"
-            + "        <dcterms:description>This description will be archived, but not displayed anywhere in the Web-UI</dcterms:description>\n"
-            + "        <dcterms:format>image/png</dcterms:format>\n"
-            + "        <dcterms:created>2016-11-11</dcterms:created>\n"
-            + "    </file>\n"
-            + "    <file filepath=\"data/random images/image02.jpeg\">\n"
-            + "        <dcterms:format>image/jpeg</dcterms:format>\n"
-            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
-            + "    </file>\n"
-            + "    <file filepath=\"data/random images/image03.jpeg\">\n"
-            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
-            + "    </file>\n"
-            + "    <file filepath=\"data/a/deeper/path/With some file.txt\">\n"
-            + "        <dcterms:format>text/plain</dcterms:format>\n"
-            + "        <dcterms:created>2016-11-09</dcterms:created>\n"
-            + "    </file>\n"
-            + "</files>\n"
-            + "\n";
-        var document = parseXmlString(xml);
-        var reader = Mockito.spy(new BagXmlReaderImpl());
-        Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
-
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
-
-        assertDoesNotThrow(() -> checker.filesXmlFilesHaveOnlyAllowedNamespaces().validate(Path.of("bagdir")));
-    }
-
-    @Test
-    void filesXmlFilesHaveOnlyAllowedNamespacesButOneIsDifferent() throws Exception {
-        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\" xmlns:something=\"http://dans.knaw.nl/\">\n"
-            + "    <file filepath=\"data/random images/image01.png\">\n"
-            + "        <dcterms:title>The first image</dcterms:title>\n"
-            + "        <dcterms:description>This description will be archived, but not displayed anywhere in the Web-UI</dcterms:description>\n"
-            + "        <dcterms:format>image/png</dcterms:format>\n"
-            + "        <dcterms:created>2016-11-11</dcterms:created>\n"
-            + "    </file>\n"
-            + "    <file filepath=\"data/random images/image02.jpeg\">\n"
-            + "        <something:format>image/jpeg</something:format>\n"
-            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
-            + "    </file>\n"
-            + "    <file filepath=\"data/random images/image03.jpeg\">\n"
-            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
-            + "    </file>\n"
-            + "    <file filepath=\"data/a/deeper/path/With some file.txt\">\n"
-            + "        <dcterms:format>text/plain</dcterms:format>\n"
-            + "        <dcterms:created>2016-11-09</dcterms:created>\n"
-            + "    </file>\n"
-            + "</files>\n"
-            + "\n";
-        var document = parseXmlString(xml);
-        var reader = Mockito.spy(new BagXmlReaderImpl());
-        Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
-
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
-
-        assertThrows(RuleViolationDetailsException.class,
-            () -> checker.filesXmlFilesHaveOnlyAllowedNamespaces().validate(Path.of("bagdir")));
-    }
-
-    @Test
-    void filesXmlFilesHaveOnlyAllowedAccessRights() throws Exception {
-        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
-            + "    <file filepath=\"data/random images/image01.png\">\n"
-            + "        <dcterms:title>The first image</dcterms:title>\n"
-            + "        <dcterms:description>This description will be archived, but not displayed anywhere in the Web-UI</dcterms:description>\n"
-            + "        <dcterms:format>image/png</dcterms:format>\n"
-            + "        <dcterms:created>2016-11-11</dcterms:created>\n"
-            + "    </file>\n"
-            + "    <file filepath=\"data/random images/image02.jpeg\">\n"
-            + "        <dcterms:format>image/jpeg</dcterms:format>\n"
-            + "        <dcterms:accessRights>ANONYMOUS</dcterms:accessRights>\n"
-            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
-            + "    </file>\n"
-            + "    <file filepath=\"data/random images/image03.jpeg\">\n"
-            + "        <dcterms:format>image/jpeg</dcterms:format>\n"
-            + "        <dcterms:accessRights>RESTRICTED_REQUEST</dcterms:accessRights>\n"
-            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
-            + "    </file>\n"
-            + "    <file filepath=\"data/random images/image04.jpeg\">\n"
-            + "        <dcterms:format>image/jpeg</dcterms:format>\n"
-            + "        <dcterms:accessRights>NONE</dcterms:accessRights>\n"
-            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
-            + "    </file>\n"
-            + "</files>\n"
-            + "\n";
-        var document = parseXmlString(xml);
-        var reader = Mockito.spy(new BagXmlReaderImpl());
-        Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
-
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
-
-        assertDoesNotThrow(() -> checker.filesXmlFilesHaveOnlyAllowedAccessRights().validate(Path.of("bagdir")));
-    }
-
-    @Test
-    void filesXmlFilesHaveOnlyAllowedAccessRightsButOneIsIncorrected() throws Exception {
-        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
-            + "    <file filepath=\"data/random images/image01.png\">\n"
-            + "        <dcterms:title>The first image</dcterms:title>\n"
-            + "        <dcterms:description>This description will be archived, but not displayed anywhere in the Web-UI</dcterms:description>\n"
-            + "        <dcterms:format>image/png</dcterms:format>\n"
-            + "        <dcterms:created>2016-11-11</dcterms:created>\n"
-            + "    </file>\n"
-            + "    <file filepath=\"data/random images/image02.jpeg\">\n"
-            + "        <dcterms:format>image/jpeg</dcterms:format>\n"
-            + "        <dcterms:accessRights>WRONG_VALUE</dcterms:accessRights>\n"
-            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
-            + "    </file>\n"
-            + "</files>\n"
-            + "\n";
-        var document = parseXmlString(xml);
-        var reader = Mockito.spy(new BagXmlReaderImpl());
-        Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
-
-        var checker = new BagInfoCheckerImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, daiDigestCalculator, polygonListValidator, xmlValidator);
-
-        var e = assertThrows(RuleViolationDetailsException.class,
-            () -> checker.filesXmlFilesHaveOnlyAllowedAccessRights().validate(Path.of("bagdir")));
-
-        assertTrue(e.getExceptions().get(0).getLocalizedMessage().contains("WRONG_VALUE"));
-    }
 }

@@ -13,12 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.validatedansbag.core.service;
+package nl.knaw.dans.validatedansbag.core.validator;
 
 import java.nio.file.Path;
-import java.util.List;
 
-public interface BagInfoChecker {
+public interface BagValidator {
 
     BagValidatorRule bagIsValid();
 
@@ -33,6 +32,8 @@ public interface BagInfoChecker {
     BagValidatorRule bagInfoContainsExactlyOneOf(String key);
 
     BagValidatorRule bagInfoContainsAtMostOneOf(String key);
+
+    BagValidatorRule bagInfoIsVersionOfIsValidUrnUuid();
 
     BagValidatorRule bagShaPayloadManifestContainsAllPayloadFiles();
 
@@ -67,19 +68,5 @@ public interface BagInfoChecker {
     BagValidatorRule xmlFileConfirmsToSchema(Path file, String schema);
 
     BagValidatorRule xmlFileIfExistsConformsToSchema(Path file, String schema);
-
-    BagValidatorRule filesXmlHasDocumentElementFiles();
-
-    BagValidatorRule filesXmlHasOnlyFiles();
-
-    BagValidatorRule filesXmlFileElementsAllHaveFilepathAttribute();
-
-    BagValidatorRule filesXmlNoDuplicatesAndMatchesWithPayloadPlusPreStagedFiles();
-
-    BagValidatorRule filesXmlAllFilesHaveFormat();
-
-    BagValidatorRule filesXmlFilesHaveOnlyAllowedNamespaces();
-
-    BagValidatorRule filesXmlFilesHaveOnlyAllowedAccessRights();
 
 }

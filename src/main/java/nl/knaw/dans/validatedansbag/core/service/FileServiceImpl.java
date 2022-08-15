@@ -16,6 +16,10 @@
 package nl.knaw.dans.validatedansbag.core.service;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -54,5 +58,11 @@ public class FileServiceImpl implements FileService {
     @Override
     public boolean exists(Path path) {
         return Files.exists(path);
+    }
+
+    @Override
+    public CharBuffer readFileContents(Path path, Charset charset) throws IOException {
+        var contents = readFileContents(path);
+        return StandardCharsets.UTF_8.newDecoder().decode(ByteBuffer.wrap(contents));
     }
 }

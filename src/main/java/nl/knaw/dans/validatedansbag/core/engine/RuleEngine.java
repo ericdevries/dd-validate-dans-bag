@@ -13,15 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.validatedansbag.core.service;
+package nl.knaw.dans.validatedansbag.core.engine;
 
-public interface PolygonListValidator {
-    void validatePolygonList(String polygons) throws PolygonValidationException;
+import java.nio.file.Path;
+import java.util.List;
 
-    class PolygonValidationException extends Throwable {
+public interface RuleEngine {
 
-        public PolygonValidationException(String msg) {
-            super(msg);
-        }
-    }
+    List<RuleValidationResult> validateRules(Path bag, NumberedRule[] rules);
 }

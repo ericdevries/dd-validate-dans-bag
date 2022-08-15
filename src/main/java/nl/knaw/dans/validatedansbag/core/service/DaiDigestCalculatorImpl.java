@@ -15,42 +15,36 @@
  */
 package nl.knaw.dans.validatedansbag.core.service;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 public class DaiDigestCalculatorImpl implements DaiDigestCalculator {
+    /**
+     * For details about the way this works, see https://en.wikipedia.org/wiki/MSI_Barcode#Mod_11_Check_Digit
+     *
+     * @param str
+     * @return the checksum
+     */
     @Override
-    public char calculateChecksum(String str, int modeMax) {
-        var reversed = new StringBuilder(str).reverse().toString();
-        var f = 2;
-        var w = 0;
-        var mod = 0;
+    public char calculateChecksum(String str) {
+        var index = new AtomicInteger();
 
-        while (mod < reversed.length()) {
-            var cx = reversed.charAt(mod);
-            var x = cx - 48;
-            w += f * x;
-            f += 1;
+        // iterate each digit in a reversed string
+        // note that the weights are a sequence based on index starting
+        // from 2 up to and including 9 and once it goes over the max it
+        // resets to the first item in the sequence
+        // for example: 2,3,4,5,6,7,8,9,2,3,4 etc
+        var sum = new StringBuilder(str).reverse().toString()
+            .chars()
+            // convert digit character to numerical value
+            .map(c -> c - 48)
+            // multiply digit by weight
+            .map((c -> ((index.getAndIncrement() % 8) + 2) * c))
+            .sum();
 
-            if (f > modeMax) {
-                f = 2;
-            }
+        // apply this calculation to the sum of the digits multiplied by weights
+        var check = (11 - (sum % 11)) % 11;
 
-            mod += 1;
-        }
-
-        mod = w % 11;
-
-        if (mod == 0) {
-            return '0';
-        }
-
-        else {
-            var c = 11 - mod;
-
-            if (c == 10) {
-                return 'X';
-            }
-            else {
-                return (char) (c + 48);
-            }
-        }
+        // convert numerical value back to character
+        return check == 10 ? 'X' : (char)(check + 48);
     }
 }

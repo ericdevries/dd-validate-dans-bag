@@ -22,7 +22,7 @@ import org.xml.sax.SAXParseException;
 import java.io.IOException;
 import java.util.List;
 
-public interface XmlValidator {
+public interface XmlSchemaValidator {
 
     List<SAXParseException> validateDocument(Node node, String schema) throws IOException, SAXException;
 }

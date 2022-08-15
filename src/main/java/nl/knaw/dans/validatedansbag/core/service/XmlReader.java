@@ -17,20 +17,27 @@ package nl.knaw.dans.validatedansbag.core.service;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import javax.xml.namespace.QName;
 import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-public interface BagXmlReader {
+public interface XmlReader {
+
+    String NAMESPACE_DC = "http://purl.org/dc/elements/1.1/";
+    String NAMESPACE_DCX_DAI = "http://easy.dans.knaw.nl/schemas/dcx/dai/";
+    String NAMESPACE_DDM = "http://easy.dans.knaw.nl/schemas/md/ddm/";
+    String NAMESPACE_DCTERMS = "http://purl.org/dc/terms/";
+    String NAMESPACE_XSI = "http://www.w3.org/2001/XMLSchema-instance";
+    String NAMESPACE_ID_TYPE = "http://easy.dans.knaw.nl/schemas/vocab/identifier-type/";
+    String NAMESPACE_DCX_GML = "http://easy.dans.knaw.nl/schemas/dcx/gml/";
+    String NAMESPACE_FILES_XML = "http://easy.dans.knaw.nl/schemas/bag/metadata/files/";
+    String NAMESPACE_OPEN_GIS = "http://www.opengis.net/gml";
 
     Document readXmlFile(Path path) throws ParserConfigurationException, IOException, SAXException;
 
@@ -39,6 +46,7 @@ public interface BagXmlReader {
     Object evaluateXpath(Node node, String expr, QName type) throws XPathExpressionException;
 
     Stream<Node> xpathToStream(Node node, String expression) throws XPathExpressionException;
+
     Stream<Node> xpathsToStream(Node node, Collection<String> expressions) throws XPathExpressionException;
 
 }
