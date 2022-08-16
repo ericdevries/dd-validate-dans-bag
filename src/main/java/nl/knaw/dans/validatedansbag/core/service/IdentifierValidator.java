@@ -15,7 +15,8 @@
  */
 package nl.knaw.dans.validatedansbag.core.service;
 
-public interface DaiDigestCalculator {
-
-    char calculateChecksum(String str);
+public interface IdentifierValidator {
+    boolean validateDai(String str);
+    boolean validateOrcid(String str);
+    boolean validateIsni(String str);
 }

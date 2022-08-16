@@ -24,16 +24,34 @@ public class NumberedRule {
     private final BagValidatorRule rule;
     private final List<String> dependencies;
 
+    private final DepositType depositType;
+
     public NumberedRule(String number, BagValidatorRule rule) {
         this.number = number;
         this.rule = rule;
         this.dependencies = null;
+        this.depositType = DepositType.DEPOSIT;
     }
 
     public NumberedRule(String number, BagValidatorRule rule, List<String> dependencies) {
         this.number = number;
         this.rule = rule;
         this.dependencies = dependencies;
+        this.depositType = DepositType.DEPOSIT;
+    }
+
+    public NumberedRule(String number, BagValidatorRule rule, DepositType depositType, List<String> dependencies) {
+        this.number = number;
+        this.rule = rule;
+        this.dependencies = dependencies;
+        this.depositType = depositType;
+    }
+
+    public NumberedRule(String number, BagValidatorRule rule, DepositType depositType) {
+        this.number = number;
+        this.rule = rule;
+        this.dependencies = null;
+        this.depositType = depositType;
     }
 
     public String getNumber() {
@@ -54,6 +72,7 @@ public class NumberedRule {
             "number='" + number + '\'' +
             ", rule=" + rule +
             ", dependencies=" + dependencies +
+            ", depositType=" + depositType +
             '}';
     }
 }

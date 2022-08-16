@@ -19,18 +19,19 @@ package nl.knaw.dans.validatedansbag;
 import io.dropwizard.Application;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
-import nl.knaw.dans.validatedansbag.core.validator.BagValidatorImpl;
-import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReaderImpl;
-import nl.knaw.dans.validatedansbag.core.service.XmlReaderImpl;
-import nl.knaw.dans.validatedansbag.core.service.DaiDigestCalculatorImpl;
-import nl.knaw.dans.validatedansbag.core.service.FileServiceImpl;
-import nl.knaw.dans.validatedansbag.core.validator.FilesXmlValidatorImpl;
-import nl.knaw.dans.validatedansbag.core.service.LicenseValidatorImpl;
+import nl.knaw.dans.validatedansbag.core.engine.DepositType;
 import nl.knaw.dans.validatedansbag.core.engine.NumberedRule;
+import nl.knaw.dans.validatedansbag.core.engine.RuleEngineImpl;
+import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReaderImpl;
+import nl.knaw.dans.validatedansbag.core.service.IdentifierValidatorImpl;
+import nl.knaw.dans.validatedansbag.core.service.FileServiceImpl;
+import nl.knaw.dans.validatedansbag.core.service.LicenseValidatorImpl;
 import nl.knaw.dans.validatedansbag.core.service.OriginalFilepathsServiceImpl;
 import nl.knaw.dans.validatedansbag.core.service.PolygonListValidatorImpl;
-import nl.knaw.dans.validatedansbag.core.engine.RuleEngineImpl;
+import nl.knaw.dans.validatedansbag.core.service.XmlReaderImpl;
 import nl.knaw.dans.validatedansbag.core.service.XmlSchemaValidatorImpl;
+import nl.knaw.dans.validatedansbag.core.validator.BagValidatorImpl;
+import nl.knaw.dans.validatedansbag.core.validator.FilesXmlValidatorImpl;
 import org.xml.sax.SAXException;
 
 import java.net.MalformedURLException;
@@ -59,7 +60,7 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
         var fileService = new FileServiceImpl();
         var bagItMetadataReader = new BagItMetadataReaderImpl();
         var bagXmlReader = new XmlReaderImpl();
-        var daiDigestCalculator = new DaiDigestCalculatorImpl();
+        var daiDigestCalculator = new IdentifierValidatorImpl();
         var polygonListValidator = new PolygonListValidatorImpl();
         var originalFilepathsService = new OriginalFilepathsServiceImpl(fileService);
         var licenseValidator = new LicenseValidatorImpl();
@@ -87,8 +88,9 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
             new NumberedRule("1.2.3", validator.bagInfoContainsAtMostOneOf("Data-Station-User-Account"), List.of("1.2.1")),
             new NumberedRule("1.2.4(a)", validator.bagInfoContainsAtMostOneOf("Is-Version-Of"), List.of("1.2.1")),
             new NumberedRule("1.2.4(b)", validator.bagInfoIsVersionOfIsValidUrnUuid(), List.of("1.2.4(a)")),
-            new NumberedRule("1.2.5", validator.bagInfoContainsAtMostOneOf("Has-Organizational-Identifier"), List.of("1.2.1")),
+            new NumberedRule("1.2.5(a)", validator.bagInfoContainsAtMostOneOf("Has-Organizational-Identifier"), List.of("1.2.1")),
             // TODO 1.2.5 it needs to verify other bags as well
+            new NumberedRule("1.2.5(b)", validator.bagInfoContainsAtMostOneOf("Has-Organizational-Identifier"), List.of("1.2.5(a)")),
 
             // manifests
             new NumberedRule("1.3.1(a)", validator.containsFile(Path.of("manifest-sha1.txt"))),
@@ -96,39 +98,44 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
 
             // Structural
             new NumberedRule("2.1", validator.containsDir(metadataPath)),
-            new NumberedRule("2.2(a)", validator.containsFile(datasetPath), List.of("2.1")),
-            new NumberedRule("2.2(b)", validator.containsFile(metadataFilesPath), List.of("2.1")),
-            new NumberedRule("2.5", validator.containsNothingElseThan(metadataPath, new String[] {
+            new NumberedRule("2.2(a)", validator.containsDir(metadataPath.resolve("dataset.xml"))),
+            new NumberedRule("2.2(b)", validator.containsDir(metadataPath.resolve("files.xml"))),
+
+            // this also covers 2.3 and 2.4 for MIGRATION status deposits
+            new NumberedRule("2.2(c)", validator.containsNothingElseThan(metadataPath, new String[] {
                 "dataset.xml",
-                "provenance.xml",
-                "pre-staged.csv",
                 "files.xml",
+                "provenance.xml",
                 "amd.xml",
                 "emd.xml",
-                "license.txt",
-                "license.pdf",
-                "license.html",
-                "depositor-info",
                 "original",
                 "original/dataset.xml",
                 "original/files.xml",
+                "depositor-info",
                 "depositor-info/agreements.xml",
-                "depositor-info/message-from-depositor.txt",
-                "depositor-info/depositor-agreement.pdf",
-                "depositor-info/depositor-agreement.txt",
-            }), List.of("2.1")),
+            }), DepositType.MIGRATION, List.of("2.1")),
 
-            new NumberedRule("2.6", validator.hasOnlyValidFileNames(), List.of("1.3.1(b)")),
-            // TODO see where these map to the specs, there seems to be a formatting error
-            new NumberedRule("2.7.1", validator.optionalFileIsUtf8Decodable(Path.of("original-filepaths.txt"))),
-            new NumberedRule("2.7.2", validator.isOriginalFilepathsFileComplete(), List.of("1.1.1(datadir)", "2.7.1", "2.2(b)", "3.2.4")),
+            new NumberedRule("2.4(deposit)", validator.containsNothingElseThan(metadataPath, new String[] {
+                "dataset.xml",
+                "files.xml"
+            }), DepositType.DEPOSIT, List.of("2.1")),
 
+            new NumberedRule("2.5", validator.hasOnlyValidFileNames(), List.of("2.1")),
+
+            // original-filepaths.txt
+            new NumberedRule("2.6.1", validator.optionalFileIsUtf8Decodable(Path.of("original-filepaths.txt")), List.of("1.1.1(datadir)")),
+            new NumberedRule("2.6.2(a)", validator.originalFilePathsDoNotContainSpaces(), List.of("1.1.1(datadir)", "2.6.1", "2.2(b)")),
+            new NumberedRule("2.6.2(b)", validator.isOriginalFilepathsFileComplete(), List.of("2.6.2(a)")),
+
+            // metadata/dataset.xml
             new NumberedRule("3.1.1", validator.xmlFileConfirmsToSchema(datasetPath, "dataset.xml"), List.of("2.2(a)")),
             new NumberedRule("3.1.2", validator.ddmMayContainDctermsLicenseFromList(), List.of("3.1.1")),
-            new NumberedRule("3.1.3(a)", validator.ddmContainsUrnNbnIdentifier(), List.of("3.1.1")),
-            new NumberedRule("3.1.3(b)", validator.ddmDoiIdentifiersAreValid(), List.of("3.1.1")),
-            // TODO check how we can validate each kind of identifier
-            new NumberedRule("3.1.4", validator.ddmDaisAreValid(), List.of("3.1.1")),
+//            new NumberedRule("3.1.3(a)", validator.ddmContainsUrnNbnIdentifier(), List.of("3.1.1")),
+            new NumberedRule("3.1.3", validator.ddmDoiIdentifiersAreValid(), List.of("3.1.1")),
+            // TODO check how we can validate each kind of identifier (assumptions about ISNI and ORCID are made now based on wikipedia)
+            new NumberedRule("3.1.4(a)", validator.ddmDaisAreValid(), List.of("3.1.1")),
+            new NumberedRule("3.1.4(b)", validator.ddmIsnisAreValid(), List.of("3.1.1")),
+            new NumberedRule("3.1.4(c)", validator.ddmOrcidsAreValid(), List.of("3.1.1")),
             new NumberedRule("3.1.5", validator.ddmGmlPolygonPosListIsWellFormed(), List.of("3.1.1")),
             new NumberedRule("3.1.6", validator.polygonsInSameMultiSurfaceHaveSameSrsName(), List.of("3.1.1")),
             new NumberedRule("3.1.7", validator.pointsHaveAtLeastTwoValues(), List.of("3.1.1")),
@@ -159,7 +166,6 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
 
             // provenance.xml
             new NumberedRule("3.8.1", validator.xmlFileIfExistsConformsToSchema(Path.of("metadata/provenance.xml"), "provenance.xml")),
-
 
             // TODO 4.x rules should check for the existence of certain users in another system
         };

@@ -19,8 +19,8 @@ import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms;
 import nl.knaw.dans.validatedansbag.core.engine.RuleSkippedException;
 import nl.knaw.dans.validatedansbag.core.engine.RuleViolationDetailsException;
 import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReader;
-import nl.knaw.dans.validatedansbag.core.service.DaiDigestCalculator;
 import nl.knaw.dans.validatedansbag.core.service.FileService;
+import nl.knaw.dans.validatedansbag.core.service.IdentifierValidator;
 import nl.knaw.dans.validatedansbag.core.service.LicenseValidator;
 import nl.knaw.dans.validatedansbag.core.service.OriginalFilepathsService;
 import nl.knaw.dans.validatedansbag.core.service.PolygonListValidator;
@@ -65,9 +65,7 @@ public class BagValidatorImpl implements BagValidator {
     private final Pattern doiUrlPattern = Pattern.compile("^((https?://(dx\\.)?)?doi\\.org/(urn:)?(doi:)?)?10(\\.\\d+)+/.+");
     private final Pattern urnPattern = Pattern.compile("^urn:[A-Za-z0-9][A-Za-z0-9-]{0,31}:[a-z0-9()+,\\-\\\\.:=@;$_!*'%/?#]+$");
 
-    private final String daiPrefix = "info:eu-repo/dai/nl/";
-
-    private final DaiDigestCalculator daiDigestCalculator;
+    private final IdentifierValidator identifierValidator;
 
     private final PolygonListValidator polygonListValidator;
 
@@ -84,13 +82,13 @@ public class BagValidatorImpl implements BagValidator {
     private final Set<String> allowedAccessRights = Set.of("ANONYMOUS", "RESTRICTED_REQUEST", "NONE");
 
     public BagValidatorImpl(FileService fileService, BagItMetadataReader bagItMetadataReader, XmlReader xmlReader, OriginalFilepathsService originalFilepathsService,
-        DaiDigestCalculator daiDigestCalculator,
+        IdentifierValidator identifierValidator,
         PolygonListValidator polygonListValidator, XmlSchemaValidator xmlSchemaValidator, LicenseValidator licenseValidator) {
         this.fileService = fileService;
         this.bagItMetadataReader = bagItMetadataReader;
         this.xmlReader = xmlReader;
         this.originalFilepathsService = originalFilepathsService;
-        this.daiDigestCalculator = daiDigestCalculator;
+        this.identifierValidator = identifierValidator;
         this.polygonListValidator = polygonListValidator;
         this.xmlSchemaValidator = xmlSchemaValidator;
         this.licenseValidator = licenseValidator;
@@ -366,6 +364,31 @@ public class BagValidatorImpl implements BagValidator {
     }
 
     @Override
+    public BagValidatorRule originalFilePathsDoNotContainSpaces() {
+        return (path) -> {
+            try {
+                var mapping = originalFilepathsService.getMapping(path);
+
+                var invalidFilenames = mapping.stream()
+                    .map(p -> p.getRenamedFilename().toString())
+                    .filter(p -> p.matches(".*\\s+.*"))
+                    .collect(Collectors.toList());
+
+                if (!invalidFilenames.isEmpty()) {
+                    var errors = String.join(", ", invalidFilenames);
+
+                    throw new RuleViolationDetailsException(String.format(
+                        "original-filepaths physical relative path should not contain whitespace; culprits: %s", errors
+                    ));
+                }
+            }
+            catch (Exception e) {
+                throw new RuleViolationDetailsException("Unexpected exception", e);
+            }
+        };
+    }
+
+    @Override
     public BagValidatorRule isOriginalFilepathsFileComplete() {
         return (path) -> {
             try {
@@ -529,7 +552,6 @@ public class BagValidatorImpl implements BagValidator {
                     throw new RuleViolationDetailsException("Invalid DOIs: " + match);
                 }
 
-
                 // TODO should it be resolvable, and how?
             }
             catch (Exception e) {
@@ -541,18 +563,12 @@ public class BagValidatorImpl implements BagValidator {
     @Override
     public BagValidatorRule ddmDaisAreValid() {
         return (path) -> {
-
             try {
                 var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
                 var expr = "//dcx-dai:DAI";
                 var match = xmlReader.xpathToStream(document, expr)
-                    .map(node -> node.getTextContent().replaceFirst(daiPrefix, ""))
-                    .filter((id) -> {
-                        var sum = daiDigestCalculator.calculateChecksum(id.substring(0, id.length() - 1));
-                        var last = id.charAt(id.length() - 1);
-
-                        return sum != last;
-                    })
+                    .map(Node::getTextContent)
+                    .filter((id) -> !identifierValidator.validateDai(id))
                     .collect(Collectors.toList());
 
                 if (!match.isEmpty()) {
@@ -563,7 +579,50 @@ public class BagValidatorImpl implements BagValidator {
             catch (Exception e) {
                 throw new RuleViolationDetailsException("Unexpected exception occurred while processing", e);
             }
+        };
+    }
 
+    @Override
+    public BagValidatorRule ddmIsnisAreValid() {
+        return (path) -> {
+            try {
+                var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
+                var expr = "//dcx-dai:ISNI";
+                var match = xmlReader.xpathToStream(document, expr)
+                    .map(Node::getTextContent)
+                    .filter((id) -> !identifierValidator.validateIsni(id))
+                    .collect(Collectors.toList());
+
+                if (!match.isEmpty()) {
+                    var message = String.join(", ", match);
+                    throw new RuleViolationDetailsException("Invalid ISNI(s): " + message);
+                }
+            }
+            catch (Exception e) {
+                throw new RuleViolationDetailsException("Unexpected exception occurred while processing", e);
+            }
+        };
+    }
+
+    @Override
+    public BagValidatorRule ddmOrcidsAreValid() {
+        return (path) -> {
+            try {
+                var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
+                var expr = "//dcx-dai:ORCID";
+                var match = xmlReader.xpathToStream(document, expr)
+                    .map(Node::getTextContent)
+                    .filter((id) -> !identifierValidator.validateOrcid(id))
+                    .collect(Collectors.toList());
+
+                if (!match.isEmpty()) {
+                    var message = String.join(", ", match);
+                    throw new RuleViolationDetailsException("Invalid ORCID(s): " + message);
+                }
+            }
+            catch (Exception e) {
+                throw new RuleViolationDetailsException("Unexpected exception occurred while processing", e);
+            }
         };
     }
 
@@ -883,4 +942,5 @@ public class BagValidatorImpl implements BagValidator {
             }
         };
     }
+
 }

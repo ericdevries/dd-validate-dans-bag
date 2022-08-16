@@ -43,6 +43,7 @@ public interface BagValidator {
 
     BagValidatorRule optionalFileIsUtf8Decodable(Path path);
 
+    BagValidatorRule originalFilePathsDoNotContainSpaces();
     BagValidatorRule isOriginalFilepathsFileComplete();
 
     BagValidatorRule ddmMayContainDctermsLicenseFromList();
@@ -69,4 +70,7 @@ public interface BagValidator {
 
     BagValidatorRule xmlFileIfExistsConformsToSchema(Path file, String schema);
 
+    BagValidatorRule ddmIsnisAreValid();
+
+    BagValidatorRule ddmOrcidsAreValid();
 }
