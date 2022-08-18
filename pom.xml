@@ -45,7 +45,10 @@
     </scm>
 
     <dependencies>
-        <!-- Add project-specific dependencies here -->
+        <dependency>
+            <groupId>io.dropwizard</groupId>
+            <artifactId>dropwizard-core</artifactId>
+        </dependency>
     </dependencies>
 
     <repositories>
