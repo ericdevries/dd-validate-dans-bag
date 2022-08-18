@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.validatedansbag.core.validator;
+package nl.knaw.dans.validatedansbag.core.rules;
 
 import java.nio.file.Path;
 
-public interface BagValidator {
+public interface BagRules {
 
     BagValidatorRule bagIsValid();
 
@@ -64,11 +64,8 @@ public interface BagValidator {
 
     BagValidatorRule allUrlsAreValid();
 
-    BagValidatorRule ddmMustHaveRightsHolder();
-
-    BagValidatorRule xmlFileConfirmsToSchema(Path file, String schema);
-
-    BagValidatorRule xmlFileIfExistsConformsToSchema(Path file, String schema);
+    BagValidatorRule ddmMustHaveRightsHolderDeposit();
+    BagValidatorRule ddmMustHaveRightsHolderMigration();
 
     BagValidatorRule ddmIsnisAreValid();
 

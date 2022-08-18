@@ -13,14 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.validatedansbag.core.validator;
+package nl.knaw.dans.validatedansbag.core.rules;
 
-import nl.knaw.dans.validatedansbag.core.engine.RuleSkippedException;
-import nl.knaw.dans.validatedansbag.core.engine.RuleViolationDetailsException;
+public interface FilesXmlRules {
 
-import java.nio.file.Path;
+    BagValidatorRule filesXmlHasDocumentElementFiles();
 
-@FunctionalInterface
-public interface BagValidatorRule {
-    void validate(Path path) throws RuleViolationDetailsException, RuleSkippedException;
+    BagValidatorRule filesXmlHasOnlyFiles();
+
+    BagValidatorRule filesXmlFileElementsAllHaveFilepathAttribute();
+
+    BagValidatorRule filesXmlNoDuplicatesAndMatchesWithPayloadPlusPreStagedFiles();
+
+    BagValidatorRule filesXmlAllFilesHaveFormat();
+
+    BagValidatorRule filesXmlFilesHaveOnlyAllowedNamespaces();
+
+    BagValidatorRule filesXmlFilesHaveOnlyAllowedAccessRights();
 }

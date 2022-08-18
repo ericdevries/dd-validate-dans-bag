@@ -64,7 +64,7 @@ public class RuleEngineImpl implements RuleEngine {
     }
 
     @Override
-    public List<RuleValidationResult> validateRules(Path bag, NumberedRule[] rules) {
+    public List<RuleValidationResult> validateRules(Path bag, NumberedRule[] rules, DepositType depositType) {
         var ruleResults = new HashMap<String, RuleValidationResult>();
         var remainingRules = new ArrayList<>(Arrays.asList(rules));
 
@@ -76,7 +76,12 @@ public class RuleEngineImpl implements RuleEngine {
 
                 // will never be processed, so skip it and remove it from the remaining rules
                 if (shouldBeSkipped(rule, ruleResults)) {
-                    log.trace("Skipping task {} because dependencies are not succesful", rule.getNumber());
+                    log.trace("Skipping task {} because dependencies are not successful", rule.getNumber());
+                    ruleResults.put(number, new RuleValidationResult(number, RuleValidationResult.RuleValidationResultStatus.SKIPPED));
+                    toRemove.add(rule);
+                }
+                else if (shouldBeIgnoredBecauseOfDepositType(rule, depositType)) {
+                    log.trace("Skipping task {} because it does not apply to this deposit (deposit type: {}, rule type: {})", rule.getNumber(), depositType, rule.getDepositType());
                     ruleResults.put(number, new RuleValidationResult(number, RuleValidationResult.RuleValidationResultStatus.SKIPPED));
                     toRemove.add(rule);
                 }
@@ -129,5 +134,13 @@ public class RuleEngineImpl implements RuleEngine {
         }
 
         return new ArrayList<>(ruleResults.values());
+    }
+
+    private boolean shouldBeIgnoredBecauseOfDepositType(NumberedRule rule, DepositType depositType) {
+        if (DepositType.ALL.equals(rule.getDepositType())) {
+            return false;
+        }
+
+        return !rule.getDepositType().equals(depositType);
     }
 }

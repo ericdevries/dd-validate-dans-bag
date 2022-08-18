@@ -13,9 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.validatedansbag.core.service;
+package nl.knaw.dans.validatedansbag.core.validator;
 
-public interface LicenseValidator {
+public interface PolygonListValidator {
+    void validatePolygonList(String polygons) throws PolygonValidationException;
 
-    boolean isValidLicense(String license);
+    class PolygonValidationException extends Throwable {
+
+        public PolygonValidationException(String msg) {
+            super(msg);
+        }
+    }
 }

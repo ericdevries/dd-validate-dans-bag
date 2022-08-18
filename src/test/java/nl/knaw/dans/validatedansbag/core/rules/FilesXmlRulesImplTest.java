@@ -13,10 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.validatedansbag.core.service;
+package nl.knaw.dans.validatedansbag.core.rules;
 
 import nl.knaw.dans.validatedansbag.core.engine.RuleViolationDetailsException;
-import nl.knaw.dans.validatedansbag.core.validator.FilesXmlValidatorImpl;
+import nl.knaw.dans.validatedansbag.core.service.FileService;
+import nl.knaw.dans.validatedansbag.core.service.OriginalFilepathsService;
+import nl.knaw.dans.validatedansbag.core.service.XmlReader;
+import nl.knaw.dans.validatedansbag.core.service.XmlReaderImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -32,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class FilesXmlValidatorImplTest {
+class FilesXmlRulesImplTest {
 
     final FileService fileService = Mockito.mock(FileService.class);
     final XmlReader xmlReader = Mockito.spy(new XmlReaderImpl());
@@ -65,7 +68,7 @@ class FilesXmlValidatorImplTest {
         var document = parseXmlString(xml);
         Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
 
-        var checker = new FilesXmlValidatorImpl(xmlReader, fileService, originalFilepathsService);
+        var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
 
         assertDoesNotThrow(() -> checker.filesXmlHasDocumentElementFiles().validate(Path.of("bagdir")));
 
@@ -87,7 +90,7 @@ class FilesXmlValidatorImplTest {
         var document = parseXmlString(xml);
         Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
 
-        var checker = new FilesXmlValidatorImpl(xmlReader, fileService, originalFilepathsService);
+        var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
 
         var e = assertThrows(RuleViolationDetailsException.class,
             () -> checker.filesXmlHasDocumentElementFiles().validate(Path.of("bagdir")));
@@ -110,7 +113,7 @@ class FilesXmlValidatorImplTest {
         var document = parseXmlString(xml);
         Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
 
-        var checker = new FilesXmlValidatorImpl(xmlReader, fileService, originalFilepathsService);
+        var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
 
         assertDoesNotThrow(() -> checker.filesXmlHasOnlyFiles().validate(Path.of("bagdir")));
     }
@@ -132,7 +135,7 @@ class FilesXmlValidatorImplTest {
         var document = parseXmlString(xml);
         Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
 
-        var checker = new FilesXmlValidatorImpl(xmlReader, fileService, originalFilepathsService);
+        var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
 
         var e = assertThrows(RuleViolationDetailsException.class,
             () -> checker.filesXmlHasOnlyFiles().validate(Path.of("bagdir")));
@@ -153,7 +156,7 @@ class FilesXmlValidatorImplTest {
         var document = parseXmlString(xml);
         Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
 
-        var checker = new FilesXmlValidatorImpl(xmlReader, fileService, originalFilepathsService);
+        var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
 
         assertDoesNotThrow(() -> checker.filesXmlFileElementsAllHaveFilepathAttribute().validate(Path.of("bagdir")));
     }
@@ -177,7 +180,7 @@ class FilesXmlValidatorImplTest {
         var document = parseXmlString(xml);
         Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
 
-        var checker = new FilesXmlValidatorImpl(xmlReader, fileService, originalFilepathsService);
+        var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
 
         var e = assertThrows(RuleViolationDetailsException.class,
             () -> checker.filesXmlFileElementsAllHaveFilepathAttribute().validate(Path.of("bagdir")));
@@ -213,7 +216,7 @@ class FilesXmlValidatorImplTest {
         Mockito.doReturn(files).when(fileService).getAllFiles(Mockito.any());
         Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
 
-        var checker = new FilesXmlValidatorImpl(xmlReader, fileService, originalFilepathsService);
+        var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
 
         assertDoesNotThrow(() -> checker.filesXmlNoDuplicatesAndMatchesWithPayloadPlusPreStagedFiles().validate(Path.of("bagdir")));
     }
@@ -245,7 +248,7 @@ class FilesXmlValidatorImplTest {
         Mockito.doReturn(files).when(fileService).getAllFiles(Mockito.any());
         Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
 
-        var checker = new FilesXmlValidatorImpl(xmlReader, fileService, originalFilepathsService);
+        var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
 
         assertDoesNotThrow(() -> checker.filesXmlNoDuplicatesAndMatchesWithPayloadPlusPreStagedFiles().validate(Path.of("bagdir")));
     }
@@ -278,7 +281,7 @@ class FilesXmlValidatorImplTest {
         Mockito.doReturn(files).when(fileService).getAllFiles(Mockito.any());
         Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
 
-        var checker = new FilesXmlValidatorImpl(xmlReader, fileService, originalFilepathsService);
+        var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
 
         var e = assertThrows(RuleViolationDetailsException.class,
             () -> checker.filesXmlNoDuplicatesAndMatchesWithPayloadPlusPreStagedFiles().validate(Path.of("bagdir")));
@@ -314,7 +317,7 @@ class FilesXmlValidatorImplTest {
         var document = parseXmlString(xml);
         Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
 
-        var checker = new FilesXmlValidatorImpl(xmlReader, fileService, originalFilepathsService);
+        var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
 
         assertDoesNotThrow(() -> checker.filesXmlAllFilesHaveFormat().validate(Path.of("bagdir")));
     }
@@ -345,7 +348,7 @@ class FilesXmlValidatorImplTest {
         var document = parseXmlString(xml);
         Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
 
-        var checker = new FilesXmlValidatorImpl(xmlReader, fileService, originalFilepathsService);
+        var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
 
         assertThrows(RuleViolationDetailsException.class,
             () -> checker.filesXmlAllFilesHaveFormat().validate(Path.of("bagdir")));
@@ -377,7 +380,7 @@ class FilesXmlValidatorImplTest {
         var document = parseXmlString(xml);
         Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
 
-        var checker = new FilesXmlValidatorImpl(xmlReader, fileService, originalFilepathsService);
+        var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
 
         assertDoesNotThrow(() -> checker.filesXmlFilesHaveOnlyAllowedNamespaces().validate(Path.of("bagdir")));
     }
@@ -408,7 +411,7 @@ class FilesXmlValidatorImplTest {
         var document = parseXmlString(xml);
         Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
 
-        var checker = new FilesXmlValidatorImpl(xmlReader, fileService, originalFilepathsService);
+        var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
 
         assertThrows(RuleViolationDetailsException.class,
             () -> checker.filesXmlFilesHaveOnlyAllowedNamespaces().validate(Path.of("bagdir")));
@@ -444,7 +447,7 @@ class FilesXmlValidatorImplTest {
         var document = parseXmlString(xml);
         Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
 
-        var checker = new FilesXmlValidatorImpl(xmlReader, fileService, originalFilepathsService);
+        var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
 
         assertDoesNotThrow(() -> checker.filesXmlFilesHaveOnlyAllowedAccessRights().validate(Path.of("bagdir")));
     }
@@ -469,7 +472,7 @@ class FilesXmlValidatorImplTest {
         var document = parseXmlString(xml);
         Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
 
-        var checker = new FilesXmlValidatorImpl(xmlReader, fileService, originalFilepathsService);
+        var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
 
         var e = assertThrows(RuleViolationDetailsException.class,
             () -> checker.filesXmlFilesHaveOnlyAllowedAccessRights().validate(Path.of("bagdir")));

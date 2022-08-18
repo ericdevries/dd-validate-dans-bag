@@ -15,19 +15,7 @@
  */
 package nl.knaw.dans.validatedansbag.core.validator;
 
-public interface FilesXmlValidator {
+public interface LicenseValidator {
 
-    BagValidatorRule filesXmlHasDocumentElementFiles();
-
-    BagValidatorRule filesXmlHasOnlyFiles();
-
-    BagValidatorRule filesXmlFileElementsAllHaveFilepathAttribute();
-
-    BagValidatorRule filesXmlNoDuplicatesAndMatchesWithPayloadPlusPreStagedFiles();
-
-    BagValidatorRule filesXmlAllFilesHaveFormat();
-
-    BagValidatorRule filesXmlFilesHaveOnlyAllowedNamespaces();
-
-    BagValidatorRule filesXmlFilesHaveOnlyAllowedAccessRights();
+    boolean isValidLicense(String license);
 }

@@ -13,19 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.validatedansbag.core.validator;
+package nl.knaw.dans.validatedansbag.core.rules;
 
 import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms;
 import nl.knaw.dans.validatedansbag.core.engine.RuleSkippedException;
 import nl.knaw.dans.validatedansbag.core.engine.RuleViolationDetailsException;
 import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReader;
 import nl.knaw.dans.validatedansbag.core.service.FileService;
-import nl.knaw.dans.validatedansbag.core.service.IdentifierValidator;
-import nl.knaw.dans.validatedansbag.core.service.LicenseValidator;
 import nl.knaw.dans.validatedansbag.core.service.OriginalFilepathsService;
-import nl.knaw.dans.validatedansbag.core.service.PolygonListValidator;
 import nl.knaw.dans.validatedansbag.core.service.XmlReader;
-import nl.knaw.dans.validatedansbag.core.service.XmlSchemaValidator;
+import nl.knaw.dans.validatedansbag.core.validator.IdentifierValidator;
+import nl.knaw.dans.validatedansbag.core.validator.LicenseValidator;
+import nl.knaw.dans.validatedansbag.core.validator.PolygonListValidator;
 import org.apache.commons.collections4.CollectionUtils;
 import org.joda.time.DateTime;
 import org.joda.time.format.ISODateTimeFormat;
@@ -44,14 +43,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class BagValidatorImpl implements BagValidator {
-    private static final Logger log = LoggerFactory.getLogger(BagValidatorImpl.class);
+public class BagRulesImpl implements BagRules {
+    private static final Logger log = LoggerFactory.getLogger(BagRulesImpl.class);
 
     private final FileService fileService;
 
@@ -69,28 +67,19 @@ public class BagValidatorImpl implements BagValidator {
 
     private final PolygonListValidator polygonListValidator;
 
-    private final XmlSchemaValidator xmlSchemaValidator;
-
     private final LicenseValidator licenseValidator;
 
     private final String namespaceDcterms = "http://purl.org/dc/terms/";
-    private final Set<String> allowedFilesXmlNamespaces = Set.of(
-        "http://purl.org/dc/terms/",
-        "http://purl.org/dc/elements/1.1/"
-    );
 
-    private final Set<String> allowedAccessRights = Set.of("ANONYMOUS", "RESTRICTED_REQUEST", "NONE");
-
-    public BagValidatorImpl(FileService fileService, BagItMetadataReader bagItMetadataReader, XmlReader xmlReader, OriginalFilepathsService originalFilepathsService,
+    public BagRulesImpl(FileService fileService, BagItMetadataReader bagItMetadataReader, XmlReader xmlReader, OriginalFilepathsService originalFilepathsService,
         IdentifierValidator identifierValidator,
-        PolygonListValidator polygonListValidator, XmlSchemaValidator xmlSchemaValidator, LicenseValidator licenseValidator) {
+        PolygonListValidator polygonListValidator, LicenseValidator licenseValidator) {
         this.fileService = fileService;
         this.bagItMetadataReader = bagItMetadataReader;
         this.xmlReader = xmlReader;
         this.originalFilepathsService = originalFilepathsService;
         this.identifierValidator = identifierValidator;
         this.polygonListValidator = polygonListValidator;
-        this.xmlSchemaValidator = xmlSchemaValidator;
         this.licenseValidator = licenseValidator;
     }
 
@@ -871,17 +860,11 @@ public class BagValidatorImpl implements BagValidator {
     }
 
     @Override
-    public BagValidatorRule ddmMustHaveRightsHolder() {
+    public BagValidatorRule ddmMustHaveRightsHolderDeposit() {
         return (path) -> {
 
             try {
                 var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
-
-                // copied from easy-validate-dans-bag
-                // TODO FIXME: this will true if there is a <role>rightsholder</role> anywhere in the document
-                var inRole = xmlReader.xpathToStream(document, "//*[local-name() = 'role']")
-                    .filter(node -> node.getTextContent().contains("rightsholder"))
-                    .findFirst();
 
                 var rightsHolder = xmlReader.xpathToStream(document, "//ddm:dcmiMetadata//dcterms:rightsHolder")
                     .map(Node::getTextContent)
@@ -890,8 +873,8 @@ public class BagValidatorImpl implements BagValidator {
                     .filter(s -> !s.isEmpty())
                     .findFirst();
 
-                if (inRole.isEmpty() && rightsHolder.isEmpty()) {
-                    throw new RuleViolationDetailsException("No rightsholder");
+                if (rightsHolder.isEmpty()) {
+                    throw new RuleViolationDetailsException("No rightsholder found in <dcterms:rightsHolder> element");
                 }
             }
 
@@ -901,46 +884,25 @@ public class BagValidatorImpl implements BagValidator {
         };
     }
 
-    private void validateXmlFile(Path file, String schema) throws RuleViolationDetailsException {
-        try {
-            var document = xmlReader.readXmlFile(file);
-            var results = xmlSchemaValidator.validateDocument(document, schema);
+    @Override
+    public BagValidatorRule ddmMustHaveRightsHolderMigration() {
+        return (path) -> {
 
-            if (results.size() > 0) {
-                var errorList = results.stream()
-                    .map(Throwable::getLocalizedMessage)
-                    .map(e -> String.format(" - %s", e))
-                    .collect(Collectors.joining("\n"));
+            try {
+                var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
 
-                // TODO see how we can get all the errors in there
-                throw new RuleViolationDetailsException(String.format(
-                    "%s does not confirm to %s: \n%s", file, schema, errorList
-                ));
+                var inRole = xmlReader.xpathToStream(document, "//dcx-dai:author/dcx-dai:role")
+                    .filter(node -> node.getTextContent().contains("RightsHolder"))
+                    .findFirst();
+
+                if (inRole.isEmpty()) {
+                    throw new RuleViolationDetailsException("No rightsholder found in <dcx-dai:role> element");
+                }
             }
-        }
-        catch (Exception e) {
-            throw new RuleViolationDetailsException(String.format(
-                "%s does not confirm to %s", file, schema
-            ), e);
-        }
-    }
 
-    @Override
-    public BagValidatorRule xmlFileConfirmsToSchema(Path file, String schema) {
-        return (path) -> {
-            validateXmlFile(path.resolve(file), schema);
-        };
-    }
-
-    @Override
-    public BagValidatorRule xmlFileIfExistsConformsToSchema(Path file, String schema) {
-        return (path) -> {
-            var fileName = path.resolve(file);
-
-            if (fileService.exists(fileName)) {
-                validateXmlFile(fileName, schema);
+            catch (Exception e) {
+                throw new RuleViolationDetailsException("Unexpected exception occurred while processing", e);
             }
         };
     }
-
 }

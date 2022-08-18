@@ -13,11 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.validatedansbag.core.engine;
+package nl.knaw.dans.validatedansbag.core.rules;
 
-public enum DepositType {
-    DEPOSIT,
-    MIGRATION,
+import java.nio.file.Path;
 
-    ALL,
+public interface XmlRules {
+    BagValidatorRule xmlFileConfirmsToSchema(Path file, String schema);
+
+    BagValidatorRule xmlFileIfExistsConformsToSchema(Path file, String schema);
 }

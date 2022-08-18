@@ -15,7 +15,7 @@
  */
 package nl.knaw.dans.validatedansbag.core.engine;
 
-import nl.knaw.dans.validatedansbag.core.validator.BagValidatorRule;
+import nl.knaw.dans.validatedansbag.core.rules.BagValidatorRule;
 
 import java.util.List;
 
@@ -23,21 +23,20 @@ public class NumberedRule {
     private final String number;
     private final BagValidatorRule rule;
     private final List<String> dependencies;
-
     private final DepositType depositType;
 
     public NumberedRule(String number, BagValidatorRule rule) {
         this.number = number;
         this.rule = rule;
         this.dependencies = null;
-        this.depositType = DepositType.DEPOSIT;
+        this.depositType = DepositType.ALL;
     }
 
     public NumberedRule(String number, BagValidatorRule rule, List<String> dependencies) {
         this.number = number;
         this.rule = rule;
         this.dependencies = dependencies;
-        this.depositType = DepositType.DEPOSIT;
+        this.depositType = DepositType.ALL;
     }
 
     public NumberedRule(String number, BagValidatorRule rule, DepositType depositType, List<String> dependencies) {
@@ -52,6 +51,10 @@ public class NumberedRule {
         this.rule = rule;
         this.dependencies = null;
         this.depositType = depositType;
+    }
+
+    public DepositType getDepositType() {
+        return depositType;
     }
 
     public String getNumber() {

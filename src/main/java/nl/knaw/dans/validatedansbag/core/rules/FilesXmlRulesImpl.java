@@ -13,7 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.validatedansbag.core.validator;
+
+
+package nl.knaw.dans.validatedansbag.core.rules;
 
 import nl.knaw.dans.validatedansbag.core.service.XmlReader;
 import nl.knaw.dans.validatedansbag.core.service.FileService;
@@ -30,9 +32,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class FilesXmlValidatorImpl implements FilesXmlValidator {
+public class FilesXmlRulesImpl implements FilesXmlRules {
 
-    private static final Logger log = LoggerFactory.getLogger(FilesXmlValidatorImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(FilesXmlRulesImpl.class);
 
     private final XmlReader xmlReader;
 
@@ -47,7 +49,7 @@ public class FilesXmlValidatorImpl implements FilesXmlValidator {
 
     private final Set<String> allowedAccessRights = Set.of("ANONYMOUS", "RESTRICTED_REQUEST", "NONE");
 
-    public FilesXmlValidatorImpl(XmlReader xmlReader, FileService fileService, OriginalFilepathsService originalFilepathsService) {
+    public FilesXmlRulesImpl(XmlReader xmlReader, FileService fileService, OriginalFilepathsService originalFilepathsService) {
         this.xmlReader = xmlReader;
         this.fileService = fileService;
         this.originalFilepathsService = originalFilepathsService;
