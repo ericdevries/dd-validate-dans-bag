@@ -1,7 +1,7 @@
 openapi: 3.0.1
 
 servers:
-  - url: http://localhost:20330/
+  - url: http://localhost:20180/
 
 info:
   description: Service for validating DANS bags.
@@ -30,7 +30,10 @@ paths:
 
   /validate:
     post:
-      summary: validate
+      summary:
+        validates the bag specified or sent in the message body against the
+        DANS BagIt Profile v1 rules. If the request body is NOT a multi-part message
+        but the bag as a ZIP, the DEPOSIT infoPackageType is used
       requestBody:
         content:
           multipart/form-data:
@@ -42,6 +45,9 @@ paths:
                   $ref: '#/components/schemas/validateCommand'
                 zip:
                   $ref: '#/components/schemas/zipFile'
+          application/zip:
+            schema:
+              $ref: '#/components/schemas/zipFile'
       responses:
         200:
           $ref: "#/components/responses/Ok"
