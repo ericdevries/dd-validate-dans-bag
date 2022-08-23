@@ -1,0 +1,167 @@
+openapi: 3.0.1
+
+servers:
+  - url: http://localhost:20330/
+
+info:
+  description: Service for validating DANS bags.
+  version: 1.0.0
+  title: dd-validate-dans-bag
+  contact:
+    email: info@dans.knaw.nl
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+
+paths:
+  /:
+    get:
+      summary: Returns a description of the service.
+      responses:
+        200:
+          description: description of the service
+          content:
+            text/plain:
+              schema:
+                type: string
+                description: a plain text, human readable description of the service
+                example: |
+                  Validate DANS Bag Running (v1.0.0)
+
+  /validate:
+    post:
+      summary: validate
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [command]
+              properties:
+                command:
+                  $ref: '#/components/schemas/validateCommand'
+                zip:
+                  $ref: '#/components/schemas/zipFile'
+      responses:
+        200:
+          $ref: "#/components/responses/Ok"
+        400:
+          $ref: "#/components/responses/BagNotFound"
+        500:
+          $ref: "#/components/responses/InternalServerError"
+
+
+components:
+  responses:
+    Ok:
+      description: Ok. The bag was successfully validated. Note that this may still mean the bag was
+        not VALID according to the DANS BagIt Profile.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/validateJsonOk"
+        text/plain:
+          schema:
+            $ref: "#/components/schemas/validateTextOk"
+
+    InternalServerError:
+      description: Internal Server Error.
+
+    BagNotFound:
+      description: Bad request. The bag was not found in the location indicated in the request, or it
+        could not be read (if the service had insufficient permissions to read an
+        externally located bag).
+
+  schemas:
+    zipFile:
+      description: the bag packaged as ZIP file. The ZIP file must containt exactly one directory (and not other files) in its root and directory must be the bag to validate.
+      type: string
+      format: binary
+
+    validateCommand:
+      type: object
+      description: Information about where to find the bag (in the message body or externally) and
+        how to validate it (as DEPOSIT or migration). If bagLocation is not provided, the bag is
+        assumed to be included as a ZIP file in the second part of the message body.
+      example:
+        bagLocation: /path/to/bag/directory
+        packageType: DEPOSIT
+      properties:
+        bagLocation:
+          type: string
+        packageType:
+          type: string
+          enum:
+            - DEPOSIT
+            - MIGRATION
+          default: DEPOSIT
+
+
+    validateJsonOk:
+      type: object
+      example:
+        bagLocation: /path/to/myBag
+        name: myBag
+        profileVersion: 1.0.1
+        infoPackageType: DEPOSIT
+        isCompliant: false
+        ruleViolations:
+          - rule: '1.2.2 (a)'
+            violation: 'bag-info.txt has no element Created'
+          - rule: '1.3.1'
+            violation: 'bag MUST have at least one other payload manifest next to optional MD5 manifest'
+      required:
+        - name
+        - profileVersion
+        - infoPackageType
+        - isCompliant
+        - ruleViolations
+      properties:
+        bagLocation:
+          description: the local path to the bag; if not provided, the bag was sent as ZIP file in the
+            message body
+          type: string
+          format: path
+        name:
+          description: the name of the top directory of the bag
+          type: string
+          format: url
+        profileVersion:
+          description: the exact version of DANS BagIt Profile that was used to validate
+          type: string
+        infoPackageType:
+          description: how the bag was validated (as DEPOSIT or MIGRATION)
+          type: string
+          enum:
+            - DEPOSIT
+            - MIGRATION
+        isCompliant:
+          description: true if the bag was compliant, false otherwise
+          type: boolean
+        ruleViolations:
+          description: list of violations, if isCompliant is true, an emty list
+          type: array
+          items:
+            type: object
+            properties:
+              rule:
+                description: the rule number
+                type: string
+              violation:
+                description: description of how the bag violated this rule
+                type: string
+
+    validateTextOk:
+      type: string
+      description: Displays the validation result in YAML
+      example: |
+        Bag Location: /path/to/myBag
+        Information package type: DEPOSIT
+        Name: myBag
+        Profile version: 1.0.1
+        Is compliant: false
+        Rule Violations:
+          - rule: '1.2.2 (a)'
+            violation: 'bag-info.txt has no element Created'
+          - rule: '1.3.1'
+            violation: 'bag MUST have at least one other payload manifest next to optional MD5 manifest'
