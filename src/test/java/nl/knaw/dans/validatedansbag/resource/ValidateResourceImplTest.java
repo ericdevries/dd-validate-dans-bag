@@ -46,6 +46,9 @@ import javax.ws.rs.core.MediaType;
 import java.net.MalformedURLException;
 import java.util.Objects;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+
 @ExtendWith(DropwizardExtensionsSupport.class)
 class ValidateResourceImplTest {
     public static final ResourceExtension EXT;
@@ -98,7 +101,7 @@ class ValidateResourceImplTest {
 
     @Test
     void validateFormData() throws Exception {
-        var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("bags/audiences")).getFile();
+        var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("bags/audiences-invalid")).getFile();
 
         var data = new ValidateCommandDto();
         data.setBagLocation(filename);
@@ -112,6 +115,11 @@ class ValidateResourceImplTest {
             .post(Entity.entity(multipart, multipart.getMediaType()), ValidateJsonOkDto.class);
 
         System.out.println("RESULT: " + response);
+        assertFalse(response.getIsCompliant());
+        assertEquals("1.0.0", response.getProfileVersion());
+        assertEquals(ValidateJsonOkDto.InfoPackageTypeEnum.DEPOSIT, response.getInfoPackageType());
+        assertEquals(filename, response.getBagLocation());
+        assertEquals(1, response.getRuleViolations().size());
     }
 
     @Test
