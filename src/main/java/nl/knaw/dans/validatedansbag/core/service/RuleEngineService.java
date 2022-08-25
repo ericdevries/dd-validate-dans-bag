@@ -13,13 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.validatedansbag.core.engine;
+package nl.knaw.dans.validatedansbag.core.service;
+
+import nl.knaw.dans.validatedansbag.core.engine.DepositType;
+import nl.knaw.dans.validatedansbag.core.engine.RuleValidationResult;
 
 import java.nio.file.Path;
 import java.util.List;
 
-public interface RuleEngine {
+public interface RuleEngineService {
 
-    List<RuleValidationResult> validateRules(Path bag, NumberedRule[] rules, DepositType depositType);
-
+    List<RuleValidationResult> validateBag(Path path, DepositType depositType);
 }

@@ -29,20 +29,53 @@
                     <target>11</target>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.openapitools</groupId>
+                <artifactId>openapi-generator-maven-plugin</artifactId>
+                <version>5.4.0</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+
+                        <configuration>
+                            <inputSpec>${project.basedir}/docs/api/api.yml</inputSpec>
+                            <generatorName>jaxrs-spec</generatorName>
+                            <generateModelTests>false</generateModelTests>
+                            <generateApiTests>false</generateApiTests>
+                            <generateApis>false</generateApis>
+                            <modelNameSuffix>Dto</modelNameSuffix>
+                            <configOptions>
+                                <modelPackage>nl.knaw.dans.openapi.api</modelPackage>
+                                <invokerPackage>nl.knaw.dans.openapi</invokerPackage>
+                                <sourceFolder>src/gen/java/main</sourceFolder>
+                                <dateLibrary>java8</dateLibrary>
+                                <delegatePattern>true</delegatePattern>
+                                <interfaceOnly>true</interfaceOnly>
+                                <singleContentTypes>false</singleContentTypes>
+                            </configOptions>
+                            <globalProperties>
+                                <skipFormModel>false</skipFormModel>
+                            </globalProperties>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 
     <parent>
         <artifactId>dans-dropwizard-project</artifactId>
         <groupId>nl.knaw.dans.shared</groupId>
-        <version>7.4.0</version>
+        <version>9.3.0</version>
     </parent>
 
     <groupId>nl.knaw.dans</groupId>
     <artifactId>dd-validate-dans-bag</artifactId>
     <version>0.0.1-SNAPSHOT</version>
 
-    <name>Dd Validate Dans Bag</name>
+    <name>DD Validate Dans Bag</name>
     <url>https://github.com/DANS-KNAW/dd-validate-dans-bag</url>
     <description>Validates whether a given bag complies with the DANS BagIt Profile v1</description>
     <inceptionYear>2022</inceptionYear>
@@ -52,11 +85,21 @@
     </properties>
 
     <scm>
-        <developerConnection>scm:git:https://github.com/DANS-KNAW/dd-validate-dans-bag</developerConnection>
+        <developerConnection>scm:git:https://github.com/DANS-KNAW/${project.artifactId}</developerConnection>
         <tag>HEAD</tag>
     </scm>
 
     <dependencies>
+        <dependency>
+            <groupId>io.dropwizard</groupId>
+            <artifactId>dropwizard-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.dropwizard</groupId>
+            <artifactId>dropwizard-forms</artifactId>
+        </dependency>
+
         <!-- Add project-specific dependencies here -->
 
         <dependency>
@@ -75,6 +118,11 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-collections4</artifactId>
             <version>4.4</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.swagger</groupId>
+            <artifactId>swagger-annotations</artifactId>
         </dependency>
 
         <dependency>

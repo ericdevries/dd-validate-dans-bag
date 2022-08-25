@@ -206,35 +206,38 @@ public class BagRulesImpl implements BagRules {
             try {
                 var items = bagItMetadataReader.getField(path, "Is-Version-Of");
 
-                var invalidUrns = items.stream().filter(item -> {
-                        try {
-                            var uri = new URI(item);
+                if (items != null) {
+                    var invalidUrns = items.stream().filter(item -> {
+                            try {
+                                var uri = new URI(item);
 
-                            if (!"urn".equalsIgnoreCase(uri.getScheme())) {
+                                if (!"urn".equalsIgnoreCase(uri.getScheme())) {
+                                    return true;
+                                }
+
+                                if (!uri.getSchemeSpecificPart().startsWith("uuid:")) {
+                                    return true;
+                                }
+
+                                UUID.fromString(uri.getSchemeSpecificPart().substring("uuid:".length()));
+                            }
+                            catch (URISyntaxException | IllegalArgumentException e) {
                                 return true;
                             }
 
-                            if (!uri.getSchemeSpecificPart().startsWith("uuid:")) {
-                                return true;
-                            }
+                            return false;
+                        })
+                        .collect(Collectors.toList());
 
-                            UUID.fromString(uri.getSchemeSpecificPart().substring("uuid:".length()));
-                        }
-                        catch (URISyntaxException | IllegalArgumentException e) {
-                            return true;
-                        }
-
-                        return false;
-                    })
-                    .collect(Collectors.toList());
-
-                if (!invalidUrns.isEmpty()) {
-                    throw new RuleViolationDetailsException(
-                        String.format("bag-info.txt Is-Version-Of value must be a valid URN: Invalid items {%s}", String.join(", ", invalidUrns))
-                    );
+                    if (!invalidUrns.isEmpty()) {
+                        throw new RuleViolationDetailsException(
+                            String.format("bag-info.txt Is-Version-Of value must be a valid URN: Invalid items {%s}", String.join(", ", invalidUrns))
+                        );
+                    }
                 }
             }
             catch (Exception e) {
+                e.printStackTrace();
                 throw new RuleViolationDetailsException("Error", e);
             }
         };

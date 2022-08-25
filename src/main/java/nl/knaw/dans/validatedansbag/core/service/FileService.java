@@ -16,10 +16,12 @@
 package nl.knaw.dans.validatedansbag.core.service;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 
 public interface FileService {
 
@@ -28,6 +30,7 @@ public interface FileService {
     boolean isFile(Path path);
 
     List<Path> getAllFiles(Path path) throws IOException;
+    List<Path> getAllDirectories(Path path) throws IOException;
 
     List<Path> getAllFilesAndDirectories(Path path) throws IOException;
 
@@ -36,4 +39,9 @@ public interface FileService {
     boolean exists(Path path);
 
     CharBuffer readFileContents(Path path, Charset charset) throws IOException;
+
+    Path createTempFile(InputStream inputStream, String extension) throws IOException;
+
+    Optional<Path> extractZipFile(InputStream inputStream) throws IOException;
+    Optional<Path> extractZipFile(Path path) throws IOException;
 }

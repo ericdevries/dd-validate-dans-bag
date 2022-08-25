@@ -15,7 +15,9 @@
  */
 package nl.knaw.dans.validatedansbag.core.service;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
@@ -23,9 +25,14 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipInputStream;
 
 public class FileServiceImpl implements FileService {
+    private final String BAG_PREFIX = "bag-";
+
     @Override
     public boolean isDirectory(Path path) {
         return Files.exists(path) && Files.isDirectory(path);
@@ -40,6 +47,13 @@ public class FileServiceImpl implements FileService {
     public List<Path> getAllFiles(Path path) throws IOException {
         try (var stream = Files.walk(path)) {
             return stream.filter(Files::isRegularFile).collect(Collectors.toList());
+        }
+    }
+
+    @Override
+    public List<Path> getAllDirectories(Path path) throws IOException {
+        try (var stream = Files.walk(path)) {
+            return stream.filter(Files::isDirectory).collect(Collectors.toList());
         }
     }
 
@@ -64,5 +78,85 @@ public class FileServiceImpl implements FileService {
     public CharBuffer readFileContents(Path path, Charset charset) throws IOException {
         var contents = readFileContents(path);
         return StandardCharsets.UTF_8.newDecoder().decode(ByteBuffer.wrap(contents));
+    }
+
+    @Override
+    public Path createTempFile(InputStream inputStream, String extension) throws IOException {
+        var file = Files.createTempFile(null, "." + extension);
+
+        try (var output = new FileOutputStream(file.toFile())) {
+            byte[] buf = new byte[8 * 1024];
+            var bytesRead = 0;
+
+            while ((bytesRead = inputStream.read(buf)) != -1) {
+                output.write(buf, 0, bytesRead);
+            }
+        }
+
+        return file;
+    }
+
+    @Override
+    public Optional<Path> extractZipFile(InputStream inputStream) throws IOException {
+        var tempPath = Files.createTempDirectory(BAG_PREFIX);
+
+        try (var input = new ZipInputStream(inputStream)) {
+            var entry = input.getNextEntry();
+
+            while (entry != null) {
+                var targetPath = tempPath.resolve(entry.getName());
+
+                if (entry.isDirectory()) {
+                    Files.createDirectories(targetPath);
+                }
+                else {
+                    writeStreamToFile(input, targetPath);
+                }
+
+                entry = input.getNextEntry();
+            }
+        }
+
+        try (var s = Files.walk(tempPath)) {
+            return s.filter(this::isDirectory).skip(1).findFirst();
+        }
+    }
+
+    @Override
+    public Optional<Path> extractZipFile(Path path) throws IOException {
+        var tempPath = Files.createTempDirectory(BAG_PREFIX);
+
+        try (var zipFile = new ZipFile(path.toFile())) {
+            var entries = zipFile.entries();
+
+            while (entries.hasMoreElements()) {
+                var entry = entries.nextElement();
+                var targetPath = tempPath.resolve(entry.getName());
+
+                if (entry.isDirectory()) {
+                    Files.createDirectories(targetPath);
+                }
+                else {
+                    writeStreamToFile(zipFile.getInputStream(entry), targetPath);
+                }
+            }
+        }
+
+        try (var s = Files.walk(tempPath)) {
+            return s.filter(this::isDirectory).skip(1).findFirst();
+        }
+    }
+
+    void writeStreamToFile(InputStream inputStream, Path target) throws IOException {
+
+        try (var output = new FileOutputStream(target.toFile())) {
+            byte[] buf = new byte[8 * 1024];
+            var bytesRead = 0;
+
+            while ((bytesRead = inputStream.read(buf)) != -1) {
+                output.write(buf, 0, bytesRead);
+            }
+        }
+
     }
 }
