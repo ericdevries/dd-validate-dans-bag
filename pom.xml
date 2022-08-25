@@ -35,7 +35,7 @@
     <parent>
         <artifactId>dans-dropwizard-project</artifactId>
         <groupId>nl.knaw.dans.shared</groupId>
-        <version>7.2.0</version>
+        <version>7.4.0</version>
     </parent>
 
     <groupId>nl.knaw.dans</groupId>
@@ -75,6 +75,11 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-collections4</artifactId>
             <version>4.4</version>
+        </dependency>
+
+        <dependency>
+            <groupId>nl.knaw.dans</groupId>
+            <artifactId>dans-dataverse-client-lib</artifactId>
         </dependency>
 
         <dependency>

@@ -26,6 +26,7 @@ import nl.knaw.dans.validatedansbag.core.rules.BagRulesImpl;
 import nl.knaw.dans.validatedansbag.core.rules.FilesXmlRulesImpl;
 import nl.knaw.dans.validatedansbag.core.rules.XmlRulesImpl;
 import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReaderImpl;
+import nl.knaw.dans.validatedansbag.core.service.DataverseServiceImpl;
 import nl.knaw.dans.validatedansbag.core.service.FileServiceImpl;
 import nl.knaw.dans.validatedansbag.core.service.OriginalFilepathsServiceImpl;
 import nl.knaw.dans.validatedansbag.core.service.XmlReaderImpl;
@@ -68,7 +69,9 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
 
         var xmlSchemaValidator = new XmlSchemaValidatorImpl();
 
-        var bagRules = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, licenseValidator);
+        var dataverseService = new DataverseServiceImpl(configuration.getDataverse());
+
+        var bagRules = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, dataverseService, daiDigestCalculator, polygonListValidator, licenseValidator);
         var filesXmlRules = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
         var xmlRules = new XmlRulesImpl(xmlReader, xmlSchemaValidator, fileService);
 

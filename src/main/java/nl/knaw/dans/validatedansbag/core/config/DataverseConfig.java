@@ -13,22 +13,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package nl.knaw.dans.validatedansbag;
-
-import io.dropwizard.Configuration;
-import nl.knaw.dans.validatedansbag.core.config.DataverseConfig;
+package nl.knaw.dans.validatedansbag.core.config;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
-public class DdValidateDansBagConfiguration extends Configuration {
-
+public class DataverseConfig {
     @Valid
     @NotNull
-    private DataverseConfig dataverse;
+    private String baseUrl;
+    @Valid
+    @NotNull
+    private String apiToken;
 
-    public DataverseConfig getDataverse() {
-        return dataverse;
+    public String getApiToken() {
+        return apiToken;
+    }
+
+    public void setApiToken(String apiToken) {
+        this.apiToken = apiToken;
+    }
+
+    public String getBaseUrl() {
+        return baseUrl;
+    }
+
+    public void setBaseUrl(String baseUrl) {
+        this.baseUrl = baseUrl;
     }
 }

@@ -21,6 +21,7 @@ import gov.loc.repository.bagit.exceptions.InvalidBagitFileFormatException;
 import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms;
 import nl.knaw.dans.validatedansbag.core.engine.RuleViolationDetailsException;
 import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReader;
+import nl.knaw.dans.validatedansbag.core.service.DataverseService;
 import nl.knaw.dans.validatedansbag.core.service.FileService;
 import nl.knaw.dans.validatedansbag.core.service.OriginalFilepathsService;
 import nl.knaw.dans.validatedansbag.core.service.XmlReader;
@@ -60,6 +61,7 @@ class BagRulesImplTest {
     final BagItMetadataReader bagItMetadataReader = Mockito.mock(BagItMetadataReader.class);
     final PolygonListValidator polygonListValidator = new PolygonListValidatorImpl();
     final OriginalFilepathsService originalFilepathsService = Mockito.mock(OriginalFilepathsService.class);
+    final DataverseService dataverseService = Mockito.mock(DataverseService.class);
 
     final LicenseValidator licenseValidator = new LicenseValidatorImpl();
 
@@ -68,12 +70,13 @@ class BagRulesImplTest {
         Mockito.reset(fileService);
         Mockito.reset(xmlReader);
         Mockito.reset(bagItMetadataReader);
+        Mockito.reset(dataverseService);
         Mockito.reset(originalFilepathsService);
     }
 
     @Test
     void testBagIsValid() throws Exception {
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
 
         assertDoesNotThrow(() -> checker.bagIsValid().validate(Path.of("testpath")));
 
@@ -83,7 +86,7 @@ class BagRulesImplTest {
 
     @Test
     void testBagIsNotValidWithExceptionThrown() throws Exception {
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
 
         Mockito.doThrow(new InvalidBagitFileFormatException("Invalid file format"))
             .when(bagItMetadataReader).verifyBag(Mockito.any());
@@ -93,7 +96,7 @@ class BagRulesImplTest {
 
     @Test
     void containsDirWorks() throws Exception {
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
 
         Mockito.when(fileService.isDirectory(Mockito.any()))
             .thenReturn(true);
@@ -105,7 +108,7 @@ class BagRulesImplTest {
 
     @Test
     void containsDirThrowsException() {
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
 
         Mockito.when(fileService.isDirectory(Mockito.any()))
             .thenReturn(false);
@@ -115,7 +118,7 @@ class BagRulesImplTest {
 
     @Test
     void containsFileWorks() {
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
 
         Mockito.when(fileService.isFile(Mockito.any()))
             .thenReturn(true);
@@ -127,7 +130,7 @@ class BagRulesImplTest {
 
     @Test
     void containsFileThrowsException() {
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
 
         Mockito.when(fileService.isFile(Mockito.any()))
             .thenReturn(false);
@@ -137,7 +140,7 @@ class BagRulesImplTest {
 
     @Test
     void bagInfoExistsAndIsWellFormed() {
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
 
         Mockito.when(fileService.isFile(Mockito.any()))
             .thenReturn(true);
@@ -150,7 +153,7 @@ class BagRulesImplTest {
 
     @Test
     void bagInfoDoesNotExist() {
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
 
         Mockito.when(fileService.isFile(Mockito.any()))
             .thenReturn(false);
@@ -160,7 +163,7 @@ class BagRulesImplTest {
 
     @Test
     void bagInfoDoesExistButItCouldNotBeOpened() throws Exception {
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
 
         Mockito.when(fileService.isFile(Mockito.any()))
             .thenReturn(true);
@@ -174,7 +177,7 @@ class BagRulesImplTest {
     @Test
     void bagInfoCreatedElementIsIso8601Date() throws Exception {
 
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
 
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Created")))
             .thenReturn(List.of("2022-01-01T01:23:45.678+00:00"));
@@ -185,7 +188,7 @@ class BagRulesImplTest {
     @Test
     void bagInfoCreatedElementIsNotAValidDate() throws Exception {
 
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
 
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Created")))
             .thenReturn(List.of("2022-01-01 01:23:45.678"))
@@ -197,7 +200,7 @@ class BagRulesImplTest {
 
     @Test
     void bagInfoContainsExactlyOneOf() throws Exception {
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Key")))
             .thenReturn(List.of("value"));
 
@@ -206,7 +209,7 @@ class BagRulesImplTest {
 
     @Test
     void bagInfoContainsExactlyOneOfButInRealityItIsTwo() throws Exception {
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Key")))
             .thenReturn(List.of("value", "secondvalue"));
 
@@ -215,7 +218,7 @@ class BagRulesImplTest {
 
     @Test
     void bagInfoContainsExactlyOneOfButInRealityItIsZero() throws Exception {
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Key")))
             .thenReturn(new ArrayList<>());
 
@@ -224,7 +227,7 @@ class BagRulesImplTest {
 
     @Test
     void bagInfoContainsAtMostOne() throws Exception {
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Key")))
             .thenReturn(List.of("value"));
 
@@ -233,7 +236,7 @@ class BagRulesImplTest {
 
     @Test
     void bagInfoIsVersionOfIsValidUrnUuid() throws Exception {
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
 
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Is-Version-Of")))
             .thenReturn(List.of("urn:uuid:76cfdebf-e43d-4c56-a886-e8375c745429"));
@@ -243,7 +246,7 @@ class BagRulesImplTest {
 
     @Test
     void bagInfoIsVersionOfIsNotValidUrnUuid() throws Exception {
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
 
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Is-Version-Of")))
             .thenReturn(List.of("http://google.com"))
@@ -260,7 +263,7 @@ class BagRulesImplTest {
 
     @Test
     void bagInfoContainsAtMostOneButItReturnsTwo() throws Exception {
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Key")))
             .thenReturn(List.of("value", "secondvalue"));
 
@@ -269,7 +272,7 @@ class BagRulesImplTest {
 
     @Test
     void bagInfoContainsAtMostOneOfButInRealityItIsZero() throws Exception {
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Key")))
             .thenReturn(new ArrayList<>());
 
@@ -278,7 +281,7 @@ class BagRulesImplTest {
 
     @Test
     void bagShaPayloadManifestContainsAllPayloadFiles() throws Exception {
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
 
         Mockito.when(fileService.getAllFiles(Mockito.any()))
             .thenReturn(List.of(Path.of("path/1.txt"), Path.of("path/2.txt")));
@@ -301,7 +304,7 @@ class BagRulesImplTest {
 
     @Test
     void bagShaPayloadManifestMissesSomeFiles() throws Exception {
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
 
         Mockito.when(fileService.getAllFiles(Mockito.any()))
             .thenReturn(List.of(Path.of("path/1.txt"), Path.of("path/2.txt"), Path.of("path/3.txt")));
@@ -322,7 +325,7 @@ class BagRulesImplTest {
 
     @Test
     void bagShaPayloadManifestHasTooManyFiles() throws Exception {
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
 
         Mockito.when(fileService.getAllFiles(Mockito.any()))
             .thenReturn(List.of(Path.of("path/1.txt"), Path.of("path/2.txt")));
@@ -344,7 +347,7 @@ class BagRulesImplTest {
 
     @Test
     void containsNothingElseThan() throws Exception {
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
         var basePath = Path.of("bagdir/metadata");
 
         Mockito.when(fileService.getAllFilesAndDirectories(Mockito.eq(basePath)))
@@ -361,7 +364,7 @@ class BagRulesImplTest {
 
     @Test
     void containsNothingElseThanButThereAreInvalidFiles() throws Exception {
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
 
         var basePath = Path.of("bagdir/metadata");
 
@@ -403,7 +406,7 @@ class BagRulesImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
 
         assertDoesNotThrow(() -> {
             checker.ddmContainsUrnNbnIdentifier().validate(Path.of("bagdir"));
@@ -430,7 +433,7 @@ class BagRulesImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
 
         assertThrows(RuleViolationDetailsException.class, () -> {
             checker.ddmContainsUrnNbnIdentifier().validate(Path.of("bagdir"));
@@ -458,7 +461,7 @@ class BagRulesImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
 
         assertThrows(RuleViolationDetailsException.class, () -> {
             checker.ddmContainsUrnNbnIdentifier().validate(Path.of("bagdir"));
@@ -485,7 +488,7 @@ class BagRulesImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
 
         assertDoesNotThrow(() -> checker.ddmDoiIdentifiersAreValid().validate(Path.of("bagdir")));
     }
@@ -510,7 +513,7 @@ class BagRulesImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
 
         assertThrows(RuleViolationDetailsException.class, () -> checker.ddmDoiIdentifiersAreValid().validate(Path.of("bagdir")));
     }
@@ -543,7 +546,7 @@ class BagRulesImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
 
         assertDoesNotThrow(() -> checker.ddmDaisAreValid().validate(Path.of("bagdir")));
         assertDoesNotThrow(() -> checker.ddmOrcidsAreValid().validate(Path.of("bagdir")));
@@ -576,7 +579,7 @@ class BagRulesImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
 
         assertThrows(RuleViolationDetailsException.class, () -> checker.ddmDaisAreValid().validate(Path.of("bagdir")));
     }
@@ -625,7 +628,7 @@ class BagRulesImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
 
         assertDoesNotThrow(() -> checker.ddmGmlPolygonPosListIsWellFormed().validate(Path.of("bagdir")));
     }
@@ -674,7 +677,7 @@ class BagRulesImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
 
         assertThrows(RuleViolationDetailsException.class, () -> checker.ddmGmlPolygonPosListIsWellFormed().validate(Path.of("bagdir")));
     }
@@ -713,7 +716,7 @@ class BagRulesImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
 
         assertDoesNotThrow(() -> checker.polygonsInSameMultiSurfaceHaveSameSrsName().validate(Path.of("bagdir")));
     }
@@ -752,7 +755,7 @@ class BagRulesImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
 
         assertThrows(RuleViolationDetailsException.class,
             () -> checker.polygonsInSameMultiSurfaceHaveSameSrsName().validate(Path.of("bagdir")));
@@ -794,7 +797,7 @@ class BagRulesImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
 
         assertDoesNotThrow(() -> checker.polygonsInSameMultiSurfaceHaveSameSrsName().validate(Path.of("bagdir")));
     }
@@ -831,7 +834,7 @@ class BagRulesImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
 
         var exception = assertThrows(RuleViolationDetailsException.class,
             () -> checker.pointsHaveAtLeastTwoValues().validate(Path.of("bagdir")));
@@ -860,7 +863,7 @@ class BagRulesImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
 
         assertDoesNotThrow(() -> checker.archisIdentifiersHaveAtMost10Characters().validate(Path.of("bagdir")));
     }
@@ -886,7 +889,7 @@ class BagRulesImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
 
         var exceptions = assertThrows(RuleViolationDetailsException.class,
             () -> checker.archisIdentifiersHaveAtMost10Characters().validate(Path.of("bagdir")));
@@ -955,7 +958,7 @@ class BagRulesImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
 
         assertDoesNotThrow(() -> checker.allUrlsAreValid().validate(Path.of("bagdir")));
     }
@@ -1012,7 +1015,7 @@ class BagRulesImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
 
         var exceptions = assertThrows(RuleViolationDetailsException.class,
             () -> checker.allUrlsAreValid().validate(Path.of("bagdir")));
@@ -1047,7 +1050,7 @@ class BagRulesImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
 
         assertDoesNotThrow(() -> checker.ddmMustHaveRightsHolderDeposit().validate(Path.of("bagdir")));
     }
@@ -1078,7 +1081,7 @@ class BagRulesImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
 
         assertThrows(RuleViolationDetailsException.class,
             () -> checker.ddmMustHaveRightsHolderDeposit().validate(Path.of("bagdir")));
@@ -1110,7 +1113,7 @@ class BagRulesImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
 
         assertDoesNotThrow(() -> checker.ddmMustHaveRightsHolderMigration().validate(Path.of("bagdir")));
     }
@@ -1141,7 +1144,7 @@ class BagRulesImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
 
         assertThrows(RuleViolationDetailsException.class,
             () -> checker.ddmMustHaveRightsHolderMigration().validate(Path.of("bagdir")));
@@ -1158,7 +1161,7 @@ class BagRulesImplTest {
 
         Mockito.doReturn(mapping).when(originalFilepathsService).getMapping(Mockito.any());
 
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
 
         assertDoesNotThrow(() ->
             checker.originalFilePathsDoNotContainSpaces().validate(Path.of("bagdir")));
@@ -1175,7 +1178,7 @@ class BagRulesImplTest {
 
         Mockito.doReturn(mapping).when(originalFilepathsService).getMapping(Mockito.any());
 
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
 
         var exception = assertThrows(RuleViolationDetailsException.class, () ->
             checker.originalFilePathsDoNotContainSpaces().validate(Path.of("bagdir")));

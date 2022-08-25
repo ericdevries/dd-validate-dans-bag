@@ -19,6 +19,7 @@ import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms;
 import nl.knaw.dans.validatedansbag.core.engine.RuleSkippedException;
 import nl.knaw.dans.validatedansbag.core.engine.RuleViolationDetailsException;
 import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReader;
+import nl.knaw.dans.validatedansbag.core.service.DataverseService;
 import nl.knaw.dans.validatedansbag.core.service.FileService;
 import nl.knaw.dans.validatedansbag.core.service.OriginalFilepathsService;
 import nl.knaw.dans.validatedansbag.core.service.XmlReader;
@@ -63,6 +64,8 @@ public class BagRulesImpl implements BagRules {
     private final Pattern doiUrlPattern = Pattern.compile("^((https?://(dx\\.)?)?doi\\.org/(urn:)?(doi:)?)?10(\\.\\d+)+/.+");
     private final Pattern urnPattern = Pattern.compile("^urn:[A-Za-z0-9][A-Za-z0-9-]{0,31}:[a-z0-9()+,\\-\\\\.:=@;$_!*'%/?#]+$");
 
+    private final DataverseService dataverseService;
+
     private final IdentifierValidator identifierValidator;
 
     private final PolygonListValidator polygonListValidator;
@@ -72,12 +75,13 @@ public class BagRulesImpl implements BagRules {
     private final String namespaceDcterms = "http://purl.org/dc/terms/";
 
     public BagRulesImpl(FileService fileService, BagItMetadataReader bagItMetadataReader, XmlReader xmlReader, OriginalFilepathsService originalFilepathsService,
-        IdentifierValidator identifierValidator,
+        DataverseService dataverseService, IdentifierValidator identifierValidator,
         PolygonListValidator polygonListValidator, LicenseValidator licenseValidator) {
         this.fileService = fileService;
         this.bagItMetadataReader = bagItMetadataReader;
         this.xmlReader = xmlReader;
         this.originalFilepathsService = originalFilepathsService;
+        this.dataverseService = dataverseService;
         this.identifierValidator = identifierValidator;
         this.polygonListValidator = polygonListValidator;
         this.licenseValidator = licenseValidator;

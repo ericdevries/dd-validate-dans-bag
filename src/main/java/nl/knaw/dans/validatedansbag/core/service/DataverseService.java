@@ -13,22 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package nl.knaw.dans.validatedansbag.core.service;
 
-package nl.knaw.dans.validatedansbag;
+import nl.knaw.dans.lib.dataverse.DataverseException;
+import nl.knaw.dans.lib.dataverse.model.search.SearchResult;
 
-import io.dropwizard.Configuration;
-import nl.knaw.dans.validatedansbag.core.config.DataverseConfig;
+import java.io.IOException;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
+public interface DataverseService {
 
-public class DdValidateDansBagConfiguration extends Configuration {
 
-    @Valid
-    @NotNull
-    private DataverseConfig dataverse;
-
-    public DataverseConfig getDataverse() {
-        return dataverse;
-    }
+    SearchResult searchBySwordToken(String token) throws IOException, DataverseException;
 }
