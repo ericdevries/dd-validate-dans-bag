@@ -34,6 +34,7 @@ import nl.knaw.dans.validatedansbag.core.service.XmlSchemaValidatorImpl;
 import nl.knaw.dans.validatedansbag.core.validator.IdentifierValidatorImpl;
 import nl.knaw.dans.validatedansbag.core.validator.LicenseValidatorImpl;
 import nl.knaw.dans.validatedansbag.core.validator.PolygonListValidatorImpl;
+import nl.knaw.dans.validatedansbag.resource.ValidateJsonOkDtoMessageBodyWriter;
 import nl.knaw.dans.validatedansbag.resource.ValidateResource;
 import org.xml.sax.SAXException;
 
@@ -80,6 +81,6 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
         var ruleEngineService = new RuleEngineServiceImpl(ruleEngine, bagRules, xmlRules, filesXmlRules);
 
         environment.jersey().register(new ValidateResource(ruleEngineService, fileService));
+        environment.jersey().register(new ValidateJsonOkDtoMessageBodyWriter());
     }
-
 }

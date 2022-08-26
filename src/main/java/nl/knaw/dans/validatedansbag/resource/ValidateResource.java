@@ -34,7 +34,6 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.List;
 import java.util.stream.Collectors;
 
 @Path("/validate")
@@ -60,32 +59,19 @@ public class ValidateResource {
         var depositType = toDepositType(command.getPackageType());
 
         try {
-            ValidateResult validateResult;
+            ValidateJsonOkDto validateResult;
 
             if (location == null) {
                 validateResult = validateInputStream(zipInputStream, depositType);
             }
             else {
-                validateResult = validatePath(location, depositType);
+                validateResult = validatePath(java.nio.file.Path.of(location), depositType);
             }
 
-            var result = new ValidateJsonOkDto();
-            result.setBagLocation(location);
-            result.setIsCompliant(validateResult.isValid());
-            result.setName(validateResult.getBagName());
-            result.setProfileVersion("1.0.0");
-            result.setInfoPackageType(toInfoPackageType(depositType));
-            result.setRuleViolations(validateResult.getResults().stream()
-                .filter(r -> r.getStatus().equals(RuleValidationResult.RuleValidationResultStatus.FAILURE))
-                .map(rule -> {
-                    var ret = new ValidateJsonOkRuleViolationsDto();
-                    ret.setRule(rule.getNumber());
-                    ret.setViolation(rule.getException().getLocalizedMessage());
-                    return ret;
-                })
-                .collect(Collectors.toList()));
+            // this information is lost during the validation, so set it again here
+            validateResult.setBagLocation(location);
 
-            return Response.ok(result).build();
+            return Response.ok(validateResult).build();
         }
         catch (Throwable e) {
             e.printStackTrace();
@@ -96,28 +82,11 @@ public class ValidateResource {
 
     @POST
     @Consumes({ "application/zip" })
-    @Produces(MediaType.APPLICATION_JSON)
+    @Produces({ MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN })
     public Response validateZip(InputStream inputStream) {
         try {
             var validateResult = validateInputStream(inputStream, DepositType.DEPOSIT);
-
-            var result = new ValidateJsonOkDto();
-            result.setBagLocation(null);
-            result.setIsCompliant(validateResult.isValid());
-            result.setName(validateResult.getBagName());
-            result.setProfileVersion("1.0.0");
-            result.setInfoPackageType(toInfoPackageType(DepositType.DEPOSIT));
-            result.setRuleViolations(validateResult.getResults().stream()
-                .filter(r -> r.getStatus().equals(RuleValidationResult.RuleValidationResultStatus.FAILURE))
-                .map(rule -> {
-                    var ret = new ValidateJsonOkRuleViolationsDto();
-                    ret.setRule(rule.getNumber());
-                    ret.setViolation(rule.getException().getLocalizedMessage());
-                    return ret;
-                })
-                .collect(Collectors.toList()));
-
-            return Response.ok(result).build();
+            return Response.ok(validateResult).build();
         }
         catch (IOException e) {
             e.printStackTrace();
@@ -125,60 +94,49 @@ public class ValidateResource {
         }
     }
 
-    ValidateResult validateInputStream(InputStream inputStream, DepositType depositType) throws IOException {
+    ValidateJsonOkDto validateInputStream(InputStream inputStream, DepositType depositType) throws IOException {
         var bagDir = fileService.extractZipFile(inputStream)
             .orElseThrow(() -> new IOException("Extracted zip does not contain a directory"));
 
-        var results = ruleEngineService.validateBag(bagDir, depositType);
-
-        return new ValidateResult(bagDir.getFileName().toString(), results);
+        return validatePath(bagDir, depositType);
     }
 
-    ValidateResult validatePath(String location, DepositType depositType) throws IOException {
-        var bagDir = java.nio.file.Path.of(location);
+    ValidateJsonOkDto validatePath(java.nio.file.Path bagDir, DepositType depositType) throws IOException {
         var results = ruleEngineService.validateBag(bagDir, depositType);
-        return new ValidateResult(bagDir.getFileName().toString(), results);
+
+        var isValid = results.stream().noneMatch(r -> r.getStatus().equals(RuleValidationResult.RuleValidationResultStatus.FAILURE));
+
+        var result = new ValidateJsonOkDto();
+        result.setBagLocation(null);
+        result.setIsCompliant(isValid);
+        result.setName(bagDir.getFileName().toString());
+        result.setProfileVersion("1.0.0");
+        result.setInfoPackageType(toInfoPackageType(DepositType.DEPOSIT));
+        result.setRuleViolations(results.stream()
+            .filter(r -> r.getStatus().equals(RuleValidationResult.RuleValidationResultStatus.FAILURE))
+            .map(rule -> {
+                var ret = new ValidateJsonOkRuleViolationsDto();
+                ret.setRule(rule.getNumber());
+                ret.setViolation(rule.getException().getLocalizedMessage());
+                return ret;
+            })
+            .collect(Collectors.toList()));
+
+        return result;
     }
 
     DepositType toDepositType(ValidateCommandDto.PackageTypeEnum value) {
-        switch (value) {
-            case MIGRATION:
-                return DepositType.MIGRATION;
-            default:
-                return DepositType.DEPOSIT;
+        if (value == ValidateCommandDto.PackageTypeEnum.MIGRATION) {
+            return DepositType.MIGRATION;
         }
+        return DepositType.DEPOSIT;
     }
 
     ValidateJsonOkDto.InfoPackageTypeEnum toInfoPackageType(DepositType value) {
-        switch (value) {
-            case MIGRATION:
-                return ValidateJsonOkDto.InfoPackageTypeEnum.MIGRATION;
-            default:
-                return ValidateJsonOkDto.InfoPackageTypeEnum.DEPOSIT;
+        if (value == DepositType.MIGRATION) {
+            return ValidateJsonOkDto.InfoPackageTypeEnum.MIGRATION;
         }
+        return ValidateJsonOkDto.InfoPackageTypeEnum.DEPOSIT;
     }
 
-    static class ValidateResult {
-        private boolean isValid;
-        private String bagName;
-        private List<RuleValidationResult> results;
-
-        public ValidateResult(String bagName, List<RuleValidationResult> results) {
-            this.bagName = bagName;
-            this.results = results;
-            this.isValid = this.results.stream().noneMatch(r -> r.getStatus().equals(RuleValidationResult.RuleValidationResultStatus.FAILURE));
-        }
-
-        public boolean isValid() {
-            return isValid;
-        }
-
-        public String getBagName() {
-            return bagName;
-        }
-
-        public List<RuleValidationResult> getResults() {
-            return results;
-        }
-    }
 }

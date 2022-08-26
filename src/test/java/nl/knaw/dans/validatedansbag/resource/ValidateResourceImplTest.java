@@ -48,6 +48,8 @@ import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(DropwizardExtensionsSupport.class)
 class ValidateResourceImplTest {
@@ -57,6 +59,7 @@ class ValidateResourceImplTest {
         try {
             EXT = ResourceExtension.builder()
                 .addProvider(MultiPartFeature.class)
+                .addProvider(ValidateJsonOkDtoMessageBodyWriter.class)
                 .addResource(buildValidateResource())
                 .build();
         }
@@ -100,7 +103,7 @@ class ValidateResourceImplTest {
     }
 
     @Test
-    void validateFormData() throws Exception {
+    void validateFormDataWithInvalidBag() throws Exception {
         var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("bags/audiences-invalid")).getFile();
 
         var data = new ValidateCommandDto();
@@ -114,7 +117,7 @@ class ValidateResourceImplTest {
             .request()
             .post(Entity.entity(multipart, multipart.getMediaType()), ValidateJsonOkDto.class);
 
-        System.out.println("RESULT: " + response);
+        System.out.println("RESPONSE: " + response);
         assertFalse(response.getIsCompliant());
         assertEquals("1.0.0", response.getProfileVersion());
         assertEquals(ValidateJsonOkDto.InfoPackageTypeEnum.DEPOSIT, response.getInfoPackageType());
@@ -137,7 +140,11 @@ class ValidateResourceImplTest {
             .request()
             .post(Entity.entity(multipart, multipart.getMediaType()), ValidateJsonOkDto.class);
 
-        System.out.println("RESULT: " + response);
+        assertTrue(response.getIsCompliant());
+        assertEquals("1.0.0", response.getProfileVersion());
+        assertEquals(ValidateJsonOkDto.InfoPackageTypeEnum.DEPOSIT, response.getInfoPackageType());
+        assertNull(response.getBagLocation());
+        assertEquals(0, response.getRuleViolations().size());
     }
 
     @Test
@@ -149,8 +156,26 @@ class ValidateResourceImplTest {
         var response = EXT.target("/validate")
             .request()
             .post(Entity.entity(filename.openStream(), MediaType.valueOf("application/zip")), ValidateJsonOkDto.class);
-        //.post(InputStreamEntity.entity(multipart, multipart.getMediaType()), ValidateJsonOkDto.class);
 
-        System.out.println("RESULT: " + response);
+        assertTrue(response.getIsCompliant());
+        assertEquals("1.0.0", response.getProfileVersion());
+        assertEquals(ValidateJsonOkDto.InfoPackageTypeEnum.DEPOSIT, response.getInfoPackageType());
+        assertNull(response.getBagLocation());
+        assertEquals(0, response.getRuleViolations().size());
+    }
+
+    @Test
+    void validateZipFileAndGetTextResponse() throws Exception {
+        var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("zips/audiences.zip"));
+
+        var data = new ValidateCommandDto();
+        data.setPackageType(ValidateCommandDto.PackageTypeEnum.DEPOSIT);
+
+        var response = EXT.target("/validate")
+            .request()
+            .header("accept", "text/plain")
+            .post(Entity.entity(filename.openStream(), MediaType.valueOf("application/zip")), String.class);
+
+        System.out.println("RESPONSE: " + response);
     }
 }

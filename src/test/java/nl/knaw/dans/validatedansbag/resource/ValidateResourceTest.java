@@ -20,7 +20,6 @@ import io.dropwizard.testing.junit5.ResourceExtension;
 import nl.knaw.dans.openapi.api.ValidateCommandDto;
 import nl.knaw.dans.validatedansbag.core.service.FileService;
 import nl.knaw.dans.validatedansbag.core.service.RuleEngineService;
-import nl.knaw.dans.validatedansbag.core.service.RuleEngineServiceImpl;
 import org.glassfish.jersey.media.multipart.FormDataMultiPart;
 import org.glassfish.jersey.media.multipart.MultiPartFeature;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,7 +29,10 @@ import org.mockito.Mockito;
 
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.nio.file.Path;
+import java.util.Optional;
 
 @ExtendWith(DropwizardExtensionsSupport.class)
 class ValidateResourceTest {
@@ -61,6 +63,45 @@ class ValidateResourceTest {
             .request()
             .post(Entity.entity(multipart, multipart.getMediaType()), String.class);
 
-        Mockito.verify(fileService).extractZipFile(Mockito.any(Path.class));
+        Mockito.verifyNoInteractions(fileService);//.extractZipFile(Mockito.any(Path.class));
+    }
+
+    @Test
+    void validateFormDataWithZipFile() throws Exception {
+        var data = new ValidateCommandDto();
+        data.setBagLocation(null);
+        data.setPackageType(ValidateCommandDto.PackageTypeEnum.DEPOSIT);
+
+        var multipart = new FormDataMultiPart()
+            .field("command", data, MediaType.APPLICATION_JSON_TYPE)
+            .field("zip", new ByteArrayInputStream(new byte[4]), MediaType.valueOf("application/zip"));
+
+        Mockito.doReturn(Optional.of(Path.of("audiences")))
+            .when(fileService).extractZipFile(Mockito.any(InputStream.class));
+
+        var response = EXT.target("/validate")
+            .register(MultiPartFeature.class)
+            .request()
+            .post(Entity.entity(multipart, multipart.getMediaType()), String.class);
+
+        Mockito.verify(fileService).extractZipFile(Mockito.any(InputStream.class));//.extractZipFile(Mockito.any(Path.class));
+    }
+
+    @Test
+    void validateZipFile() throws Exception {
+        var data = new ValidateCommandDto();
+        data.setBagLocation(null);
+        data.setPackageType(ValidateCommandDto.PackageTypeEnum.DEPOSIT);
+
+        var zip = Entity.entity(new ByteArrayInputStream(new byte[4]), MediaType.valueOf("application/zip"));
+
+        Mockito.doReturn(Optional.of(Path.of("audiences")))
+            .when(fileService).extractZipFile(Mockito.any(InputStream.class));
+
+        var response = EXT.target("/validate")
+            .request()
+            .post(zip, String.class);
+
+        Mockito.verify(fileService).extractZipFile(Mockito.any(InputStream.class));//.extractZipFile(Mockito.any(Path.class));
     }
 }
