@@ -16,13 +16,16 @@
 package nl.knaw.dans.validatedansbag.resource;
 
 import nl.knaw.dans.openapi.api.ValidateCommandDto;
-import nl.knaw.dans.openapi.api.ValidateJsonOkDto;
-import nl.knaw.dans.openapi.api.ValidateJsonOkRuleViolationsDto;
+import nl.knaw.dans.openapi.api.ValidateOkDto;
+import nl.knaw.dans.openapi.api.ValidateOkRuleViolationsDto;
+import nl.knaw.dans.validatedansbag.core.BagNotFoundException;
 import nl.knaw.dans.validatedansbag.core.engine.DepositType;
 import nl.knaw.dans.validatedansbag.core.engine.RuleValidationResult;
 import nl.knaw.dans.validatedansbag.core.service.FileService;
 import nl.knaw.dans.validatedansbag.core.service.RuleEngineService;
 import org.glassfish.jersey.media.multipart.FormDataParam;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
@@ -38,6 +41,8 @@ import java.util.stream.Collectors;
 
 @Path("/validate")
 public class ValidateResource {
+
+    private static final Logger log = LoggerFactory.getLogger(ValidateResource.class);
 
     private final RuleEngineService ruleEngineService;
 
@@ -59,13 +64,14 @@ public class ValidateResource {
         var depositType = toDepositType(command.getPackageType());
 
         try {
-            ValidateJsonOkDto validateResult;
+            ValidateOkDto validateResult;
 
             if (location == null) {
                 validateResult = validateInputStream(zipInputStream, depositType);
             }
             else {
-                validateResult = validatePath(java.nio.file.Path.of(location), depositType);
+                var locationPath = java.nio.file.Path.of(location);
+                validateResult = validatePath(locationPath, depositType);
             }
 
             // this information is lost during the validation, so set it again here
@@ -73,11 +79,14 @@ public class ValidateResource {
 
             return Response.ok(validateResult).build();
         }
-        catch (Throwable e) {
-            e.printStackTrace();
+        catch (BagNotFoundException e) {
+            log.error("Bag not found", e);
+            return Response.status(Response.Status.BAD_REQUEST).build();
         }
-
-        return Response.ok().build();
+        catch (Exception e) {
+            log.error("Internal server error", e);
+            return Response.serverError().build();
+        }
     }
 
     @POST
@@ -88,25 +97,39 @@ public class ValidateResource {
             var validateResult = validateInputStream(inputStream, DepositType.DEPOSIT);
             return Response.ok(validateResult).build();
         }
-        catch (IOException e) {
-            e.printStackTrace();
+        catch (BagNotFoundException e) {
+            log.error("Bag not found", e);
+            return Response.status(Response.Status.BAD_REQUEST).build();
+        }
+        catch (Exception e) {
+            log.error("Internal server error", e);
             return Response.serverError().build();
         }
     }
 
-    ValidateJsonOkDto validateInputStream(InputStream inputStream, DepositType depositType) throws IOException {
+    ValidateOkDto validateInputStream(InputStream inputStream, DepositType depositType) throws IOException, BagNotFoundException {
         var bagDir = fileService.extractZipFile(inputStream)
             .orElseThrow(() -> new IOException("Extracted zip does not contain a directory"));
 
-        return validatePath(bagDir, depositType);
+        try {
+            return validatePath(bagDir, depositType);
+        }
+        finally {
+            try {
+                fileService.deleteDirectoryAndContents(bagDir.getParent());
+            }
+            catch (IOException e) {
+                log.error("Error cleaning up temporary directory");
+            }
+        }
     }
 
-    ValidateJsonOkDto validatePath(java.nio.file.Path bagDir, DepositType depositType) throws IOException {
+    ValidateOkDto validatePath(java.nio.file.Path bagDir, DepositType depositType) throws BagNotFoundException {
         var results = ruleEngineService.validateBag(bagDir, depositType);
 
         var isValid = results.stream().noneMatch(r -> r.getStatus().equals(RuleValidationResult.RuleValidationResultStatus.FAILURE));
 
-        var result = new ValidateJsonOkDto();
+        var result = new ValidateOkDto();
         result.setBagLocation(null);
         result.setIsCompliant(isValid);
         result.setName(bagDir.getFileName().toString());
@@ -115,7 +138,7 @@ public class ValidateResource {
         result.setRuleViolations(results.stream()
             .filter(r -> r.getStatus().equals(RuleValidationResult.RuleValidationResultStatus.FAILURE))
             .map(rule -> {
-                var ret = new ValidateJsonOkRuleViolationsDto();
+                var ret = new ValidateOkRuleViolationsDto();
                 ret.setRule(rule.getNumber());
                 ret.setViolation(rule.getException().getLocalizedMessage());
                 return ret;
@@ -132,11 +155,10 @@ public class ValidateResource {
         return DepositType.DEPOSIT;
     }
 
-    ValidateJsonOkDto.InfoPackageTypeEnum toInfoPackageType(DepositType value) {
+    ValidateOkDto.InfoPackageTypeEnum toInfoPackageType(DepositType value) {
         if (value == DepositType.MIGRATION) {
-            return ValidateJsonOkDto.InfoPackageTypeEnum.MIGRATION;
+            return ValidateOkDto.InfoPackageTypeEnum.MIGRATION;
         }
-        return ValidateJsonOkDto.InfoPackageTypeEnum.DEPOSIT;
+        return ValidateOkDto.InfoPackageTypeEnum.DEPOSIT;
     }
-
 }

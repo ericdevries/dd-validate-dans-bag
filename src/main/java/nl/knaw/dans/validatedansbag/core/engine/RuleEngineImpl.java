@@ -120,18 +120,6 @@ public class RuleEngineImpl implements RuleEngine {
                 break;
             }
         }
-//
-//        for (var rule : rules) {
-//            var result = ruleResults.get(rule.getNumber());
-//            var state = result.getStatus().toString();
-//
-//            if (result.getStatus().equals(RuleValidationResult.RuleValidationResultStatus.FAILURE)) {
-//                System.out.println("RULE [" + rule.getNumber() + "] " + state + ": " + result.getException().getLocalizedMessage());
-//            }
-//            else {
-//                System.out.println("RULE [" + rule.getNumber() + "] " + state);
-//            }
-//        }
 
         return new ArrayList<>(ruleResults.values());
     }

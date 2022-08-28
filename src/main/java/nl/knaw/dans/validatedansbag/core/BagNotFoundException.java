@@ -13,16 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.validatedansbag.core.service;
+package nl.knaw.dans.validatedansbag.core;
 
-import nl.knaw.dans.validatedansbag.core.BagNotFoundException;
-import nl.knaw.dans.validatedansbag.core.engine.DepositType;
-import nl.knaw.dans.validatedansbag.core.engine.RuleValidationResult;
-
-import java.nio.file.Path;
-import java.util.List;
-
-public interface RuleEngineService {
-
-    List<RuleValidationResult> validateBag(Path path, DepositType depositType) throws BagNotFoundException;
+public class BagNotFoundException extends Exception {
+    public BagNotFoundException(String msg) {
+        super(msg);
+    }
 }

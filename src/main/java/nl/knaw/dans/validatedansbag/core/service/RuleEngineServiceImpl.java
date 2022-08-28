@@ -15,6 +15,7 @@
  */
 package nl.knaw.dans.validatedansbag.core.service;
 
+import nl.knaw.dans.validatedansbag.core.BagNotFoundException;
 import nl.knaw.dans.validatedansbag.core.engine.DepositType;
 import nl.knaw.dans.validatedansbag.core.engine.NumberedRule;
 import nl.knaw.dans.validatedansbag.core.engine.RuleEngine;
@@ -35,6 +36,7 @@ public class RuleEngineServiceImpl implements RuleEngineService {
 
     private final FilesXmlRules filesXmlRules;
 
+    private final FileService fileService;
     private final NumberedRule[] defaultRules;
 
     private final Path dataPath = Path.of("data");
@@ -42,11 +44,12 @@ public class RuleEngineServiceImpl implements RuleEngineService {
     private final Path metadataPath = Path.of("metadata");
     private final Path metadataFilesPath = Path.of("metadata/files.xml");
 
-    public RuleEngineServiceImpl(RuleEngine ruleEngine, BagRules bagRules, XmlRules xmlRules, FilesXmlRules filesXmlRules) {
+    public RuleEngineServiceImpl(RuleEngine ruleEngine, BagRules bagRules, XmlRules xmlRules, FilesXmlRules filesXmlRules, FileService fileService) {
         this.ruleEngine = ruleEngine;
         this.bagRules = bagRules;
         this.xmlRules = xmlRules;
         this.filesXmlRules = filesXmlRules;
+        this.fileService = fileService;
 
         // validity
         this.defaultRules = new NumberedRule[] {
@@ -142,7 +145,11 @@ public class RuleEngineServiceImpl implements RuleEngineService {
     }
 
     @Override
-    public List<RuleValidationResult> validateBag(Path path, DepositType depositType) {
+    public List<RuleValidationResult> validateBag(Path path, DepositType depositType) throws BagNotFoundException {
+        if (!fileService.isReadable(path)) {
+            throw new BagNotFoundException(String.format("Bag on path '%s' could not be found or read", path));
+        }
+
         return ruleEngine.validateRules(path, this.defaultRules, depositType);
     }
 }

@@ -18,7 +18,7 @@ package nl.knaw.dans.validatedansbag.resource;
 import io.dropwizard.testing.junit5.DropwizardExtensionsSupport;
 import io.dropwizard.testing.junit5.ResourceExtension;
 import nl.knaw.dans.openapi.api.ValidateCommandDto;
-import nl.knaw.dans.openapi.api.ValidateJsonOkDto;
+import nl.knaw.dans.openapi.api.ValidateOkDto;
 import nl.knaw.dans.validatedansbag.core.engine.RuleEngineImpl;
 import nl.knaw.dans.validatedansbag.core.rules.BagRulesImpl;
 import nl.knaw.dans.validatedansbag.core.rules.FilesXmlRulesImpl;
@@ -43,6 +43,7 @@ import org.xml.sax.SAXException;
 
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import java.net.MalformedURLException;
 import java.util.Objects;
 
@@ -59,7 +60,7 @@ class ValidateResourceImplTest {
         try {
             EXT = ResourceExtension.builder()
                 .addProvider(MultiPartFeature.class)
-                .addProvider(ValidateJsonOkDtoMessageBodyWriter.class)
+                .addProvider(ValidateOkDtoYamlMessageBodyWriter.class)
                 .addResource(buildValidateResource())
                 .build();
         }
@@ -91,15 +92,13 @@ class ValidateResourceImplTest {
 
         // set up the engine and the service that has a default set of rules
         var ruleEngine = new RuleEngineImpl();
-        var ruleEngineService = new RuleEngineServiceImpl(ruleEngine, bagRules, xmlRules, filesXmlRules);
+        var ruleEngineService = new RuleEngineServiceImpl(ruleEngine, bagRules, xmlRules, filesXmlRules, fileService);
 
         return new ValidateResource(ruleEngineService, fileService);
     }
 
     @BeforeEach
     void setup() {
-        //        Mockito.reset(fileService);
-        //        Mockito.reset(ruleEngineService);
     }
 
     @Test
@@ -115,12 +114,12 @@ class ValidateResourceImplTest {
         var response = EXT.target("/validate")
             .register(MultiPartFeature.class)
             .request()
-            .post(Entity.entity(multipart, multipart.getMediaType()), ValidateJsonOkDto.class);
+            .post(Entity.entity(multipart, multipart.getMediaType()), ValidateOkDto.class);
 
         System.out.println("RESPONSE: " + response);
         assertFalse(response.getIsCompliant());
         assertEquals("1.0.0", response.getProfileVersion());
-        assertEquals(ValidateJsonOkDto.InfoPackageTypeEnum.DEPOSIT, response.getInfoPackageType());
+        assertEquals(ValidateOkDto.InfoPackageTypeEnum.DEPOSIT, response.getInfoPackageType());
         assertEquals(filename, response.getBagLocation());
         assertEquals(1, response.getRuleViolations().size());
     }
@@ -138,11 +137,11 @@ class ValidateResourceImplTest {
         var response = EXT.target("/validate")
             .register(MultiPartFeature.class)
             .request()
-            .post(Entity.entity(multipart, multipart.getMediaType()), ValidateJsonOkDto.class);
+            .post(Entity.entity(multipart, multipart.getMediaType()), ValidateOkDto.class);
 
         assertTrue(response.getIsCompliant());
         assertEquals("1.0.0", response.getProfileVersion());
-        assertEquals(ValidateJsonOkDto.InfoPackageTypeEnum.DEPOSIT, response.getInfoPackageType());
+        assertEquals(ValidateOkDto.InfoPackageTypeEnum.DEPOSIT, response.getInfoPackageType());
         assertNull(response.getBagLocation());
         assertEquals(0, response.getRuleViolations().size());
     }
@@ -155,18 +154,18 @@ class ValidateResourceImplTest {
         data.setPackageType(ValidateCommandDto.PackageTypeEnum.DEPOSIT);
         var response = EXT.target("/validate")
             .request()
-            .post(Entity.entity(filename.openStream(), MediaType.valueOf("application/zip")), ValidateJsonOkDto.class);
+            .post(Entity.entity(filename.openStream(), MediaType.valueOf("application/zip")), ValidateOkDto.class);
 
         assertTrue(response.getIsCompliant());
         assertEquals("1.0.0", response.getProfileVersion());
-        assertEquals(ValidateJsonOkDto.InfoPackageTypeEnum.DEPOSIT, response.getInfoPackageType());
+        assertEquals(ValidateOkDto.InfoPackageTypeEnum.DEPOSIT, response.getInfoPackageType());
         assertNull(response.getBagLocation());
         assertEquals(0, response.getRuleViolations().size());
     }
 
     @Test
     void validateZipFileAndGetTextResponse() throws Exception {
-        var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("zips/audiences.zip"));
+        var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("zips/invalid-sha1.zip"));
 
         var data = new ValidateCommandDto();
         data.setPackageType(ValidateCommandDto.PackageTypeEnum.DEPOSIT);
@@ -176,6 +175,25 @@ class ValidateResourceImplTest {
             .header("accept", "text/plain")
             .post(Entity.entity(filename.openStream(), MediaType.valueOf("application/zip")), String.class);
 
-        System.out.println("RESPONSE: " + response);
+        assertTrue(response.contains("bagLocation:"));
+        assertTrue(response.contains("ruleViolations:"));
+    }
+
+    @Test
+    void validateMultipartDataLocationCouldNotBeRead() throws Exception {
+        var data = new ValidateCommandDto();
+        data.setBagLocation("/some/non/existing/filename");
+        data.setPackageType(ValidateCommandDto.PackageTypeEnum.DEPOSIT);
+
+        var multipart = new FormDataMultiPart()
+            .field("command", data, MediaType.APPLICATION_JSON_TYPE);
+
+        try (var response = EXT.target("/validate")
+            .register(MultiPartFeature.class)
+            .request()
+            .post(Entity.entity(multipart, multipart.getMediaType()), Response.class)) {
+
+            assertEquals(400, response.getStatus());
+        }
     }
 }

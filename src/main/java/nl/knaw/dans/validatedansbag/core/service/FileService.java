@@ -30,18 +30,17 @@ public interface FileService {
     boolean isFile(Path path);
 
     List<Path> getAllFiles(Path path) throws IOException;
-    List<Path> getAllDirectories(Path path) throws IOException;
 
     List<Path> getAllFilesAndDirectories(Path path) throws IOException;
 
     byte[] readFileContents(Path path) throws IOException;
 
     boolean exists(Path path);
+    boolean isReadable(Path path);
 
     CharBuffer readFileContents(Path path, Charset charset) throws IOException;
 
-    Path createTempFile(InputStream inputStream, String extension) throws IOException;
-
     Optional<Path> extractZipFile(InputStream inputStream) throws IOException;
-    Optional<Path> extractZipFile(Path path) throws IOException;
+
+    void deleteDirectoryAndContents(Path path) throws IOException;
 }
