@@ -179,8 +179,8 @@ class BagRulesImplTest {
 
         var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, dataverseService, identifierValidator, polygonListValidator, licenseValidator);
 
-        Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Created")))
-            .thenReturn(List.of("2022-01-01T01:23:45.678+00:00"));
+        Mockito.when(bagItMetadataReader.getSingleField(Mockito.any(), Mockito.eq("Created")))
+            .thenReturn("2022-01-01T01:23:45.678+00:00");
 
         assertDoesNotThrow(() -> checker.bagInfoCreatedElementIsIso8601Date().validate(Path.of("bagdir")));
     }

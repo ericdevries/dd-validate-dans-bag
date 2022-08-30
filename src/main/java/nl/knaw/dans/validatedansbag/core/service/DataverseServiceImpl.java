@@ -18,21 +18,28 @@ package nl.knaw.dans.validatedansbag.core.service;
 import nl.knaw.dans.lib.dataverse.DataverseClient;
 import nl.knaw.dans.lib.dataverse.DataverseClientConfig;
 import nl.knaw.dans.lib.dataverse.DataverseException;
+import nl.knaw.dans.lib.dataverse.DataverseHttpResponse;
+import nl.knaw.dans.lib.dataverse.DataverseResponse;
+import nl.knaw.dans.lib.dataverse.SearchOptions;
+import nl.knaw.dans.lib.dataverse.model.RoleAssignmentReadOnly;
+import nl.knaw.dans.lib.dataverse.model.dataset.DatasetLatestVersion;
+import nl.knaw.dans.lib.dataverse.model.search.SearchItemType;
 import nl.knaw.dans.lib.dataverse.model.search.SearchResult;
 import nl.knaw.dans.validatedansbag.core.config.DataverseConfig;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.List;
 
 public class DataverseServiceImpl implements DataverseService {
-    private DataverseClient dataverseClient;
     private final DataverseConfig dataverseConfig;
+    private DataverseClient dataverseClient;
 
     public DataverseServiceImpl(DataverseConfig dataverseConfig) {
         this.dataverseConfig = dataverseConfig;
     }
 
-    DataverseClient getDataverseClient() {
+    public DataverseClient getDataverseClient() {
         if (this.dataverseClient == null) {
             var config = new DataverseClientConfig(URI.create(dataverseConfig.getBaseUrl()), dataverseConfig.getApiToken());
             this.dataverseClient = new DataverseClient(config);
@@ -40,11 +47,35 @@ public class DataverseServiceImpl implements DataverseService {
 
         return dataverseClient;
     }
+
     @Override
-    public SearchResult searchBySwordToken(String token) throws IOException, DataverseException {
+    public DataverseResponse<SearchResult> searchBySwordToken(String token) throws IOException, DataverseException {
         var client = this.getDataverseClient();
         var response = client.search().find(String.format("dansDataVaultMetadata:%s", token));
 
-        return response.getData();
+        return response;
+    }
+
+    @Override
+    public DataverseResponse<SearchResult> searchDatasetsByOrganizationalIdentifier(String identifier) throws IOException, DataverseException {
+        var client = this.getDataverseClient();
+        var options = new SearchOptions();
+        options.setTypes(List.of(SearchItemType.dataset));
+
+        return client.search().find(String.format("dansOtherId:%s", identifier), options);
+    }
+
+    @Override
+    public DataverseHttpResponse<List<RoleAssignmentReadOnly>> getDatasetAssignments(String identifier) throws IOException, DataverseException {
+        var client = this.getDataverseClient();
+        return client.dataset(identifier).listRoleAssignments();
+
+    }
+
+    @Override
+    public DatasetLatestVersion getDataset(String globalId) throws IOException, DataverseException {
+        var client = this.getDataverseClient();
+
+        return client.dataset(globalId).getLatestVersion().getData();
     }
 }

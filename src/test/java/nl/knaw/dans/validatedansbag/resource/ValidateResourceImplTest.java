@@ -21,6 +21,7 @@ import nl.knaw.dans.openapi.api.ValidateCommandDto;
 import nl.knaw.dans.openapi.api.ValidateOkDto;
 import nl.knaw.dans.validatedansbag.core.engine.RuleEngineImpl;
 import nl.knaw.dans.validatedansbag.core.rules.BagRulesImpl;
+import nl.knaw.dans.validatedansbag.core.rules.DatastationRulesImpl;
 import nl.knaw.dans.validatedansbag.core.rules.FilesXmlRulesImpl;
 import nl.knaw.dans.validatedansbag.core.rules.XmlRulesImpl;
 import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReaderImpl;
@@ -89,10 +90,11 @@ class ValidateResourceImplTest {
         var bagRules = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, dataverseService, daiDigestCalculator, polygonListValidator, licenseValidator);
         var filesXmlRules = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
         var xmlRules = new XmlRulesImpl(xmlReader, xmlSchemaValidator, fileService);
+        var datastationRules = new DatastationRulesImpl(bagItMetadataReader, dataverseService);
 
         // set up the engine and the service that has a default set of rules
         var ruleEngine = new RuleEngineImpl();
-        var ruleEngineService = new RuleEngineServiceImpl(ruleEngine, bagRules, xmlRules, filesXmlRules, fileService);
+        var ruleEngineService = new RuleEngineServiceImpl(ruleEngine, bagRules, xmlRules, filesXmlRules, fileService, datastationRules);
 
         return new ValidateResource(ruleEngineService, fileService);
     }
@@ -116,7 +118,6 @@ class ValidateResourceImplTest {
             .request()
             .post(Entity.entity(multipart, multipart.getMediaType()), ValidateOkDto.class);
 
-        System.out.println("RESPONSE: " + response);
         assertFalse(response.getIsCompliant());
         assertEquals("1.0.0", response.getProfileVersion());
         assertEquals(ValidateOkDto.InfoPackageTypeEnum.DEPOSIT, response.getInfoPackageType());

@@ -44,4 +44,5 @@ public interface BagItMetadataReader {
         MissingPayloadDirectoryException, FileNotInPayloadDirectoryException, InterruptedException, MissingBagitFileException, CorruptChecksumException, VerificationException;
 
     List<String> getField(Path bagDir, String field) throws MaliciousPathException, UnparsableVersionException, UnsupportedAlgorithmException, InvalidBagitFileFormatException, IOException;
+    String getSingleField(Path bagDir, String field) throws MaliciousPathException, UnparsableVersionException, UnsupportedAlgorithmException, InvalidBagitFileFormatException, IOException;
 }

@@ -21,6 +21,7 @@ import nl.knaw.dans.validatedansbag.core.engine.NumberedRule;
 import nl.knaw.dans.validatedansbag.core.engine.RuleEngine;
 import nl.knaw.dans.validatedansbag.core.engine.RuleValidationResult;
 import nl.knaw.dans.validatedansbag.core.rules.BagRules;
+import nl.knaw.dans.validatedansbag.core.rules.DatastationRules;
 import nl.knaw.dans.validatedansbag.core.rules.FilesXmlRules;
 import nl.knaw.dans.validatedansbag.core.rules.XmlRules;
 
@@ -30,12 +31,6 @@ import java.util.List;
 public class RuleEngineServiceImpl implements RuleEngineService {
     private final RuleEngine ruleEngine;
 
-    private final BagRules bagRules;
-
-    private final XmlRules xmlRules;
-
-    private final FilesXmlRules filesXmlRules;
-
     private final FileService fileService;
     private final NumberedRule[] defaultRules;
 
@@ -44,11 +39,8 @@ public class RuleEngineServiceImpl implements RuleEngineService {
     private final Path metadataPath = Path.of("metadata");
     private final Path metadataFilesPath = Path.of("metadata/files.xml");
 
-    public RuleEngineServiceImpl(RuleEngine ruleEngine, BagRules bagRules, XmlRules xmlRules, FilesXmlRules filesXmlRules, FileService fileService) {
+    public RuleEngineServiceImpl(RuleEngine ruleEngine, BagRules bagRules, XmlRules xmlRules, FilesXmlRules filesXmlRules, FileService fileService, DatastationRules datastationRules) {
         this.ruleEngine = ruleEngine;
-        this.bagRules = bagRules;
-        this.xmlRules = xmlRules;
-        this.filesXmlRules = filesXmlRules;
         this.fileService = fileService;
 
         // validity
@@ -63,9 +55,8 @@ public class RuleEngineServiceImpl implements RuleEngineService {
             new NumberedRule("1.2.3", bagRules.bagInfoContainsAtMostOneOf("Data-Station-User-Account"), List.of("1.2.1")),
             new NumberedRule("1.2.4(a)", bagRules.bagInfoContainsAtMostOneOf("Is-Version-Of"), List.of("1.2.1")),
             new NumberedRule("1.2.4(b)", bagRules.bagInfoIsVersionOfIsValidUrnUuid(), List.of("1.2.4(a)")),
-            new NumberedRule("1.2.5(a)", bagRules.bagInfoContainsAtMostOneOf("Has-Organizational-Identifier"), List.of("1.2.1")),
-            // TODO 1.2.5 it needs to verify other bags as well
-            new NumberedRule("1.2.5(b)", bagRules.bagInfoContainsAtMostOneOf("Has-Organizational-Identifier"), List.of("1.2.5(a)")),
+            new NumberedRule("1.2.5(a)", datastationRules.organizationalIdentifierIsValid(), List.of("1.2.1")),
+            new NumberedRule("1.2.5(b)", bagRules.organizationalIdentifierVersionIsValid(), List.of("1.2.1", "1.2.5(a)")),
 
             // manifests
             new NumberedRule("1.3.1(a)", bagRules.containsFile(Path.of("manifest-sha1.txt"))),
@@ -141,6 +132,9 @@ public class RuleEngineServiceImpl implements RuleEngineService {
 
             // provenance.xml
             new NumberedRule("3.8.1", xmlRules.xmlFileIfExistsConformsToSchema(Path.of("metadata/provenance.xml"), "provenance.xml"), DepositType.MIGRATION),
+
+            new NumberedRule("4.1", datastationRules.isVersionOfIsAValidSwordToken()),
+            new NumberedRule("4.2", datastationRules.dataStationUserAccountIsAuthorized())
         };
     }
 

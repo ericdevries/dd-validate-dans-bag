@@ -24,6 +24,7 @@ import gov.loc.repository.bagit.exceptions.MaliciousPathException;
 import gov.loc.repository.bagit.exceptions.MissingBagitFileException;
 import gov.loc.repository.bagit.exceptions.MissingPayloadDirectoryException;
 import gov.loc.repository.bagit.exceptions.MissingPayloadManifestException;
+import gov.loc.repository.bagit.exceptions.UnparsableVersionException;
 import gov.loc.repository.bagit.exceptions.UnsupportedAlgorithmException;
 import gov.loc.repository.bagit.exceptions.VerificationException;
 import gov.loc.repository.bagit.hash.SupportedAlgorithm;
@@ -78,6 +79,16 @@ public class BagItMetadataReaderImpl implements BagItMetadataReader {
     @Override
     public List<String> getField(Path bagDir, String field) {
         var bag = getBag(bagDir).orElseThrow();
-        return bag.getMetadata().get(field);
+
+        return Optional.ofNullable(bag.getMetadata().get(field))
+            .orElse(List.of());
+    }
+
+    @Override
+    public String getSingleField(Path bagDir, String field) throws MaliciousPathException, UnparsableVersionException, UnsupportedAlgorithmException, InvalidBagitFileFormatException, IOException {
+        return getField(bagDir, field)
+            .stream()
+            .findFirst()
+            .orElse(null);
     }
 }

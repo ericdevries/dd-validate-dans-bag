@@ -22,6 +22,7 @@ import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import nl.knaw.dans.validatedansbag.core.engine.RuleEngineImpl;
 import nl.knaw.dans.validatedansbag.core.rules.BagRulesImpl;
+import nl.knaw.dans.validatedansbag.core.rules.DatastationRulesImpl;
 import nl.knaw.dans.validatedansbag.core.rules.FilesXmlRulesImpl;
 import nl.knaw.dans.validatedansbag.core.rules.XmlRulesImpl;
 import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReaderImpl;
@@ -75,10 +76,11 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
         var bagRules = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, dataverseService, daiDigestCalculator, polygonListValidator, licenseValidator);
         var filesXmlRules = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
         var xmlRules = new XmlRulesImpl(xmlReader, xmlSchemaValidator, fileService);
+        var datastationRules = new DatastationRulesImpl(bagItMetadataReader, dataverseService);
 
         // set up the engine and the service that has a default set of rules
         var ruleEngine = new RuleEngineImpl();
-        var ruleEngineService = new RuleEngineServiceImpl(ruleEngine, bagRules, xmlRules, filesXmlRules, fileService);
+        var ruleEngineService = new RuleEngineServiceImpl(ruleEngine, bagRules, xmlRules, filesXmlRules, fileService, datastationRules);
 
         environment.jersey().register(new ValidateResource(ruleEngineService, fileService));
         environment.jersey().register(new ValidateOkDtoYamlMessageBodyWriter());

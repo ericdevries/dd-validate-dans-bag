@@ -145,12 +145,12 @@ public class BagRulesImpl implements BagRules {
     public BagValidatorRule bagInfoCreatedElementIsIso8601Date() {
         return path -> {
             try {
-                var created = bagItMetadataReader.getField(path, "Created").get(0);
+                var created = bagItMetadataReader.getSingleField(path, "Created");
 
                 try {
                     DateTime.parse(created, ISODateTimeFormat.dateTime());
                 }
-                catch (Exception e) {
+                catch (Throwable e) {
                     throw new RuleViolationDetailsException(String.format(
                         "Date '%s' is not valid", created
                     ), e);
@@ -167,11 +167,10 @@ public class BagRulesImpl implements BagRules {
         return path -> {
             try {
                 var items = bagItMetadataReader.getField(path, key);
-                var amount = items == null ? 0 : items.size();
 
-                if (amount != 1) {
+                if (items.size() != 1) {
                     throw new RuleViolationDetailsException(
-                        String.format("bag-info.txt must contain exactly one '%s' element; number found: %s", key, amount)
+                        String.format("bag-info.txt must contain exactly one '%s' element; number found: %s", key, items.size())
                     );
                 }
             }
@@ -186,9 +185,8 @@ public class BagRulesImpl implements BagRules {
         return path -> {
             try {
                 var items = bagItMetadataReader.getField(path, key);
-                var amount = items == null ? 0 : items.size();
 
-                if (amount > 1) {
+                if (items.size() > 1) {
                     throw new RuleViolationDetailsException(
                         String.format("bag-info.txt may contain at most one element: '%s'", key)
                     );
@@ -206,38 +204,35 @@ public class BagRulesImpl implements BagRules {
             try {
                 var items = bagItMetadataReader.getField(path, "Is-Version-Of");
 
-                if (items != null) {
-                    var invalidUrns = items.stream().filter(item -> {
-                            try {
-                                var uri = new URI(item);
+                var invalidUrns = items.stream().filter(item -> {
+                        try {
+                            var uri = new URI(item);
 
-                                if (!"urn".equalsIgnoreCase(uri.getScheme())) {
-                                    return true;
-                                }
-
-                                if (!uri.getSchemeSpecificPart().startsWith("uuid:")) {
-                                    return true;
-                                }
-
-                                UUID.fromString(uri.getSchemeSpecificPart().substring("uuid:".length()));
-                            }
-                            catch (URISyntaxException | IllegalArgumentException e) {
+                            if (!"urn".equalsIgnoreCase(uri.getScheme())) {
                                 return true;
                             }
 
-                            return false;
-                        })
-                        .collect(Collectors.toList());
+                            if (!uri.getSchemeSpecificPart().startsWith("uuid:")) {
+                                return true;
+                            }
 
-                    if (!invalidUrns.isEmpty()) {
-                        throw new RuleViolationDetailsException(
-                            String.format("bag-info.txt Is-Version-Of value must be a valid URN: Invalid items {%s}", String.join(", ", invalidUrns))
-                        );
-                    }
+                            UUID.fromString(uri.getSchemeSpecificPart().substring("uuid:".length()));
+                        }
+                        catch (URISyntaxException | IllegalArgumentException e) {
+                            return true;
+                        }
+
+                        return false;
+                    })
+                    .collect(Collectors.toList());
+
+                if (!invalidUrns.isEmpty()) {
+                    throw new RuleViolationDetailsException(
+                        String.format("bag-info.txt Is-Version-Of value must be a valid URN: Invalid items {%s}", String.join(", ", invalidUrns))
+                    );
                 }
             }
             catch (Exception e) {
-                e.printStackTrace();
                 throw new RuleViolationDetailsException("Error", e);
             }
         };
@@ -909,6 +904,24 @@ public class BagRulesImpl implements BagRules {
 
             catch (Exception e) {
                 throw new RuleViolationDetailsException("Unexpected exception occurred while processing", e);
+            }
+        };
+    }
+
+    @Override
+    public BagValidatorRule organizationalIdentifierVersionIsValid() {
+        return path -> {
+            try {
+                var hasOrganizationalIdentifier = bagItMetadataReader.getField(path, "Has-Organizational-Identifier");
+
+                if (hasOrganizationalIdentifier.isEmpty()) {
+                    throw new RuleSkippedException();
+                }
+
+                bagInfoContainsAtMostOneOf("Has-Organizational-Identifier-Version").validate(path);
+            }
+            catch (Exception e) {
+                throw new RuleViolationDetailsException("Unexpected error occurred", e);
             }
         };
     }

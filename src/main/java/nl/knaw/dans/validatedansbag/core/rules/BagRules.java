@@ -70,4 +70,6 @@ public interface BagRules {
     BagValidatorRule ddmIsnisAreValid();
 
     BagValidatorRule ddmOrcidsAreValid();
+
+    BagValidatorRule organizationalIdentifierVersionIsValid();
 }

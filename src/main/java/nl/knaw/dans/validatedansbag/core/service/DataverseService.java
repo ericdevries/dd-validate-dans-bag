@@ -16,12 +16,21 @@
 package nl.knaw.dans.validatedansbag.core.service;
 
 import nl.knaw.dans.lib.dataverse.DataverseException;
+import nl.knaw.dans.lib.dataverse.DataverseHttpResponse;
+import nl.knaw.dans.lib.dataverse.DataverseResponse;
+import nl.knaw.dans.lib.dataverse.model.RoleAssignmentReadOnly;
+import nl.knaw.dans.lib.dataverse.model.dataset.DatasetLatestVersion;
 import nl.knaw.dans.lib.dataverse.model.search.SearchResult;
 
 import java.io.IOException;
+import java.util.List;
 
 public interface DataverseService {
 
 
-    SearchResult searchBySwordToken(String token) throws IOException, DataverseException;
+    DataverseResponse<SearchResult> searchBySwordToken(String token) throws IOException, DataverseException;
+    DataverseResponse<SearchResult> searchDatasetsByOrganizationalIdentifier(String identifier) throws IOException, DataverseException;
+    DataverseHttpResponse<List<RoleAssignmentReadOnly>> getDatasetAssignments(String identifier) throws IOException, DataverseException;
+
+    DatasetLatestVersion getDataset(String globalId) throws IOException, DataverseException;
 }
