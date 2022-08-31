@@ -19,7 +19,10 @@ import nl.knaw.dans.validatedansbag.core.engine.RuleViolationDetailsException;
 import nl.knaw.dans.validatedansbag.core.service.FileService;
 import nl.knaw.dans.validatedansbag.core.service.XmlReader;
 import nl.knaw.dans.validatedansbag.core.service.XmlSchemaValidator;
+import org.xml.sax.SAXException;
 
+import javax.xml.parsers.ParserConfigurationException;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.stream.Collectors;
 
@@ -35,26 +38,19 @@ public class XmlRulesImpl implements XmlRules {
         this.fileService = fileService;
     }
 
-    private void validateXmlFile(Path file, String schema) throws RuleViolationDetailsException {
-        try {
-            var document = xmlReader.readXmlFile(file);
-            var results = xmlSchemaValidator.validateDocument(document, schema);
+    private void validateXmlFile(Path file, String schema) throws RuleViolationDetailsException, ParserConfigurationException, IOException, SAXException {
+        var document = xmlReader.readXmlFile(file);
+        var results = xmlSchemaValidator.validateDocument(document, schema);
 
-            if (results.size() > 0) {
-                var errorList = results.stream()
-                    .map(Throwable::getLocalizedMessage)
-                    .map(e -> String.format(" - %s", e))
-                    .collect(Collectors.joining("\n"));
+        if (results.size() > 0) {
+            var errorList = results.stream()
+                .map(Throwable::getLocalizedMessage)
+                .map(e -> String.format(" - %s", e))
+                .collect(Collectors.joining("\n"));
 
-                throw new RuleViolationDetailsException(String.format(
-                    "%s does not confirm to %s: \n%s", file, schema, errorList
-                ));
-            }
-        }
-        catch (Exception e) {
             throw new RuleViolationDetailsException(String.format(
-                "%s does not confirm to %s", file, schema
-            ), e);
+                "%s does not confirm to %s: \n%s", file, schema, errorList
+            ));
         }
     }
 

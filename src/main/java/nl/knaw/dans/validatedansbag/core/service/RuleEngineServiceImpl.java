@@ -139,7 +139,7 @@ public class RuleEngineServiceImpl implements RuleEngineService {
     }
 
     @Override
-    public List<RuleValidationResult> validateBag(Path path, DepositType depositType) throws BagNotFoundException {
+    public List<RuleValidationResult> validateBag(Path path, DepositType depositType) throws Exception {
         if (!fileService.isReadable(path)) {
             throw new BagNotFoundException(String.format("Bag on path '%s' could not be found or read", path));
         }

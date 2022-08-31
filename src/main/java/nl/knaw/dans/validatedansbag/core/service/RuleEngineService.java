@@ -24,5 +24,5 @@ import java.util.List;
 
 public interface RuleEngineService {
 
-    List<RuleValidationResult> validateBag(Path path, DepositType depositType) throws BagNotFoundException;
+    List<RuleValidationResult> validateBag(Path path, DepositType depositType) throws Exception;
 }

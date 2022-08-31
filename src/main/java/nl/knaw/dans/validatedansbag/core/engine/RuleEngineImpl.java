@@ -64,7 +64,7 @@ public class RuleEngineImpl implements RuleEngine {
     }
 
     @Override
-    public List<RuleValidationResult> validateRules(Path bag, NumberedRule[] rules, DepositType depositType) {
+    public List<RuleValidationResult> validateRules(Path bag, NumberedRule[] rules, DepositType depositType) throws Exception {
         var ruleResults = new HashMap<String, RuleValidationResult>();
         var remainingRules = new ArrayList<>(Arrays.asList(rules));
 
@@ -86,19 +86,18 @@ public class RuleEngineImpl implements RuleEngine {
                     toRemove.add(rule);
                 }
                 else if (canBeExecuted(rule, ruleResults)) {
+                    log.trace("Executing task {}", rule.getNumber());
                     try {
                         rule.getRule().validate(bag);
                         ruleResults.put(number, new RuleValidationResult(number, RuleValidationResult.RuleValidationResultStatus.SUCCESS));
                     }
                     catch (RuleSkippedException e) {
+                        log.trace("Task {} was skipped because it does not apply to this deposit", rule.getNumber());
                         ruleResults.put(number, new RuleValidationResult(number, RuleValidationResult.RuleValidationResultStatus.SKIPPED));
                     }
                     catch (RuleViolationDetailsException e) {
+                        log.trace("Task {} failed", rule.getNumber(), e);
                         ruleResults.put(number, new RuleValidationResult(number, RuleValidationResult.RuleValidationResultStatus.FAILURE, e));
-                    }
-                    catch (Throwable e) {
-                        ruleResults.put(number, new RuleValidationResult(number, RuleValidationResult.RuleValidationResultStatus.FAILURE, e));
-                        log.error("Error happened while executing rule", e);
                     }
 
                     toRemove.add(rule);

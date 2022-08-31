@@ -26,6 +26,7 @@ public class RuleValidationResult {
         this.status = status;
         this.exception = null;
     }
+
     public RuleValidationResult(String number, RuleValidationResultStatus status, Throwable exception) {
         this.number = number;
         this.status = status;

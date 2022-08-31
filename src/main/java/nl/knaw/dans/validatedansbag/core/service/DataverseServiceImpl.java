@@ -51,9 +51,8 @@ public class DataverseServiceImpl implements DataverseService {
     @Override
     public DataverseResponse<SearchResult> searchBySwordToken(String token) throws IOException, DataverseException {
         var client = this.getDataverseClient();
-        var response = client.search().find(String.format("dansDataVaultMetadata:%s", token));
 
-        return response;
+        return client.search().find(String.format("dansDataVaultMetadata:%s", token));
     }
 
     @Override
@@ -73,9 +72,9 @@ public class DataverseServiceImpl implements DataverseService {
     }
 
     @Override
-    public DatasetLatestVersion getDataset(String globalId) throws IOException, DataverseException {
+    public DataverseResponse<DatasetLatestVersion> getDataset(String globalId) throws IOException, DataverseException {
         var client = this.getDataverseClient();
 
-        return client.dataset(globalId).getLatestVersion().getData();
+        return client.dataset(globalId).getLatestVersion();
     }
 }

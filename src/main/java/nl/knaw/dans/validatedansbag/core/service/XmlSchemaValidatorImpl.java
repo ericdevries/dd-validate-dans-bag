@@ -53,6 +53,7 @@ public class XmlSchemaValidatorImpl implements XmlSchemaValidator {
         "amd.xml", "amd",
         "emd.xml", "emd"
     );
+
     protected final Map<String, Schema> validators = new HashMap<>();
     private final SchemaFactory schemaFactory;
 

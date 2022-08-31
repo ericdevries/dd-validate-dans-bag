@@ -22,5 +22,5 @@ import java.nio.file.Path;
 
 @FunctionalInterface
 public interface BagValidatorRule {
-    void validate(Path path) throws RuleViolationDetailsException, RuleSkippedException;
+    void validate(Path path) throws RuleViolationDetailsException, RuleSkippedException, Exception;
 }

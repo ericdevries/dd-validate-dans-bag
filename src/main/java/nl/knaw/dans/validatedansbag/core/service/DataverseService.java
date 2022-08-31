@@ -32,5 +32,5 @@ public interface DataverseService {
     DataverseResponse<SearchResult> searchDatasetsByOrganizationalIdentifier(String identifier) throws IOException, DataverseException;
     DataverseHttpResponse<List<RoleAssignmentReadOnly>> getDatasetAssignments(String identifier) throws IOException, DataverseException;
 
-    DatasetLatestVersion getDataset(String globalId) throws IOException, DataverseException;
+    DataverseResponse<DatasetLatestVersion> getDataset(String globalId) throws IOException, DataverseException;
 }

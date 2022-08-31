@@ -20,6 +20,6 @@ import java.util.List;
 
 public interface RuleEngine {
 
-    List<RuleValidationResult> validateRules(Path bag, NumberedRule[] rules, DepositType depositType);
+    List<RuleValidationResult> validateRules(Path bag, NumberedRule[] rules, DepositType depositType) throws Exception;
 
 }

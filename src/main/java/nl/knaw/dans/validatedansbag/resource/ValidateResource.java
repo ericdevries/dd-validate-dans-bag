@@ -107,7 +107,7 @@ public class ValidateResource {
         }
     }
 
-    ValidateOkDto validateInputStream(InputStream inputStream, DepositType depositType) throws IOException, BagNotFoundException {
+    ValidateOkDto validateInputStream(InputStream inputStream, DepositType depositType) throws Exception {
         var bagDir = fileService.extractZipFile(inputStream)
             .orElseThrow(() -> new IOException("Extracted zip does not contain a directory"));
 
@@ -124,7 +124,7 @@ public class ValidateResource {
         }
     }
 
-    ValidateOkDto validatePath(java.nio.file.Path bagDir, DepositType depositType) throws BagNotFoundException {
+    ValidateOkDto validatePath(java.nio.file.Path bagDir, DepositType depositType) throws Exception {
         var results = ruleEngineService.validateBag(bagDir, depositType);
 
         var isValid = results.stream().noneMatch(r -> r.getStatus().equals(RuleValidationResult.RuleValidationResultStatus.FAILURE));

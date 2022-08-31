@@ -34,7 +34,6 @@ import org.slf4j.LoggerFactory;
 import org.w3c.dom.Node;
 
 import javax.xml.xpath.XPathExpressionException;
-import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.CharacterCodingException;
@@ -348,33 +347,25 @@ public class BagRulesImpl implements BagRules {
             catch (CharacterCodingException e) {
                 throw new RuleViolationDetailsException("Input not valid UTF-8: " + e.getMessage());
             }
-            catch (IOException e) {
-                throw new RuleViolationDetailsException("Exception when reading file: " + e.getMessage());
-            }
         };
     }
 
     @Override
     public BagValidatorRule originalFilePathsDoNotContainSpaces() {
         return (path) -> {
-            try {
-                var mapping = originalFilepathsService.getMapping(path);
+            var mapping = originalFilepathsService.getMapping(path);
 
-                var invalidFilenames = mapping.stream()
-                    .map(p -> p.getRenamedFilename().toString())
-                    .filter(p -> p.matches(".*\\s+.*"))
-                    .collect(Collectors.toList());
+            var invalidFilenames = mapping.stream()
+                .map(p -> p.getRenamedFilename().toString())
+                .filter(p -> p.matches(".*\\s+.*"))
+                .collect(Collectors.toList());
 
-                if (!invalidFilenames.isEmpty()) {
-                    var errors = String.join(", ", invalidFilenames);
+            if (!invalidFilenames.isEmpty()) {
+                var errors = String.join(", ", invalidFilenames);
 
-                    throw new RuleViolationDetailsException(String.format(
-                        "original-filepaths physical relative path should not contain whitespace; culprits: %s", errors
-                    ));
-                }
-            }
-            catch (Exception e) {
-                throw new RuleViolationDetailsException("Unexpected exception", e);
+                throw new RuleViolationDetailsException(String.format(
+                    "original-filepaths physical relative path should not contain whitespace; culprits: %s", errors
+                ));
             }
         };
     }
@@ -382,87 +373,81 @@ public class BagRulesImpl implements BagRules {
     @Override
     public BagValidatorRule isOriginalFilepathsFileComplete() {
         return (path) -> {
-            try {
-                var mapping = originalFilepathsService.getMapping(path);
+            var mapping = originalFilepathsService.getMapping(path);
 
-                var document = xmlReader.readXmlFile(path.resolve("metadata/files.xml"));
-                var searchExpressions = List.of(
-                    "/files:files/files:file/@filepath",
-                    "/files/file/@filepath");
+            var document = xmlReader.readXmlFile(path.resolve("metadata/files.xml"));
+            var searchExpressions = List.of(
+                "/files:files/files:file/@filepath",
+                "/files/file/@filepath");
 
-                // the files defined in metadata/files.xml
-                var fileXmlPaths = searchExpressions.stream().map(e -> {
-                        try {
-                            return xmlReader.xpathToStream(document, e);
-                        }
-                        catch (XPathExpressionException ex) {
-                            return null;
-                        }
-                    })
-                    .filter(Objects::nonNull)
-                    .flatMap(i -> i)
-                    .map(Node::getTextContent)
-                    .map(Path::of)
-                    .collect(Collectors.toSet());
-
-                // the files on disk
-                var actualFiles = fileService.getAllFiles(path.resolve("data"))
-                    .stream()
-                    .filter(i -> !path.resolve("data").equals(i))
-                    .map(path::relativize)
-                    .collect(Collectors.toSet());
-
-                var renamedFiles = mapping.stream().map(OriginalFilepathsService.OriginalFilePathItem::getRenamedFilename).collect(Collectors.toSet());
-                var originalFiles = mapping.stream().map(OriginalFilepathsService.OriginalFilePathItem::getOriginalFilename).collect(Collectors.toSet());
-
-                var physicalFileSetsDiffer = CollectionUtils.disjunction(actualFiles, renamedFiles).size() > 0;
-                var originalFileSetsDiffer = CollectionUtils.disjunction(fileXmlPaths, originalFiles).size() > 0;
-
-                if (physicalFileSetsDiffer || originalFileSetsDiffer) {
-                    //  items that exist only in actual files, but not in the keyset of mapping and not in the files.xml
-                    var onlyInBag = CollectionUtils.subtract(actualFiles, renamedFiles);
-
-                    // files that only exist in files.xml, but not in the original-filepaths.txt
-                    var onlyInFilesXml = CollectionUtils.subtract(fileXmlPaths, originalFiles);
-
-                    // files that only exist in original-filepaths.txt, but not on the disk
-                    var onlyInFilepathsPhysical = CollectionUtils.subtract(renamedFiles, actualFiles);
-
-                    // files that only exist in original-filepaths.txt, but not in files.xml
-                    var onlyInFilepathsOriginal = CollectionUtils.subtract(originalFiles, fileXmlPaths);
-
-                    var message = new StringBuilder();
-
-                    if (physicalFileSetsDiffer) {
-                        message.append("  - Physical file paths in original-filepaths.txt not equal to payload in data dir. Difference - ");
-                        message.append("only in payload: {")
-                            .append(onlyInBag.stream().map(Path::toString).collect(Collectors.joining(", ")))
-                            .append("}");
-                        message.append(", only in physical-bag-relative-path: {")
-                            .append(onlyInFilepathsPhysical.stream().map(Path::toString).collect(Collectors.joining(", ")))
-                            .append("}");
-                        message.append("\n");
+            // the files defined in metadata/files.xml
+            var fileXmlPaths = searchExpressions.stream().map(e -> {
+                    try {
+                        return xmlReader.xpathToStream(document, e);
                     }
-
-                    if (originalFileSetsDiffer) {
-                        message.append("  - Original file paths in original-filepaths.txt not equal to filepaths in files.xml. Difference - ");
-                        message.append("only in files.xml: {")
-                            .append(onlyInFilesXml.stream().map(Path::toString).collect(Collectors.joining(", ")))
-                            .append("}");
-                        message.append(", only in original-bag-relative-path: {")
-                            .append(onlyInFilepathsOriginal.stream().map(Path::toString).collect(Collectors.joining(", ")))
-                            .append("}");
-                        message.append("\n");
+                    catch (XPathExpressionException ex) {
+                        return null;
                     }
+                })
+                .filter(Objects::nonNull)
+                .flatMap(i -> i)
+                .map(Node::getTextContent)
+                .map(Path::of)
+                .collect(Collectors.toSet());
 
-                    throw new RuleViolationDetailsException(String.format(
-                        "original-filepaths.txt errors: \n%s", message
-                    ));
+            // the files on disk
+            var actualFiles = fileService.getAllFiles(path.resolve("data"))
+                .stream()
+                .filter(i -> !path.resolve("data").equals(i))
+                .map(path::relativize)
+                .collect(Collectors.toSet());
+
+            var renamedFiles = mapping.stream().map(OriginalFilepathsService.OriginalFilePathItem::getRenamedFilename).collect(Collectors.toSet());
+            var originalFiles = mapping.stream().map(OriginalFilepathsService.OriginalFilePathItem::getOriginalFilename).collect(Collectors.toSet());
+
+            var physicalFileSetsDiffer = CollectionUtils.disjunction(actualFiles, renamedFiles).size() > 0;
+            var originalFileSetsDiffer = CollectionUtils.disjunction(fileXmlPaths, originalFiles).size() > 0;
+
+            if (physicalFileSetsDiffer || originalFileSetsDiffer) {
+                //  items that exist only in actual files, but not in the keyset of mapping and not in the files.xml
+                var onlyInBag = CollectionUtils.subtract(actualFiles, renamedFiles);
+
+                // files that only exist in files.xml, but not in the original-filepaths.txt
+                var onlyInFilesXml = CollectionUtils.subtract(fileXmlPaths, originalFiles);
+
+                // files that only exist in original-filepaths.txt, but not on the disk
+                var onlyInFilepathsPhysical = CollectionUtils.subtract(renamedFiles, actualFiles);
+
+                // files that only exist in original-filepaths.txt, but not in files.xml
+                var onlyInFilepathsOriginal = CollectionUtils.subtract(originalFiles, fileXmlPaths);
+
+                var message = new StringBuilder();
+
+                if (physicalFileSetsDiffer) {
+                    message.append("  - Physical file paths in original-filepaths.txt not equal to payload in data dir. Difference - ");
+                    message.append("only in payload: {")
+                        .append(onlyInBag.stream().map(Path::toString).collect(Collectors.joining(", ")))
+                        .append("}");
+                    message.append(", only in physical-bag-relative-path: {")
+                        .append(onlyInFilepathsPhysical.stream().map(Path::toString).collect(Collectors.joining(", ")))
+                        .append("}");
+                    message.append("\n");
                 }
-            }
-            catch (Exception e) {
-                log.error("Unexpected error occurred", e);
-                throw new RuleViolationDetailsException("Unexpected error occurred", e);
+
+                if (originalFileSetsDiffer) {
+                    message.append("  - Original file paths in original-filepaths.txt not equal to filepaths in files.xml. Difference - ");
+                    message.append("only in files.xml: {")
+                        .append(onlyInFilesXml.stream().map(Path::toString).collect(Collectors.joining(", ")))
+                        .append("}");
+                    message.append(", only in original-bag-relative-path: {")
+                        .append(onlyInFilepathsOriginal.stream().map(Path::toString).collect(Collectors.joining(", ")))
+                        .append("}");
+                    message.append("\n");
+                }
+
+                throw new RuleViolationDetailsException(String.format(
+                    "original-filepaths.txt errors: \n%s", message
+                ));
             }
         };
     }
@@ -470,36 +455,30 @@ public class BagRulesImpl implements BagRules {
     @Override
     public BagValidatorRule ddmMayContainDctermsLicenseFromList() {
         return (path) -> {
-            try {
-                var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
-                var expr = "//ddm:dcmiMetadata/dcterms:license[@xsi:type]";
+            var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
+            var expr = "//ddm:dcmiMetadata/dcterms:license[@xsi:type]";
 
-                var nodes = xmlReader.xpathToStream(document, expr).collect(Collectors.toList());
+            var nodes = xmlReader.xpathToStream(document, expr).collect(Collectors.toList());
 
-                if (nodes.size() == 0) {
-                    throw new RuleViolationDetailsException("No licenses found");
-                }
-
-                var node = nodes.get(0);
-                var license = nodes.get(0).getTextContent();
-                var attr = node.getAttributes().getNamedItem("xsi:type").getTextContent();
-
-                // converts a namespace uri into a prefix that is used in the document
-                var prefix = document.lookupPrefix(namespaceDcterms);
-
-                if (!attr.equals(String.format("%s:URI", prefix))) {
-                    throw new RuleViolationDetailsException("No license with xsi:type=\"dcterms:URI\"");
-                }
-
-                if (!licenseValidator.isValidLicense(license)) {
-                    throw new RuleViolationDetailsException(String.format(
-                        "Found unknown or unsupported license: %s", license
-                    ));
-                }
+            if (nodes.size() == 0) {
+                throw new RuleViolationDetailsException("No licenses found");
             }
-            catch (Exception e) {
-                log.error("Error reading dataset.xml file", e);
-                throw new RuleViolationDetailsException("Unexpected exception occurred while processing", e);
+
+            var node = nodes.get(0);
+            var license = nodes.get(0).getTextContent();
+            var attr = node.getAttributes().getNamedItem("xsi:type").getTextContent();
+
+            // converts a namespace uri into a prefix that is used in the document
+            var prefix = document.lookupPrefix(namespaceDcterms);
+
+            if (!attr.equals(String.format("%s:URI", prefix))) {
+                throw new RuleViolationDetailsException("No license with xsi:type=\"dcterms:URI\"");
+            }
+
+            if (!licenseValidator.isValidLicense(license)) {
+                throw new RuleViolationDetailsException(String.format(
+                    "Found unknown or unsupported license: %s", license
+                ));
             }
         };
     }
@@ -507,68 +486,52 @@ public class BagRulesImpl implements BagRules {
     @Override
     public BagValidatorRule ddmContainsUrnNbnIdentifier() {
         return (path) -> {
-            try {
-                var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
-                var expr = "//dcterms:identifier[@xsi:type=\"id-type:URN\"]";
+            var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
+            var expr = "//dcterms:identifier[@xsi:type=\"id-type:URN\"]";
 
-                var nodes = xmlReader.xpathToStream(document, expr);
+            var nodes = xmlReader.xpathToStream(document, expr);
 
-                nodes.filter((node) -> node.getTextContent().contains("urn:nbn"))
-                    .findFirst()
-                    .orElseThrow(() -> new RuleViolationDetailsException("URN:NBN identifier is missing"));
-            }
-            catch (Exception e) {
-                log.error("Error reading dataset.xml file", e);
-                throw new RuleViolationDetailsException("Unexpected exception occurred while processing", e);
-            }
+            nodes.filter((node) -> node.getTextContent().contains("urn:nbn"))
+                .findFirst()
+                .orElseThrow(() -> new RuleViolationDetailsException("URN:NBN identifier is missing"));
         };
     }
 
     @Override
     public BagValidatorRule ddmDoiIdentifiersAreValid() {
         return (path) -> {
-            try {
-                var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
-                var expr = "//dcterms:identifier[@xsi:type=\"id-type:DOI\"]";
+            var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
+            var expr = "//dcterms:identifier[@xsi:type=\"id-type:DOI\"]";
 
-                var nodes = xmlReader.xpathToStream(document, expr);
-                var match = nodes.filter((node) -> {
-                        var text = node.getTextContent();
-                        return !doiPattern.matcher(text).matches();
-                    })
-                    .map(Node::getTextContent)
-                    .collect(Collectors.joining(", "));
+            var nodes = xmlReader.xpathToStream(document, expr);
+            var match = nodes.filter((node) -> {
+                    var text = node.getTextContent();
+                    return !doiPattern.matcher(text).matches();
+                })
+                .map(Node::getTextContent)
+                .collect(Collectors.joining(", "));
 
-                if (match.length() > 0) {
-                    throw new RuleViolationDetailsException("Invalid DOIs: " + match);
-                }
-
-                // TODO should it be resolvable, and how?
+            if (match.length() > 0) {
+                throw new RuleViolationDetailsException("Invalid DOIs: " + match);
             }
-            catch (Exception e) {
-                throw new RuleViolationDetailsException("Unexpected exception occurred while processing", e);
-            }
+
+            // TODO should it be resolvable, and how?
         };
     }
 
     @Override
     public BagValidatorRule ddmDaisAreValid() {
         return (path) -> {
-            try {
-                var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
-                var expr = "//dcx-dai:DAI";
-                var match = xmlReader.xpathToStream(document, expr)
-                    .map(Node::getTextContent)
-                    .filter((id) -> !identifierValidator.validateDai(id))
-                    .collect(Collectors.toList());
+            var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
+            var expr = "//dcx-dai:DAI";
+            var match = xmlReader.xpathToStream(document, expr)
+                .map(Node::getTextContent)
+                .filter((id) -> !identifierValidator.validateDai(id))
+                .collect(Collectors.toList());
 
-                if (!match.isEmpty()) {
-                    var message = String.join(", ", match);
-                    throw new RuleViolationDetailsException("Invalid DAIs: " + message);
-                }
-            }
-            catch (Exception e) {
-                throw new RuleViolationDetailsException("Unexpected exception occurred while processing", e);
+            if (!match.isEmpty()) {
+                var message = String.join(", ", match);
+                throw new RuleViolationDetailsException("Invalid DAIs: " + message);
             }
         };
     }
@@ -576,21 +539,16 @@ public class BagRulesImpl implements BagRules {
     @Override
     public BagValidatorRule ddmIsnisAreValid() {
         return (path) -> {
-            try {
-                var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
-                var expr = "//dcx-dai:ISNI";
-                var match = xmlReader.xpathToStream(document, expr)
-                    .map(Node::getTextContent)
-                    .filter((id) -> !identifierValidator.validateIsni(id))
-                    .collect(Collectors.toList());
+            var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
+            var expr = "//dcx-dai:ISNI";
+            var match = xmlReader.xpathToStream(document, expr)
+                .map(Node::getTextContent)
+                .filter((id) -> !identifierValidator.validateIsni(id))
+                .collect(Collectors.toList());
 
-                if (!match.isEmpty()) {
-                    var message = String.join(", ", match);
-                    throw new RuleViolationDetailsException("Invalid ISNI(s): " + message);
-                }
-            }
-            catch (Exception e) {
-                throw new RuleViolationDetailsException("Unexpected exception occurred while processing", e);
+            if (!match.isEmpty()) {
+                var message = String.join(", ", match);
+                throw new RuleViolationDetailsException("Invalid ISNI(s): " + message);
             }
         };
     }
@@ -598,21 +556,16 @@ public class BagRulesImpl implements BagRules {
     @Override
     public BagValidatorRule ddmOrcidsAreValid() {
         return (path) -> {
-            try {
-                var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
-                var expr = "//dcx-dai:ORCID";
-                var match = xmlReader.xpathToStream(document, expr)
-                    .map(Node::getTextContent)
-                    .filter((id) -> !identifierValidator.validateOrcid(id))
-                    .collect(Collectors.toList());
+            var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
+            var expr = "//dcx-dai:ORCID";
+            var match = xmlReader.xpathToStream(document, expr)
+                .map(Node::getTextContent)
+                .filter((id) -> !identifierValidator.validateOrcid(id))
+                .collect(Collectors.toList());
 
-                if (!match.isEmpty()) {
-                    var message = String.join(", ", match);
-                    throw new RuleViolationDetailsException("Invalid ORCID(s): " + message);
-                }
-            }
-            catch (Exception e) {
-                throw new RuleViolationDetailsException("Unexpected exception occurred while processing", e);
+            if (!match.isEmpty()) {
+                var message = String.join(", ", match);
+                throw new RuleViolationDetailsException("Invalid ORCID(s): " + message);
             }
         };
     }
@@ -620,35 +573,29 @@ public class BagRulesImpl implements BagRules {
     @Override
     public BagValidatorRule ddmGmlPolygonPosListIsWellFormed() {
         return (path) -> {
+            var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
+            var expr = "//dcx-gml:spatial//*[local-name() = 'posList']";
+            var nodes = xmlReader.xpathToStream(document, expr);
 
-            try {
-                var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
-                var expr = "//dcx-gml:spatial//*[local-name() = 'posList']";
-                var nodes = xmlReader.xpathToStream(document, expr);
+            var match = nodes.map(Node::getTextContent)
+                .map((posList) -> {
 
-                var match = nodes.map(Node::getTextContent)
-                    .map((posList) -> {
+                    try {
+                        polygonListValidator.validatePolygonList(posList);
+                    }
+                    catch (PolygonListValidator.PolygonValidationException e) {
+                        return new RuleViolationDetailsException(e.getLocalizedMessage(), e);
+                    }
 
-                        try {
-                            polygonListValidator.validatePolygonList(posList);
-                        }
-                        catch (PolygonListValidator.PolygonValidationException e) {
-                            return new RuleViolationDetailsException(e.getLocalizedMessage(), e);
-                        }
+                    return null;
+                })
+                .filter(Objects::nonNull)
+                .map(Throwable::getLocalizedMessage)
+                .collect(Collectors.toList());
 
-                        return null;
-                    })
-                    .filter(Objects::nonNull)
-                    .map(Throwable::getLocalizedMessage)
-                    .collect(Collectors.toList());
-
-                if (!match.isEmpty()) {
-                    var message = String.join("\n", match);
-                    throw new RuleViolationDetailsException("Invalid posList: " + message);
-                }
-            }
-            catch (Exception e) {
-                throw new RuleViolationDetailsException("Unexpected exception occurred while processing", e);
+            if (!match.isEmpty()) {
+                var message = String.join("\n", match);
+                throw new RuleViolationDetailsException("Invalid posList: " + message);
             }
         };
     }
@@ -656,37 +603,32 @@ public class BagRulesImpl implements BagRules {
     @Override
     public BagValidatorRule polygonsInSameMultiSurfaceHaveSameSrsName() {
         return (path) -> {
-            try {
-                var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
-                var expr = "//*[local-name() = 'MultiSurface']";
-                var nodes = xmlReader.xpathToStream(document, expr);
-                var match = nodes.filter(node -> {
-                        try {
-                            var srsNames = xmlReader.xpathToStream(node, ".//*[local-name() = 'Polygon']")
-                                .map(p -> p.getAttributes().getNamedItem("srsName"))
-                                .filter(Objects::nonNull)
-                                .map(Node::getTextContent)
-                                .collect(Collectors.toSet());
+            var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
+            var expr = "//*[local-name() = 'MultiSurface']";
+            var nodes = xmlReader.xpathToStream(document, expr);
+            var match = nodes.filter(node -> {
+                    try {
+                        var srsNames = xmlReader.xpathToStream(node, ".//*[local-name() = 'Polygon']")
+                            .map(p -> p.getAttributes().getNamedItem("srsName"))
+                            .filter(Objects::nonNull)
+                            .map(Node::getTextContent)
+                            .collect(Collectors.toSet());
 
-                            if (srsNames.size() > 1) {
-                                return true;
-                            }
-                        }
-                        catch (Throwable e) {
-                            log.error("Error checking srsNames attribute", e);
+                        if (srsNames.size() > 1) {
                             return true;
                         }
+                    }
+                    catch (Throwable e) {
+                        log.error("Error checking srsNames attribute", e);
+                        return true;
+                    }
 
-                        return false;
-                    })
-                    .collect(Collectors.toList());
+                    return false;
+                })
+                .collect(Collectors.toList());
 
-                if (!match.isEmpty()) {
-                    throw new RuleViolationDetailsException("Found MultiSurface element containing polygons with different srsNames");
-                }
-            }
-            catch (Exception e) {
-                throw new RuleViolationDetailsException("Unexpected exception occurred while processing", e);
+            if (!match.isEmpty()) {
+                throw new RuleViolationDetailsException("Found MultiSurface element containing polygons with different srsNames");
             }
         };
     }
@@ -694,57 +636,52 @@ public class BagRulesImpl implements BagRules {
     @Override
     public BagValidatorRule pointsHaveAtLeastTwoValues() {
         return (path) -> {
-            try {
-                var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
+            var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
 
-                // points
-                var expr = "//gml:Point | //gml:lowerCorner | //gml:upperCorner";
-                var match = xmlReader.xpathToStream(document, expr).collect(Collectors.toList());
+            // points
+            var expr = "//gml:Point | //gml:lowerCorner | //gml:upperCorner";
+            var match = xmlReader.xpathToStream(document, expr).collect(Collectors.toList());
 
-                var errors = new ArrayList<RuleViolationDetailsException>();
+            var errors = new ArrayList<RuleViolationDetailsException>();
 
-                for (var value : match) {
-                    var attr = value.getParentNode().getAttributes().getNamedItem("srsName");
-                    var text = value.getTextContent();
-                    var isRD = attr != null && "urn:ogc:def:crs:EPSG::28992".equals(attr.getTextContent());
+            for (var value : match) {
+                var attr = value.getParentNode().getAttributes().getNamedItem("srsName");
+                var text = value.getTextContent();
+                var isRD = attr != null && "urn:ogc:def:crs:EPSG::28992".equals(attr.getTextContent());
 
-                    try {
-                        var parts = Arrays.stream(text.split("\\s+"))
-                            .map(Float::parseFloat)
-                            .collect(Collectors.toList());
+                try {
+                    var parts = Arrays.stream(text.split("\\s+"))
+                        .map(Float::parseFloat)
+                        .collect(Collectors.toList());
 
-                        if (parts.size() < 2) {
-                            errors.add(new RuleViolationDetailsException(String.format(
-                                "Point has less than two coordinates: %s", text
-                            )));
-                        }
-
-                        else if (isRD) {
-                            var x = parts.get(0);
-                            var y = parts.get(1);
-
-                            var valid = x >= -7000 && x <= 300000 && y >= 289000 && y <= 629000;
-
-                            if (!valid) {
-                                errors.add(new RuleViolationDetailsException(String.format(
-                                    "Point is outside RD bounds: %s", text
-                                )));
-                            }
-                        }
-                    }
-                    catch (NumberFormatException e) {
+                    if (parts.size() < 2) {
                         errors.add(new RuleViolationDetailsException(String.format(
-                            "Point has non numeric coordinates: %s", text
+                            "Point has less than two coordinates: %s", text
                         )));
                     }
-                }
 
-                if (errors.size() > 0) {
-                    throw new RuleViolationDetailsException(errors);
+                    else if (isRD) {
+                        var x = parts.get(0);
+                        var y = parts.get(1);
+
+                        var valid = x >= -7000 && x <= 300000 && y >= 289000 && y <= 629000;
+
+                        if (!valid) {
+                            errors.add(new RuleViolationDetailsException(String.format(
+                                "Point is outside RD bounds: %s", text
+                            )));
+                        }
+                    }
+                }
+                catch (NumberFormatException e) {
+                    errors.add(new RuleViolationDetailsException(String.format(
+                        "Point has non numeric coordinates: %s", text
+                    )));
                 }
             }
-            catch (Exception e) {
-                throw new RuleViolationDetailsException("Error reading XML file", e);
+
+            if (errors.size() > 0) {
+                throw new RuleViolationDetailsException(errors);
             }
         };
     }
@@ -752,27 +689,22 @@ public class BagRulesImpl implements BagRules {
     @Override
     public BagValidatorRule archisIdentifiersHaveAtMost10Characters() {
         return (path) -> {
-            try {
-                var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
+            var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
 
-                // points
-                var expr = "//dcterms:identifier[@xsi:type = 'id-type:ARCHIS-ZAAK-IDENTIFICATIE']";
-                var match = xmlReader.xpathToStream(document, expr)
-                    .map(Node::getTextContent)
-                    .filter(Objects::nonNull)
-                    .filter(text -> text.length() > 10)
-                    .collect(Collectors.toList());
+            // points
+            var expr = "//dcterms:identifier[@xsi:type = 'id-type:ARCHIS-ZAAK-IDENTIFICATIE']";
+            var match = xmlReader.xpathToStream(document, expr)
+                .map(Node::getTextContent)
+                .filter(Objects::nonNull)
+                .filter(text -> text.length() > 10)
+                .collect(Collectors.toList());
 
-                if (match.size() > 0) {
-                    var exceptions = match.stream().map(e -> new RuleViolationDetailsException(String.format(
-                        "Archis identifier must be 10 or fewer characters long: %s", e
-                    ))).collect(Collectors.toList());
+            if (match.size() > 0) {
+                var exceptions = match.stream().map(e -> new RuleViolationDetailsException(String.format(
+                    "Archis identifier must be 10 or fewer characters long: %s", e
+                ))).collect(Collectors.toList());
 
-                    throw new RuleViolationDetailsException(exceptions);
-                }
-            }
-            catch (Exception e) {
-                throw new RuleViolationDetailsException("Unexpected exception occurred while processing", e);
+                throw new RuleViolationDetailsException(exceptions);
             }
         };
     }
@@ -780,83 +712,78 @@ public class BagRulesImpl implements BagRules {
     @Override
     public BagValidatorRule allUrlsAreValid() {
         return (path) -> {
-            try {
-                var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
+            var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
 
-                var hrefNodes = xmlReader.xpathToStream(document, "*/@href");
-                var schemeURINodes = xmlReader.xpathToStream(document, "//ddm:subject/@schemeURI");
-                var valueURINodes = xmlReader.xpathToStream(document, "//ddm:subject/@valueURI");
+            var hrefNodes = xmlReader.xpathToStream(document, "*/@href");
+            var schemeURINodes = xmlReader.xpathToStream(document, "//ddm:subject/@schemeURI");
+            var valueURINodes = xmlReader.xpathToStream(document, "//ddm:subject/@valueURI");
 
-                var expr = List.of(
-                    "//*[@xsi:type='dcterms:URI']",
-                    "//*[@xsi:type='dcterms:URL']",
-                    "//*[@xsi:type='URI']",
-                    "//*[@xsi:type='URL']",
-                    "//*[@scheme='dcterms:URI']",
-                    "//*[@scheme='dcterms:URL']",
-                    "//*[@scheme='URI']",
-                    "//*[@scheme='URL']"
-                );
+            var expr = List.of(
+                "//*[@xsi:type='dcterms:URI']",
+                "//*[@xsi:type='dcterms:URL']",
+                "//*[@xsi:type='URI']",
+                "//*[@xsi:type='URL']",
+                "//*[@scheme='dcterms:URI']",
+                "//*[@scheme='dcterms:URL']",
+                "//*[@scheme='URI']",
+                "//*[@scheme='URL']"
+            );
 
-                var elementSelectors = xmlReader.xpathsToStream(document, expr);
+            var elementSelectors = xmlReader.xpathsToStream(document, expr);
 
-                var doiValues = xmlReader.xpathsToStream(document, List.of("//*[@scheme = 'id-type:DOI']", "//*[@scheme = 'DOI']"))
-                    .filter(node -> node.getAttributes().getNamedItem("href") == null);
+            var doiValues = xmlReader.xpathsToStream(document, List.of("//*[@scheme = 'id-type:DOI']", "//*[@scheme = 'DOI']"))
+                .filter(node -> node.getAttributes().getNamedItem("href") == null);
 
-                var urnValues = xmlReader.xpathsToStream(document, List.of("//*[@scheme = 'id-type:URN']", "//*[@scheme = 'URN']"))
-                    .filter(node -> node.getAttributes().getNamedItem("href") == null);
+            var urnValues = xmlReader.xpathsToStream(document, List.of("//*[@scheme = 'id-type:URN']", "//*[@scheme = 'URN']"))
+                .filter(node -> node.getAttributes().getNamedItem("href") == null);
 
-                var nodes = Stream.of(hrefNodes, schemeURINodes, valueURINodes, elementSelectors)
-                    .flatMap(i -> i)
-                    .map(node -> {
-                        var value = node.getTextContent();
+            var nodes = Stream.of(hrefNodes, schemeURINodes, valueURINodes, elementSelectors)
+                .flatMap(i -> i)
+                .map(node -> {
+                    var value = node.getTextContent();
 
-                        try {
-                            var uri = new URI(value);
+                    try {
+                        var uri = new URI(value);
 
-                            if (!List.of("http", "https").contains(uri.getScheme())) {
-                                return new RuleViolationDetailsException(String.format(
-                                    "protocol '%s' in uri '%s' is not one of the accepted protocols [http, https]", uri.getScheme(), uri
-                                ));
-                            }
-                        }
-                        catch (URISyntaxException e) {
+                        if (!List.of("http", "https").contains(uri.getScheme())) {
                             return new RuleViolationDetailsException(String.format(
-                                "'%s' is not a valid uri", value
+                                "protocol '%s' in uri '%s' is not one of the accepted protocols [http, https]", uri.getScheme(), uri
                             ));
                         }
+                    }
+                    catch (URISyntaxException e) {
+                        return new RuleViolationDetailsException(String.format(
+                            "'%s' is not a valid uri", value
+                        ));
+                    }
 
-                        return null;
-                    })
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toList());
+                    return null;
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
 
-                var dois = doiValues
-                    .map(Node::getTextContent)
-                    .filter(textContent -> !doiUrlPattern.matcher(textContent).matches())
-                    .collect(Collectors.joining(", "));
+            var dois = doiValues
+                .map(Node::getTextContent)
+                .filter(textContent -> !doiUrlPattern.matcher(textContent).matches())
+                .collect(Collectors.joining(", "));
 
-                var urns = urnValues
-                    .map(Node::getTextContent)
-                    .filter(textContent -> !urnPattern.matcher(textContent).matches())
-                    .collect(Collectors.joining(", "));
+            var urns = urnValues
+                .map(Node::getTextContent)
+                .filter(textContent -> !urnPattern.matcher(textContent).matches())
+                .collect(Collectors.joining(", "));
 
-                var errors = new ArrayList<>(nodes);
+            var errors = new ArrayList<>(nodes);
 
-                if (dois.length() > 0) {
-                    errors.add(new RuleViolationDetailsException(String.format("Invalid DOIs: %s", dois)));
-                }
-
-                if (urns.length() > 0) {
-                    errors.add(new RuleViolationDetailsException(String.format("Invalid URNs: %s", urns)));
-                }
-
-                if (errors.size() > 0) {
-                    throw new RuleViolationDetailsException(errors);
-                }
+            if (dois.length() > 0) {
+                errors.add(new RuleViolationDetailsException(String.format("Invalid DOIs: %s", dois)));
             }
-            catch (Exception e) {
-                throw new RuleViolationDetailsException("Unexpected exception occurred while processing", e);
+
+            if (urns.length() > 0) {
+                errors.add(new RuleViolationDetailsException(String.format("Invalid URNs: %s", urns)));
+            }
+
+            if (errors.size() > 0) {
+                throw new RuleViolationDetailsException(errors);
             }
         };
     }
@@ -864,24 +791,17 @@ public class BagRulesImpl implements BagRules {
     @Override
     public BagValidatorRule ddmMustHaveRightsHolderDeposit() {
         return (path) -> {
+            var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
 
-            try {
-                var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
+            var rightsHolder = xmlReader.xpathToStream(document, "//ddm:dcmiMetadata//dcterms:rightsHolder")
+                .map(Node::getTextContent)
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .findFirst();
 
-                var rightsHolder = xmlReader.xpathToStream(document, "//ddm:dcmiMetadata//dcterms:rightsHolder")
-                    .map(Node::getTextContent)
-                    .filter(Objects::nonNull)
-                    .map(String::trim)
-                    .filter(s -> !s.isEmpty())
-                    .findFirst();
-
-                if (rightsHolder.isEmpty()) {
-                    throw new RuleViolationDetailsException("No rightsholder found in <dcterms:rightsHolder> element");
-                }
-            }
-
-            catch (Exception e) {
-                throw new RuleViolationDetailsException("Unexpected exception occurred while processing", e);
+            if (rightsHolder.isEmpty()) {
+                throw new RuleViolationDetailsException("No rightsholder found in <dcterms:rightsHolder> element");
             }
         };
     }
@@ -889,21 +809,14 @@ public class BagRulesImpl implements BagRules {
     @Override
     public BagValidatorRule ddmMustHaveRightsHolderMigration() {
         return (path) -> {
+            var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
 
-            try {
-                var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
+            var inRole = xmlReader.xpathToStream(document, "//dcx-dai:author/dcx-dai:role")
+                .filter(node -> node.getTextContent().contains("RightsHolder"))
+                .findFirst();
 
-                var inRole = xmlReader.xpathToStream(document, "//dcx-dai:author/dcx-dai:role")
-                    .filter(node -> node.getTextContent().contains("RightsHolder"))
-                    .findFirst();
-
-                if (inRole.isEmpty()) {
-                    throw new RuleViolationDetailsException("No rightsholder found in <dcx-dai:role> element");
-                }
-            }
-
-            catch (Exception e) {
-                throw new RuleViolationDetailsException("Unexpected exception occurred while processing", e);
+            if (inRole.isEmpty()) {
+                throw new RuleViolationDetailsException("No rightsholder found in <dcx-dai:role> element");
             }
         };
     }
@@ -911,18 +824,13 @@ public class BagRulesImpl implements BagRules {
     @Override
     public BagValidatorRule organizationalIdentifierVersionIsValid() {
         return path -> {
-            try {
-                var hasOrganizationalIdentifier = bagItMetadataReader.getField(path, "Has-Organizational-Identifier");
+            var hasOrganizationalIdentifier = bagItMetadataReader.getField(path, "Has-Organizational-Identifier");
 
-                if (hasOrganizationalIdentifier.isEmpty()) {
-                    throw new RuleSkippedException();
-                }
+            if (hasOrganizationalIdentifier.isEmpty()) {
+                throw new RuleSkippedException();
+            }
 
-                bagInfoContainsAtMostOneOf("Has-Organizational-Identifier-Version").validate(path);
-            }
-            catch (Exception e) {
-                throw new RuleViolationDetailsException("Unexpected error occurred", e);
-            }
+            bagInfoContainsAtMostOneOf("Has-Organizational-Identifier-Version").validate(path);
         };
     }
 }
