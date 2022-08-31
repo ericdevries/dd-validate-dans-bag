@@ -54,7 +54,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(DropwizardExtensionsSupport.class)
-class ValidateResourceImplTest {
+class ValidateResourceIntegrationTest {
     public static final ResourceExtension EXT;
 
     static {
@@ -125,6 +125,28 @@ class ValidateResourceImplTest {
         assertEquals(1, response.getRuleViolations().size());
     }
 
+    @Test
+    void validateFormDataWithValidBagAndOriginalFilepaths() throws Exception {
+        var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("bags/original-filepaths-valid-bag")).getFile();
+
+        var data = new ValidateCommandDto();
+        data.setBagLocation(filename);
+        data.setPackageType(ValidateCommandDto.PackageTypeEnum.MIGRATION);
+        var multipart = new FormDataMultiPart()
+            .field("command", data, MediaType.APPLICATION_JSON_TYPE);
+
+        var response = EXT.target("/validate")
+            .register(MultiPartFeature.class)
+            .request()
+            .post(Entity.entity(multipart, multipart.getMediaType()), ValidateOkDto.class);
+
+        System.out.println("RESPONSE: " + response);
+        assertTrue(response.getIsCompliant());
+        assertEquals("1.0.0", response.getProfileVersion());
+        assertEquals(ValidateOkDto.InfoPackageTypeEnum.DEPOSIT, response.getInfoPackageType());
+        assertEquals(filename, response.getBagLocation());
+        assertEquals(0, response.getRuleViolations().size());
+    }
     @Test
     void validateMultipartZipFile() throws Exception {
         var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("zips/audiences.zip"));

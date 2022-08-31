@@ -25,8 +25,8 @@ public interface OriginalFilepathsService {
     List<OriginalFilePathItem> getMapping(Path bagDir);
 
     class OriginalFilePathItem {
-        private Path originalFilename;
-        private Path renamedFilename;
+        private final Path originalFilename;
+        private final Path renamedFilename;
         public OriginalFilePathItem(Path originalFilename, Path renamedFilename) {
             this.originalFilename = originalFilename;
             this.renamedFilename = renamedFilename;
@@ -36,16 +36,9 @@ public interface OriginalFilepathsService {
             return originalFilename;
         }
 
-        public void setOriginalFilename(Path originalFilename) {
-            this.originalFilename = originalFilename;
-        }
-
         public Path getRenamedFilename() {
             return renamedFilename;
         }
 
-        public void setRenamedFilename(Path renamedFilename) {
-            this.renamedFilename = renamedFilename;
-        }
     }
 }

@@ -15,6 +15,8 @@
  */
 package nl.knaw.dans.validatedansbag.core.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.Node;
 import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
@@ -33,7 +35,7 @@ import java.util.Map;
 
 public class XmlSchemaValidatorImpl implements XmlSchemaValidator {
 
-    // TODO make configurable?
+    private static final Logger log = LoggerFactory.getLogger(XmlSchemaValidatorImpl.class);
     protected final Map<String, String> schemaUrls = Map.of(
         "ddm", "https://easy.dans.knaw.nl/schemas/md/ddm/ddm.xsd",
         "files", "https://easy.dans.knaw.nl/schemas/bag/metadata/files/files.xsd",
@@ -43,29 +45,42 @@ public class XmlSchemaValidatorImpl implements XmlSchemaValidator {
         "emd", "https://easy.dans.knaw.nl/schemas/md/emd/emd.xsd"
     );
 
-    protected final Map<String, String> schemaToFilenameMap = Map.of(
-        "ddm", "dataset.xml",
-        "files", "files.xml",
-        "agreements", "agreements.xml",
-        "provenance", "provenance.xml",
-        "amd", "amd.xml",
-        "emd", "emd.xml"
+    protected final Map<String, String> filenameToSchemaMap = Map.of(
+        "dataset.xml", "ddm",
+        "files.xml", "files",
+        "agreements.xml", "agreements",
+        "provenance.xml", "provenance",
+        "amd.xml", "amd",
+        "emd.xml", "emd"
     );
-
     protected final Map<String, Schema> validators = new HashMap<>();
+    private final SchemaFactory schemaFactory;
 
-    public XmlSchemaValidatorImpl() throws MalformedURLException, SAXException {
-        var schemaFactory = SchemaFactory.newInstance("http://www.w3.org/2001/XMLSchema");
+    public XmlSchemaValidatorImpl() {
+        this.schemaFactory = SchemaFactory.newInstance("http://www.w3.org/2001/XMLSchema");
+    }
 
-        for (var entry : schemaToFilenameMap.entrySet()) {
-            var schema = schemaFactory.newSchema(new URL(schemaUrls.get(entry.getKey())));
-            validators.put(entry.getValue(), schema);
+    Schema getValidatorForFilename(String filename) throws MalformedURLException, SAXException {
+        var result = validators.get(filename);
+
+        if (result == null) {
+            var schema = filenameToSchemaMap.get(filename);
+
+            if (schema != null) {
+                result = schemaFactory.newSchema(new URL(schemaUrls.get(schema)));
+            }
+            else {
+                log.warn("Requested XML schema for filename {} but this filename is unknown", filename);
+                return null;
+            }
         }
+
+        return result;
     }
 
     @Override
     public List<SAXParseException> validateDocument(Node node, String schema) throws IOException, SAXException {
-        var schemaInstance = validators.get(schema);
+        var schemaInstance = getValidatorForFilename(schema);
 
         if (schemaInstance == null) {
             throw new NullPointerException(String.format("No validator found for key %s", schema));
@@ -76,6 +91,7 @@ public class XmlSchemaValidatorImpl implements XmlSchemaValidator {
 
         validator.setErrorHandler(new ErrorHandler() {
 
+            // TODO verify that a warning should also result in an error
             @Override
             public void warning(SAXParseException e) {
                 exceptions.add(e);

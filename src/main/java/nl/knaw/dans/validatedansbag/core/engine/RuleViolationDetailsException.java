@@ -25,11 +25,6 @@ public class RuleViolationDetailsException extends Throwable {
     public RuleViolationDetailsException(String message) {
         super(message);
     }
-    public RuleViolationDetailsException(String message, List<RuleViolationDetailsException> exceptions) {
-        super(message);
-        this.exceptions.addAll(exceptions);
-        this.isMultiException = true;
-    }
 
     public RuleViolationDetailsException(String message, Throwable cause) {
         super(message, cause);

@@ -14,7 +14,7 @@
                 <dcx-dai:insertions>van den</dcx-dai:insertions>
                 <dcx-dai:surname>Aarden</dcx-dai:surname>
                 <dcx-dai:DAI>123456789</dcx-dai:DAI>
-                <dcx-dai:role>Distributor</dcx-dai:role>
+                <dcx-dai:role>RightsHolder</dcx-dai:role>
                 <dcx-dai:organization>
                     <dcx-dai:name xml:lang="en">Utrecht University</dcx-dai:name>
                 </dcx-dai:organization>
