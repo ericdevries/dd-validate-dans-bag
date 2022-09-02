@@ -19,7 +19,7 @@ public class RuleValidationResult {
 
     private final String number;
     private final RuleValidationResultStatus status;
-    private final Throwable exception;
+    private final RuleViolationDetailsException exception;
 
     public RuleValidationResult(String number, RuleValidationResultStatus status) {
         this.number = number;
@@ -27,7 +27,7 @@ public class RuleValidationResult {
         this.exception = null;
     }
 
-    public RuleValidationResult(String number, RuleValidationResultStatus status, Throwable exception) {
+    public RuleValidationResult(String number, RuleValidationResultStatus status, RuleViolationDetailsException exception) {
         this.number = number;
         this.status = status;
         this.exception = exception;
@@ -41,7 +41,7 @@ public class RuleValidationResult {
         return status;
     }
 
-    public Throwable getException() {
+    public RuleViolationDetailsException getException() {
         return exception;
     }
 

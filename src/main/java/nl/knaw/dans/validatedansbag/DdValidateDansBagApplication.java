@@ -73,7 +73,7 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
         var dataverseService = new DataverseServiceImpl(configuration.getDataverse());
 
         // set up the different rule implementations
-        var bagRules = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, dataverseService, daiDigestCalculator, polygonListValidator, licenseValidator);
+        var bagRules = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, licenseValidator);
         var filesXmlRules = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
         var xmlRules = new XmlRulesImpl(xmlReader, xmlSchemaValidator, fileService);
         var datastationRules = new DatastationRulesImpl(bagItMetadataReader, dataverseService);

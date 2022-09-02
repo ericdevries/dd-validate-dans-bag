@@ -17,12 +17,14 @@ package nl.knaw.dans.validatedansbag.core.service;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 
 public interface OriginalFilepathsService {
 
     boolean exists(Path bagDir);
 
     List<OriginalFilePathItem> getMapping(Path bagDir);
+    Map<Path, Path> getMappingsFromOriginalToRenamed(Path bagDir);
 
     class OriginalFilePathItem {
         private final Path originalFilename;

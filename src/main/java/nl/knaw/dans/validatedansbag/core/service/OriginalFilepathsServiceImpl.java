@@ -20,7 +20,9 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class OriginalFilepathsServiceImpl implements OriginalFilepathsService {
@@ -58,5 +60,17 @@ public class OriginalFilepathsServiceImpl implements OriginalFilepathsService {
         }
 
         return List.of();
+    }
+
+    @Override
+    public Map<Path, Path> getMappingsFromOriginalToRenamed(Path bagDir) {
+        var mappings = getMapping(bagDir);
+        var result = new HashMap<Path, Path>();
+
+        for (var m: mappings) {
+            result.put(m.getOriginalFilename(), m.getRenamedFilename());
+        }
+
+        return result;
     }
 }

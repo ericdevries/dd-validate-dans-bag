@@ -42,7 +42,9 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -63,8 +65,6 @@ public class BagRulesImpl implements BagRules {
     private final Pattern doiUrlPattern = Pattern.compile("^((https?://(dx\\.)?)?doi\\.org/(urn:)?(doi:)?)?10(\\.\\d+)+/.+");
     private final Pattern urnPattern = Pattern.compile("^urn:[A-Za-z0-9][A-Za-z0-9-]{0,31}:[a-z0-9()+,\\-\\\\.:=@;$_!*'%/?#]+$");
 
-    private final DataverseService dataverseService;
-
     private final IdentifierValidator identifierValidator;
 
     private final PolygonListValidator polygonListValidator;
@@ -74,13 +74,12 @@ public class BagRulesImpl implements BagRules {
     private final String namespaceDcterms = "http://purl.org/dc/terms/";
 
     public BagRulesImpl(FileService fileService, BagItMetadataReader bagItMetadataReader, XmlReader xmlReader, OriginalFilepathsService originalFilepathsService,
-        DataverseService dataverseService, IdentifierValidator identifierValidator,
+        IdentifierValidator identifierValidator,
         PolygonListValidator polygonListValidator, LicenseValidator licenseValidator) {
         this.fileService = fileService;
         this.bagItMetadataReader = bagItMetadataReader;
         this.xmlReader = xmlReader;
         this.originalFilepathsService = originalFilepathsService;
-        this.dataverseService = dataverseService;
         this.identifierValidator = identifierValidator;
         this.polygonListValidator = polygonListValidator;
         this.licenseValidator = licenseValidator;
@@ -135,7 +134,9 @@ public class BagRulesImpl implements BagRules {
                 bagItMetadataReader.getBag(path).orElseThrow();
             }
             catch (Exception e) {
-                throw new RuleViolationDetailsException("bag-info.txt exists but is malformed: " + e.getMessage(), e);
+                throw new RuleViolationDetailsException(String.format(
+                    "bag-info.txt exists but is malformed: %s", e.getMessage()
+                ), e);
             }
         };
     }
@@ -143,20 +144,15 @@ public class BagRulesImpl implements BagRules {
     @Override
     public BagValidatorRule bagInfoCreatedElementIsIso8601Date() {
         return path -> {
-            try {
-                var created = bagItMetadataReader.getSingleField(path, "Created");
+            var created = bagItMetadataReader.getSingleField(path, "Created");
 
-                try {
-                    DateTime.parse(created, ISODateTimeFormat.dateTime());
-                }
-                catch (Throwable e) {
-                    throw new RuleViolationDetailsException(String.format(
-                        "Date '%s' is not valid", created
-                    ), e);
-                }
+            try {
+                DateTime.parse(created, ISODateTimeFormat.dateTime());
             }
-            catch (Exception e) {
-                throw new RuleViolationDetailsException("Unexpected error occurred", e);
+            catch (Throwable e) {
+                throw new RuleViolationDetailsException(String.format(
+                    "Date '%s' is not valid", created
+                ), e);
             }
         };
     }
@@ -164,17 +160,12 @@ public class BagRulesImpl implements BagRules {
     @Override
     public BagValidatorRule bagInfoContainsExactlyOneOf(String key) {
         return path -> {
-            try {
-                var items = bagItMetadataReader.getField(path, key);
+            var items = bagItMetadataReader.getField(path, key);
 
-                if (items.size() != 1) {
-                    throw new RuleViolationDetailsException(
-                        String.format("bag-info.txt must contain exactly one '%s' element; number found: %s", key, items.size())
-                    );
-                }
-            }
-            catch (Exception e) {
-                throw new RuleViolationDetailsException("Error", e);
+            if (items.size() != 1) {
+                throw new RuleViolationDetailsException(
+                    String.format("bag-info.txt must contain exactly one '%s' element; number found: %s", key, items.size())
+                );
             }
         };
     }
@@ -182,17 +173,12 @@ public class BagRulesImpl implements BagRules {
     @Override
     public BagValidatorRule bagInfoContainsAtMostOneOf(String key) {
         return path -> {
-            try {
-                var items = bagItMetadataReader.getField(path, key);
+            var items = bagItMetadataReader.getField(path, key);
 
-                if (items.size() > 1) {
-                    throw new RuleViolationDetailsException(
-                        String.format("bag-info.txt may contain at most one element: '%s'", key)
-                    );
-                }
-            }
-            catch (Exception e) {
-                throw new RuleViolationDetailsException("Error", e);
+            if (items.size() > 1) {
+                throw new RuleViolationDetailsException(
+                    String.format("bag-info.txt may contain at most one element: '%s'", key)
+                );
             }
         };
     }
@@ -200,39 +186,34 @@ public class BagRulesImpl implements BagRules {
     @Override
     public BagValidatorRule bagInfoIsVersionOfIsValidUrnUuid() {
         return path -> {
-            try {
-                var items = bagItMetadataReader.getField(path, "Is-Version-Of");
+            var items = bagItMetadataReader.getField(path, "Is-Version-Of");
 
-                var invalidUrns = items.stream().filter(item -> {
-                        try {
-                            var uri = new URI(item);
+            var invalidUrns = items.stream().filter(item -> {
+                    try {
+                        var uri = new URI(item);
 
-                            if (!"urn".equalsIgnoreCase(uri.getScheme())) {
-                                return true;
-                            }
-
-                            if (!uri.getSchemeSpecificPart().startsWith("uuid:")) {
-                                return true;
-                            }
-
-                            UUID.fromString(uri.getSchemeSpecificPart().substring("uuid:".length()));
-                        }
-                        catch (URISyntaxException | IllegalArgumentException e) {
+                        if (!"urn".equalsIgnoreCase(uri.getScheme())) {
                             return true;
                         }
 
-                        return false;
-                    })
-                    .collect(Collectors.toList());
+                        if (!uri.getSchemeSpecificPart().startsWith("uuid:")) {
+                            return true;
+                        }
 
-                if (!invalidUrns.isEmpty()) {
-                    throw new RuleViolationDetailsException(
-                        String.format("bag-info.txt Is-Version-Of value must be a valid URN: Invalid items {%s}", String.join(", ", invalidUrns))
-                    );
-                }
-            }
-            catch (Exception e) {
-                throw new RuleViolationDetailsException("Error", e);
+                        UUID.fromString(uri.getSchemeSpecificPart().substring("uuid:".length()));
+                    }
+                    catch (URISyntaxException | IllegalArgumentException e) {
+                        return true;
+                    }
+
+                    return false;
+                })
+                .collect(Collectors.toList());
+
+            if (!invalidUrns.isEmpty()) {
+                throw new RuleViolationDetailsException(
+                    String.format("bag-info.txt Is-Version-Of value must be a valid URN: Invalid items {%s}", String.join(", ", invalidUrns))
+                );
             }
         };
     }
@@ -248,25 +229,20 @@ public class BagRulesImpl implements BagRules {
             var bag = bagItMetadataReader.getBag(path)
                 .orElseThrow(() -> bagNotFoundException(path));
 
-            try {
-                var manifest = bagItMetadataReader.getBagManifest(bag, StandardSupportedAlgorithms.SHA1)
-                    .orElseThrow(() -> new RuleViolationDetailsException("No manifest file found"));
+            var manifest = bagItMetadataReader.getBagManifest(bag, StandardSupportedAlgorithms.SHA1)
+                .orElseThrow(() -> new RuleViolationDetailsException("No manifest file found"));
 
-                var filesInManifest = manifest.getFileToChecksumMap().keySet()
-                    .stream().map(path::relativize).collect(Collectors.toSet());
+            var filesInManifest = manifest.getFileToChecksumMap().keySet()
+                .stream().map(path::relativize).collect(Collectors.toSet());
 
-                var filesInPayload = fileService.getAllFiles(path.resolve("data"))
-                    .stream().map(path::relativize).collect(Collectors.toSet());
+            var filesInPayload = fileService.getAllFiles(path.resolve("data"))
+                .stream().map(path::relativize).collect(Collectors.toSet());
 
-                if (!filesInManifest.equals(filesInPayload)) {
-                    filesInPayload.removeAll(filesInManifest);
+            if (!filesInManifest.equals(filesInPayload)) {
+                filesInPayload.removeAll(filesInManifest);
 
-                    var filenames = filesInPayload.stream().map(Path::toString).collect(Collectors.joining(", "));
-                    throw new RuleViolationDetailsException(String.format("All payload files must have an SHA-1 checksum. Files missing from SHA-1 manifest: %s", filenames));
-                }
-            }
-            catch (Exception e) {
-                throw new RuleViolationDetailsException("Unexpected error occurred while validating manifest", e);
+                var filenames = filesInPayload.stream().map(Path::toString).collect(Collectors.joining(", "));
+                throw new RuleViolationDetailsException(String.format("All payload files must have an SHA-1 checksum. Files missing from SHA-1 manifest: %s", filenames));
             }
         };
     }
@@ -274,27 +250,21 @@ public class BagRulesImpl implements BagRules {
     @Override
     public BagValidatorRule containsNothingElseThan(Path dir, String[] paths) {
         return (path) -> {
-            try {
-                var allowed = Arrays.stream(paths).map(p -> path.resolve(dir).resolve(p)).collect(Collectors.toSet());
+            var allowed = Arrays.stream(paths).map(p -> path.resolve(dir).resolve(p)).collect(Collectors.toSet());
 
-                var allItems = fileService.getAllFilesAndDirectories(path.resolve(dir))
-                    .stream().filter(p -> !allowed.contains(p))
-                    // filter out the parent path
-                    .filter(p -> !path.resolve(dir).equals(p))
-                    .collect(Collectors.toSet());
+            var allItems = fileService.getAllFilesAndDirectories(path.resolve(dir))
+                .stream().filter(p -> !allowed.contains(p))
+                // filter out the parent path
+                .filter(p -> !path.resolve(dir).equals(p))
+                .collect(Collectors.toSet());
 
-                if (allItems.size() > 0) {
-                    var filenames = allItems.stream().map(Path::toString).collect(Collectors.joining(", "));
+            if (allItems.size() > 0) {
+                var filenames = allItems.stream().map(Path::toString).collect(Collectors.joining(", "));
 
-                    throw new RuleViolationDetailsException(String.format(
-                        "Directory %s contains files or directories that are not allowed: %s",
-                        dir, filenames
-                    ));
-                }
-
-            }
-            catch (Exception e) {
-                throw new RuleViolationDetailsException("Unexpected error occurred", e);
+                throw new RuleViolationDetailsException(String.format(
+                    "Directory %s contains files or directories that are not allowed: %s",
+                    dir, filenames
+                ));
             }
         };
     }
@@ -405,6 +375,9 @@ public class BagRulesImpl implements BagRules {
             var renamedFiles = mapping.stream().map(OriginalFilepathsService.OriginalFilePathItem::getRenamedFilename).collect(Collectors.toSet());
             var originalFiles = mapping.stream().map(OriginalFilepathsService.OriginalFilePathItem::getOriginalFilename).collect(Collectors.toSet());
 
+
+            // disjunction returns the difference between 2 sets
+            // so {1,2,3} disjunction {2,3,4} would return {1,4}
             var physicalFileSetsDiffer = CollectionUtils.disjunction(actualFiles, renamedFiles).size() > 0;
             var originalFileSetsDiffer = CollectionUtils.disjunction(fileXmlPaths, originalFiles).size() > 0;
 
@@ -745,7 +718,7 @@ public class BagRulesImpl implements BagRules {
                     try {
                         var uri = new URI(value);
 
-                        if (!List.of("http", "https").contains(uri.getScheme())) {
+                        if (!List.of("http", "https").contains(uri.getScheme().toLowerCase(Locale.ROOT))) {
                             return new RuleViolationDetailsException(String.format(
                                 "protocol '%s' in uri '%s' is not one of the accepted protocols [http, https]", uri.getScheme(), uri
                             ));

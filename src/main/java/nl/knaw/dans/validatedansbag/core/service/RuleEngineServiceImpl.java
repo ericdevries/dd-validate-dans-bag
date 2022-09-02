@@ -98,7 +98,9 @@ public class RuleEngineServiceImpl implements RuleEngineService {
             new NumberedRule("3.1.2", bagRules.ddmMayContainDctermsLicenseFromList(), List.of("3.1.1")),
             //            new NumberedRule("3.1.3(a)", validator.ddmContainsUrnNbnIdentifier(), List.of("3.1.1")),
             new NumberedRule("3.1.3", bagRules.ddmDoiIdentifiersAreValid(), List.of("3.1.1")),
+
             // TODO check how we can validate each kind of identifier (assumptions about ISNI and ORCID are made now based on wikipedia)
+            // this should be OK now
             new NumberedRule("3.1.4(a)", bagRules.ddmDaisAreValid(), List.of("3.1.1")),
             new NumberedRule("3.1.4(b)", bagRules.ddmIsnisAreValid(), List.of("3.1.1")),
             new NumberedRule("3.1.4(c)", bagRules.ddmOrcidsAreValid(), List.of("3.1.1")),
@@ -112,26 +114,20 @@ public class RuleEngineServiceImpl implements RuleEngineService {
             new NumberedRule("3.1.10(b)", bagRules.ddmMustHaveRightsHolderMigration(), DepositType.MIGRATION, List.of("3.1.1")),
 
             new NumberedRule("3.2.1", xmlRules.xmlFileConfirmsToSchema(metadataFilesPath, "files.xml"), List.of("3.1.1")),
-            new NumberedRule("3.2.2", filesXmlRules.filesXmlHasDocumentElementFiles(), List.of("2.2(b)")),
-            new NumberedRule("3.2.3", filesXmlRules.filesXmlHasOnlyFiles(), List.of("3.2.2")),
-            new NumberedRule("3.2.4", filesXmlRules.filesXmlFileElementsAllHaveFilepathAttribute(), List.of("3.2.3")),
-            new NumberedRule("3.2.5", filesXmlRules.filesXmlNoDuplicatesAndMatchesWithPayloadPlusPreStagedFiles(), List.of("1.1.1(datadir)", "3.2.4")),
-
-            new NumberedRule("3.2.6", filesXmlRules.filesXmlAllFilesHaveFormat(), List.of("3.2.2")),
-            new NumberedRule("3.2.7", filesXmlRules.filesXmlFilesHaveOnlyAllowedNamespaces(), List.of("3.2.2")),
-            new NumberedRule("3.2.8", filesXmlRules.filesXmlFilesHaveOnlyAllowedAccessRights(), List.of("3.2.2")),
+            new NumberedRule("3.2.2", filesXmlRules.filesXmlFilePathAttributesContainLocalBagPathAndNonPayloadFilesAreNotDescribed(), List.of("2.2(b)")),
+            new NumberedRule("3.2.3", filesXmlRules.filesXmlNoDuplicateFilesAndEveryPayloadFileIsDescribed(), List.of("2.2(b)")),
 
             // agreements.xml
             new NumberedRule("3.3.1", xmlRules.xmlFileIfExistsConformsToSchema(Path.of("metadata/depositor-info/agreements.xml"), "agreements.xml"), DepositType.MIGRATION),
 
             // amd.xml
-            new NumberedRule("3.6.1", xmlRules.xmlFileIfExistsConformsToSchema(Path.of("metadata/amd.xml"), "amd.xml"), DepositType.MIGRATION),
+            new NumberedRule("3.3.2", xmlRules.xmlFileIfExistsConformsToSchema(Path.of("metadata/amd.xml"), "amd.xml"), DepositType.MIGRATION),
 
             // emd.xml
-            new NumberedRule("3.7.1", xmlRules.xmlFileIfExistsConformsToSchema(Path.of("metadata/emd.xml"), "emd.xml"), DepositType.MIGRATION),
+            new NumberedRule("3.3.3", xmlRules.xmlFileIfExistsConformsToSchema(Path.of("metadata/emd.xml"), "emd.xml"), DepositType.MIGRATION),
 
             // provenance.xml
-            new NumberedRule("3.8.1", xmlRules.xmlFileIfExistsConformsToSchema(Path.of("metadata/provenance.xml"), "provenance.xml"), DepositType.MIGRATION),
+            new NumberedRule("3.3.4", xmlRules.xmlFileIfExistsConformsToSchema(Path.of("metadata/provenance.xml"), "provenance.xml"), DepositType.MIGRATION),
 
             new NumberedRule("4.1", datastationRules.isVersionOfIsAValidSwordToken()),
             new NumberedRule("4.2", datastationRules.dataStationUserAccountIsAuthorized())

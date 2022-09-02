@@ -140,7 +140,20 @@ public class ValidateResource {
             .map(rule -> {
                 var ret = new ValidateOkRuleViolationsDto();
                 ret.setRule(rule.getNumber());
-                ret.setViolation(rule.getException().getLocalizedMessage());
+
+                var message = new StringBuilder();
+
+                if (rule.getException().getLocalizedMessage() != null) {
+                    message.append(rule.getException().getLocalizedMessage());
+                }
+
+                if (rule.getException().isMultiException()) {
+                    for (var e : rule.getException().getExceptions()) {
+                        message.append("\n - ").append(e.getLocalizedMessage());
+                    }
+                }
+
+                ret.setViolation(message.toString());
                 return ret;
             })
             .collect(Collectors.toList()));

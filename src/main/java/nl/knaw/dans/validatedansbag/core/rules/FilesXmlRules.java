@@ -17,17 +17,17 @@ package nl.knaw.dans.validatedansbag.core.rules;
 
 public interface FilesXmlRules {
 
-    BagValidatorRule filesXmlHasDocumentElementFiles();
+//    BagValidatorRule filesXmlHasDocumentElementFiles();
+//
+//    BagValidatorRule filesXmlHasOnlyFiles();
+//
+//    BagValidatorRule filesXmlMatchesWithPayload();
+//
+//    BagValidatorRule filesXmlAllFilesHaveFormat();
+//
+//    BagValidatorRule filesXmlFilesHaveOnlyAllowedNamespaces();
 
-    BagValidatorRule filesXmlHasOnlyFiles();
+    BagValidatorRule filesXmlFilePathAttributesContainLocalBagPathAndNonPayloadFilesAreNotDescribed();
 
-    BagValidatorRule filesXmlFileElementsAllHaveFilepathAttribute();
-
-    BagValidatorRule filesXmlNoDuplicatesAndMatchesWithPayloadPlusPreStagedFiles();
-
-    BagValidatorRule filesXmlAllFilesHaveFormat();
-
-    BagValidatorRule filesXmlFilesHaveOnlyAllowedNamespaces();
-
-    BagValidatorRule filesXmlFilesHaveOnlyAllowedAccessRights();
+    BagValidatorRule filesXmlNoDuplicateFilesAndEveryPayloadFileIsDescribed();
 }

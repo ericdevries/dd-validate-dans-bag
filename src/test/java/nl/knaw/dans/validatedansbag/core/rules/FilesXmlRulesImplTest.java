@@ -32,6 +32,7 @@ import java.nio.file.Path;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -53,95 +54,137 @@ class FilesXmlRulesImplTest {
     }
 
     @Test
-    void filesXmlHasDocumentElementFiles() throws Exception {
-        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
-            + "    <file filepath=\"data/random images/image01.png\">\n"
-            + "        <dcterms:title>The first image</dcterms:title>\n"
-            + "        <dcterms:description>This description will be archived, but not displayed anywhere in the Web-UI</dcterms:description>\n"
-            + "        <dcterms:format>image/png</dcterms:format>\n"
-            + "        <dcterms:created>2016-11-11</dcterms:created>\n"
-            + "    </file>\n"
-            + "</files>\n"
-            + "\n";
+    void filesXmlFilePathAttributesContainLocalBagPathAndNonPayloadFilesAreNotDescribed() throws Exception, RuleViolationDetailsException {
+        var checker = Mockito.spy(new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService));
+        Mockito.doNothing().when(checker).filesXmlFileElementsAllHaveFilepathAttribute(Mockito.any());
+        Mockito.doNothing().when(checker).filesXmlDescribesOnlyPayloadFiles(Mockito.any());
 
-        var document = parseXmlString(xml);
-        Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
-
-        var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
-
-        assertDoesNotThrow(() -> checker.filesXmlHasDocumentElementFiles().validate(Path.of("bagdir")));
-
+        assertDoesNotThrow(() -> checker.filesXmlFilePathAttributesContainLocalBagPathAndNonPayloadFilesAreNotDescribed().validate(Path.of("bagdir")));
     }
 
     @Test
-    void filesXmlDoesNotHaveDocumentElementFiles() throws Exception {
-        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-            + "<notfiles xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
-            + "    <file filepath=\"data/random images/image01.png\">\n"
-            + "        <dcterms:title>The first image</dcterms:title>\n"
-            + "        <dcterms:description>This description will be archived, but not displayed anywhere in the Web-UI</dcterms:description>\n"
-            + "        <dcterms:format>image/png</dcterms:format>\n"
-            + "        <dcterms:created>2016-11-11</dcterms:created>\n"
-            + "    </file>\n"
-            + "</notfiles>\n"
-            + "\n";
-
-        var document = parseXmlString(xml);
-        Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
-
-        var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
+    void filesXmlFilePathAttributesContainLocalBagPathAndNonPayloadFilesAreNotDescribedThrowsDoubleError() throws Exception, RuleViolationDetailsException {
+        var checker = Mockito.spy(new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService));
+        Mockito.doThrow(new RuleViolationDetailsException("msg1")).when(checker).filesXmlFileElementsAllHaveFilepathAttribute(Mockito.any());
+        Mockito.doThrow(new RuleViolationDetailsException("msg1")).when(checker).filesXmlDescribesOnlyPayloadFiles(Mockito.any());
 
         var e = assertThrows(RuleViolationDetailsException.class,
-            () -> checker.filesXmlHasDocumentElementFiles().validate(Path.of("bagdir")));
+            () -> checker.filesXmlFilePathAttributesContainLocalBagPathAndNonPayloadFilesAreNotDescribed().validate(Path.of("bagdir")));
 
+        assertEquals(2, e.getExceptions().size());
     }
 
     @Test
-    void filesXmlHasOnlyFiles() throws Exception {
-        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
-            + "    <file filepath=\"data/random images/image01.png\">\n"
-            + "        <dcterms:title>The first image</dcterms:title>\n"
-            + "        <dcterms:description>This description will be archived, but not displayed anywhere in the Web-UI</dcterms:description>\n"
-            + "        <dcterms:format>image/png</dcterms:format>\n"
-            + "        <dcterms:created>2016-11-11</dcterms:created>\n"
-            + "    </file>\n"
-            + "</files>\n"
-            + "\n";
+    void filesXmlNoDuplicateFilesAndEveryPayloadFileIsDescribed() throws Exception, RuleViolationDetailsException {
+        var checker = Mockito.spy(new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService));
+        Mockito.doNothing().when(checker).filesXmlNoDuplicates(Mockito.any());
+        Mockito.doNothing().when(checker).filesXmlDescribesAllPayloadFiles(Mockito.any());
 
-        var document = parseXmlString(xml);
-        Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
-
-        var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
-
-        assertDoesNotThrow(() -> checker.filesXmlHasOnlyFiles().validate(Path.of("bagdir")));
+        assertDoesNotThrow(() -> checker.filesXmlNoDuplicateFilesAndEveryPayloadFileIsDescribed().validate(Path.of("bagdir")));
     }
 
     @Test
-    void filesXmlHasMoreThanOnlyFiles() throws Exception {
-        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
-            + "    <file filepath=\"data/random images/image01.png\">\n"
-            + "        <dcterms:title>The first image</dcterms:title>\n"
-            + "        <dcterms:description>This description will be archived, but not displayed anywhere in the Web-UI</dcterms:description>\n"
-            + "        <dcterms:format>image/png</dcterms:format>\n"
-            + "        <dcterms:created>2016-11-11</dcterms:created>\n"
-            + "    </file>\n"
-            + "    <path></path>\n"
-            + "</files>\n"
-            + "\n";
-
-        var document = parseXmlString(xml);
-        Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
-
-        var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
+    void filesXmlNoDuplicateFilesAndEveryPayloadFileIsDescribedThrowsDoubleError() throws Exception, RuleViolationDetailsException {
+        var checker = Mockito.spy(new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService));
+        Mockito.doThrow(new RuleViolationDetailsException("msg1")).when(checker).filesXmlNoDuplicates(Mockito.any());
+        Mockito.doThrow(new RuleViolationDetailsException("msg2")).when(checker).filesXmlDescribesAllPayloadFiles(Mockito.any());
 
         var e = assertThrows(RuleViolationDetailsException.class,
-            () -> checker.filesXmlHasOnlyFiles().validate(Path.of("bagdir")));
+            () -> checker.filesXmlNoDuplicateFilesAndEveryPayloadFileIsDescribed().validate(Path.of("bagdir")));
 
-        assertTrue(e.getLocalizedMessage().contains("path"));
+        assertEquals(2, e.getExceptions().size());
     }
+
+    @Test
+    void filesXmlDescribesOnlyPayloadFiles() throws Exception {
+        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
+            + "    <file filepath=\"data/random images/image01.png\">\n"
+            + "        <dcterms:title>The first image</dcterms:title>\n"
+            + "        <dcterms:description>This description will be archived, but not displayed anywhere in the Web-UI</dcterms:description>\n"
+            + "        <dcterms:format>image/png</dcterms:format>\n"
+            + "        <dcterms:created>2016-11-11</dcterms:created>\n"
+            + "    </file>\n"
+            + "</files>\n"
+            + "\n";
+
+        var document = parseXmlString(xml);
+        Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
+
+        // even though image02 is not defined in the files.xml, this partial rule does not check for that
+        var files = List.of(
+            Path.of("bagdir/data/random images/image01.png"),
+            Path.of("bagdir/data/random images/image02.png")
+        );
+
+        Mockito.doReturn(files).when(fileService).getAllFiles(Mockito.any());
+
+        var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
+
+        assertDoesNotThrow(() ->
+            checker.filesXmlDescribesOnlyPayloadFiles(Path.of("bagdir")));
+    }
+
+    @Test
+    void filesXmlDescribesMoreThanOnlyPayloadFiles() throws Exception {
+        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
+            + "    <file filepath=\"data/random images/image01.png\">\n"
+            + "        <dcterms:title>The first image</dcterms:title>\n"
+            + "        <dcterms:description>This description will be archived, but not displayed anywhere in the Web-UI</dcterms:description>\n"
+            + "        <dcterms:format>image/png</dcterms:format>\n"
+            + "        <dcterms:created>2016-11-11</dcterms:created>\n"
+            + "    </file>\n"
+            + "    <file filepath=\"data/random images/image02.png\">\n"
+            + "        <dcterms:title>The first image</dcterms:title>\n"
+            + "        <dcterms:description>This description will be archived, but not displayed anywhere in the Web-UI</dcterms:description>\n"
+            + "        <dcterms:format>image/png</dcterms:format>\n"
+            + "        <dcterms:created>2016-11-11</dcterms:created>\n"
+            + "    </file>\n"
+            + "</files>\n"
+            + "\n";
+
+        var document = parseXmlString(xml);
+        Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
+
+        var files = List.of(
+            Path.of("bagdir/data/random images/image01.png")
+        );
+
+        Mockito.doReturn(files).when(fileService).getAllFiles(Mockito.any());
+
+        var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
+
+        var e = assertThrows(RuleViolationDetailsException.class, () ->
+            checker.filesXmlDescribesOnlyPayloadFiles(Path.of("bagdir")));
+
+        assertTrue(e.getMessage().contains("image02.png"));
+    }
+
+    //    @Test
+    //    void filesXmlHasMoreThanOnlyFiles() throws Exception {
+    //        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+    //            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
+    //            + "    <file filepath=\"data/random images/image01.png\">\n"
+    //            + "        <dcterms:title>The first image</dcterms:title>\n"
+    //            + "        <dcterms:description>This description will be archived, but not displayed anywhere in the Web-UI</dcterms:description>\n"
+    //            + "        <dcterms:format>image/png</dcterms:format>\n"
+    //            + "        <dcterms:created>2016-11-11</dcterms:created>\n"
+    //            + "    </file>\n"
+    //            + "    <path></path>\n"
+    //            + "</files>\n"
+    //            + "\n";
+    //
+    //        var document = parseXmlString(xml);
+    //        Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
+    //
+    //        var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
+    //
+    //        var e = assertThrows(RuleViolationDetailsException.class,
+    //            () -> checker.filesXmlHasOnlyFiles().validate(Path.of("bagdir")));
+    //
+    //        assertTrue(e.getLocalizedMessage().contains("path"));
+    //    }
 
     @Test
     void filesXmlFileElementsAllHaveFilepathAttribute() throws Exception {
@@ -158,7 +201,7 @@ class FilesXmlRulesImplTest {
 
         var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
 
-        assertDoesNotThrow(() -> checker.filesXmlFileElementsAllHaveFilepathAttribute().validate(Path.of("bagdir")));
+        assertDoesNotThrow(() -> checker.filesXmlFileElementsAllHaveFilepathAttribute(Path.of("bagdir")));
     }
 
     @Test
@@ -183,13 +226,13 @@ class FilesXmlRulesImplTest {
         var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
 
         var e = assertThrows(RuleViolationDetailsException.class,
-            () -> checker.filesXmlFileElementsAllHaveFilepathAttribute().validate(Path.of("bagdir")));
+            () -> checker.filesXmlFileElementsAllHaveFilepathAttribute(Path.of("bagdir")));
 
-        assertTrue(e.getLocalizedMessage().startsWith("2"));
+        assertTrue(e.getLocalizedMessage().startsWith("2 "));
     }
 
     @Test
-    void filesXmlNoDuplicatesAndMatchesWithPayloadPlusPreStagedFiles() throws Exception {
+    void filesXmlNoDuplicates() throws Exception {
 
         var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
             + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
@@ -206,23 +249,41 @@ class FilesXmlRulesImplTest {
             + "\n";
 
         var document = parseXmlString(xml);
-
-        var files = List.of(
-            Path.of("bagdir/data/random images/image01.png"),
-            Path.of("bagdir/data/random images/image02.png"),
-            Path.of("bagdir/data/random images/image03.png")
-        );
-
-        Mockito.doReturn(files).when(fileService).getAllFiles(Mockito.any());
         Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
 
         var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
 
-        assertDoesNotThrow(() -> checker.filesXmlNoDuplicatesAndMatchesWithPayloadPlusPreStagedFiles().validate(Path.of("bagdir")));
+        assertDoesNotThrow(() -> checker.filesXmlNoDuplicates(Path.of("bagdir")));
     }
 
     @Test
-    void filesXmlNoDuplicatesAndMatchesWithPayloadPlusPreStagedFilesWithNamespace() throws Exception {
+    void filesXmlNoDuplicatesButThereAreDuplicates() throws Exception {
+
+        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+            + "<files xmlns=\"http://easy.dans.knaw.nl/schemas/bag/metadata/files/\" xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
+            + "    <file filepath=\"data/random images/image01.png\">\n"
+            + "        <dcterms:title>The first image</dcterms:title>\n"
+            + "    </file>\n"
+            + "    <file filepath=\"data/random images/image02.png\">\n"
+            + "        <dcterms:title>The first image</dcterms:title>\n"
+            + "    </file>\n"
+            + "    <file filepath=\"data/random images/image02.png\">\n"
+            + "        <dcterms:title>The first image</dcterms:title>\n"
+            + "    </file>\n"
+            + "</files>\n"
+            + "\n";
+
+        var document = parseXmlString(xml);
+        Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
+
+        var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
+
+        var e = assertThrows(RuleViolationDetailsException.class, () -> checker.filesXmlNoDuplicates(Path.of("bagdir")));
+        assertTrue(e.getMessage().contains("image02.png"));
+    }
+
+    @Test
+    void filesXmlDescribesAllPayloadFiles() throws Exception {
 
         var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
             + "<files xmlns=\"http://easy.dans.knaw.nl/schemas/bag/metadata/files/\" xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
@@ -239,25 +300,25 @@ class FilesXmlRulesImplTest {
             + "\n";
 
         var document = parseXmlString(xml);
+        Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
 
         var files = List.of(
             Path.of("bagdir/data/random images/image01.png"),
             Path.of("bagdir/data/random images/image02.png"),
             Path.of("bagdir/data/random images/image03.png")
         );
+
         Mockito.doReturn(files).when(fileService).getAllFiles(Mockito.any());
-        Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
 
         var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
-
-        assertDoesNotThrow(() -> checker.filesXmlNoDuplicatesAndMatchesWithPayloadPlusPreStagedFiles().validate(Path.of("bagdir")));
+        assertDoesNotThrow(() -> checker.filesXmlDescribesAllPayloadFiles(Path.of("bagdir")));
     }
 
     @Test
-    void filesXmlNoDuplicatesAndMatchesWithPayloadPlusPreStagedFilesWithErrors() throws Exception {
+    void filesXmlDescribesAllPayloadFilesButMissesOne() throws Exception {
 
         var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
+            + "<files xmlns=\"http://easy.dans.knaw.nl/schemas/bag/metadata/files/\" xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
             + "    <file filepath=\"data/random images/image01.png\">\n"
             + "        <dcterms:title>The first image</dcterms:title>\n"
             + "    </file>\n"
@@ -271,212 +332,186 @@ class FilesXmlRulesImplTest {
             + "\n";
 
         var document = parseXmlString(xml);
+        Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
 
         var files = List.of(
-            Path.of("data/random images/image01.png"),
-            Path.of("data/random images/image02.png"),
-            Path.of("data/random images/image04.png")
+            Path.of("bagdir/data/random images/image01.png"),
+            Path.of("bagdir/data/random images/image02.png"),
+            Path.of("bagdir/data/random images/image03.png"),
+            Path.of("bagdir/data/random images/image04.png")
         );
 
         Mockito.doReturn(files).when(fileService).getAllFiles(Mockito.any());
-        Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
 
         var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
-
         var e = assertThrows(RuleViolationDetailsException.class,
-            () -> checker.filesXmlNoDuplicatesAndMatchesWithPayloadPlusPreStagedFiles().validate(Path.of("bagdir")));
+            () -> checker.filesXmlDescribesAllPayloadFiles(Path.of("bagdir")));
 
-        assertTrue(e.getLocalizedMessage().contains("image03.png"));
-        assertTrue(e.getLocalizedMessage().contains("image04.png"));
+        assertTrue(e.getMessage().contains("image04.png"));
     }
 
-    @Test
-    void filesXmlAllFilesHaveFormat() throws Exception {
-        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
-            + "    <file filepath=\"data/random images/image01.png\">\n"
-            + "        <dcterms:title>The first image</dcterms:title>\n"
-            + "        <dcterms:description>This description will be archived, but not displayed anywhere in the Web-UI</dcterms:description>\n"
-            + "        <dcterms:format>image/png</dcterms:format>\n"
-            + "        <dcterms:created>2016-11-11</dcterms:created>\n"
-            + "    </file>\n"
-            + "    <file filepath=\"data/random images/image02.jpeg\">\n"
-            + "        <dcterms:format>image/jpeg</dcterms:format>\n"
-            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
-            + "    </file>\n"
-            + "    <file filepath=\"data/random images/image03.jpeg\">\n"
-            + "        <dcterms:format>image/jpeg</dcterms:format>\n"
-            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
-            + "    </file>\n"
-            + "    <file filepath=\"data/a/deeper/path/With some file.txt\">\n"
-            + "        <dcterms:format>text/plain</dcterms:format>\n"
-            + "        <dcterms:created>2016-11-09</dcterms:created>\n"
-            + "    </file>\n"
-            + "</files>\n"
-            + "\n";
-        var document = parseXmlString(xml);
-        Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
+    //    @Test
+    //    void filesXmlNoDuplicatesAndMatchesWithPayloadPlusPreStagedFilesWithErrors() throws Exception {
+    //
+    //        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+    //            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
+    //            + "    <file filepath=\"data/random images/image01.png\">\n"
+    //            + "        <dcterms:title>The first image</dcterms:title>\n"
+    //            + "    </file>\n"
+    //            + "    <file filepath=\"data/random images/image02.png\">\n"
+    //            + "        <dcterms:title>The first image</dcterms:title>\n"
+    //            + "    </file>\n"
+    //            + "    <file filepath=\"data/random images/image03.png\">\n"
+    //            + "        <dcterms:title>The first image</dcterms:title>\n"
+    //            + "    </file>\n"
+    //            + "</files>\n"
+    //            + "\n";
+    //
+    //        var document = parseXmlString(xml);
+    //
+    //        var files = List.of(
+    //            Path.of("data/random images/image01.png"),
+    //            Path.of("data/random images/image02.png"),
+    //            Path.of("data/random images/image04.png")
+    //        );
+    //
+    //        Mockito.doReturn(files).when(fileService).getAllFiles(Mockito.any());
+    //        Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
+    //
+    //        var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
+    //
+    //        var e = assertThrows(RuleViolationDetailsException.class,
+    //            () -> checker.filesXmlMatchesWithPayload().validate(Path.of("bagdir")));
+    //
+    //        assertTrue(e.getLocalizedMessage().contains("image03.png"));
+    //        assertTrue(e.getLocalizedMessage().contains("image04.png"));
+    //    }
+    //
+    //    @Test
+    //    void filesXmlAllFilesHaveFormat() throws Exception {
+    //        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+    //            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
+    //            + "    <file filepath=\"data/random images/image01.png\">\n"
+    //            + "        <dcterms:title>The first image</dcterms:title>\n"
+    //            + "        <dcterms:description>This description will be archived, but not displayed anywhere in the Web-UI</dcterms:description>\n"
+    //            + "        <dcterms:format>image/png</dcterms:format>\n"
+    //            + "        <dcterms:created>2016-11-11</dcterms:created>\n"
+    //            + "    </file>\n"
+    //            + "    <file filepath=\"data/random images/image02.jpeg\">\n"
+    //            + "        <dcterms:format>image/jpeg</dcterms:format>\n"
+    //            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
+    //            + "    </file>\n"
+    //            + "    <file filepath=\"data/random images/image03.jpeg\">\n"
+    //            + "        <dcterms:format>image/jpeg</dcterms:format>\n"
+    //            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
+    //            + "    </file>\n"
+    //            + "    <file filepath=\"data/a/deeper/path/With some file.txt\">\n"
+    //            + "        <dcterms:format>text/plain</dcterms:format>\n"
+    //            + "        <dcterms:created>2016-11-09</dcterms:created>\n"
+    //            + "    </file>\n"
+    //            + "</files>\n"
+    //            + "\n";
+    //        var document = parseXmlString(xml);
+    //        Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
+    //
+    //        var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
+    //
+    //        assertDoesNotThrow(() -> checker.filesXmlAllFilesHaveFormat().validate(Path.of("bagdir")));
+    //    }
+    //
+    //    @Test
+    //    void filesXmlAllFilesHaveFormatButSomeDont() throws Exception {
+    //        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+    //            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
+    //            + "    <file filepath=\"data/random images/image01.png\">\n"
+    //            + "        <dcterms:title>The first image</dcterms:title>\n"
+    //            + "        <dcterms:description>This description will be archived, but not displayed anywhere in the Web-UI</dcterms:description>\n"
+    //            + "        <dcterms:format>image/png</dcterms:format>\n"
+    //            + "        <dcterms:created>2016-11-11</dcterms:created>\n"
+    //            + "    </file>\n"
+    //            + "    <file filepath=\"data/random images/image02.jpeg\">\n"
+    //            + "        <dcterms:format>image/jpeg</dcterms:format>\n"
+    //            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
+    //            + "    </file>\n"
+    //            + "    <file filepath=\"data/random images/image03.jpeg\">\n"
+    //            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
+    //            + "    </file>\n"
+    //            + "    <file filepath=\"data/a/deeper/path/With some file.txt\">\n"
+    //            + "        <dcterms:format>text/plain</dcterms:format>\n"
+    //            + "        <dcterms:created>2016-11-09</dcterms:created>\n"
+    //            + "    </file>\n"
+    //            + "</files>\n"
+    //            + "\n";
+    //        var document = parseXmlString(xml);
+    //        Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
+    //
+    //        var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
+    //
+    //        assertThrows(RuleViolationDetailsException.class,
+    //            () -> checker.filesXmlAllFilesHaveFormat().validate(Path.of("bagdir")));
+    //    }
+    //
+    //    @Test
+    //    void filesXmlFilesHaveOnlyAllowedNamespaces() throws Exception {
+    //        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+    //            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\" xmlns:something=\"http://dans.knaw.nl/\">\n"
+    //            + "    <file filepath=\"data/random images/image01.png\">\n"
+    //            + "        <dcterms:title>The first image</dcterms:title>\n"
+    //            + "        <dcterms:description>This description will be archived, but not displayed anywhere in the Web-UI</dcterms:description>\n"
+    //            + "        <dcterms:format>image/png</dcterms:format>\n"
+    //            + "        <dcterms:created>2016-11-11</dcterms:created>\n"
+    //            + "    </file>\n"
+    //            + "    <file filepath=\"data/random images/image02.jpeg\">\n"
+    //            + "        <dcterms:format>image/jpeg</dcterms:format>\n"
+    //            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
+    //            + "    </file>\n"
+    //            + "    <file filepath=\"data/random images/image03.jpeg\">\n"
+    //            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
+    //            + "    </file>\n"
+    //            + "    <file filepath=\"data/a/deeper/path/With some file.txt\">\n"
+    //            + "        <dcterms:format>text/plain</dcterms:format>\n"
+    //            + "        <dcterms:created>2016-11-09</dcterms:created>\n"
+    //            + "    </file>\n"
+    //            + "</files>\n"
+    //            + "\n";
+    //        var document = parseXmlString(xml);
+    //        Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
+    //
+    //        var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
+    //
+    //        assertDoesNotThrow(() -> checker.filesXmlFilesHaveOnlyAllowedNamespaces().validate(Path.of("bagdir")));
+    //    }
+    //
+    //    @Test
+    //    void filesXmlFilesHaveOnlyAllowedNamespacesButOneIsDifferent() throws Exception {
+    //        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+    //            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\" xmlns:something=\"http://dans.knaw.nl/\">\n"
+    //            + "    <file filepath=\"data/random images/image01.png\">\n"
+    //            + "        <dcterms:title>The first image</dcterms:title>\n"
+    //            + "        <dcterms:description>This description will be archived, but not displayed anywhere in the Web-UI</dcterms:description>\n"
+    //            + "        <dcterms:format>image/png</dcterms:format>\n"
+    //            + "        <dcterms:created>2016-11-11</dcterms:created>\n"
+    //            + "    </file>\n"
+    //            + "    <file filepath=\"data/random images/image02.jpeg\">\n"
+    //            + "        <something:format>image/jpeg</something:format>\n"
+    //            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
+    //            + "    </file>\n"
+    //            + "    <file filepath=\"data/random images/image03.jpeg\">\n"
+    //            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
+    //            + "    </file>\n"
+    //            + "    <file filepath=\"data/a/deeper/path/With some file.txt\">\n"
+    //            + "        <dcterms:format>text/plain</dcterms:format>\n"
+    //            + "        <dcterms:created>2016-11-09</dcterms:created>\n"
+    //            + "    </file>\n"
+    //            + "</files>\n"
+    //            + "\n";
+    //        var document = parseXmlString(xml);
+    //        Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
+    //
+    //        var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
+    //
+    //        assertThrows(RuleViolationDetailsException.class,
+    //            () -> checker.filesXmlFilesHaveOnlyAllowedNamespaces().validate(Path.of("bagdir")));
+    //    }
 
-        var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
-
-        assertDoesNotThrow(() -> checker.filesXmlAllFilesHaveFormat().validate(Path.of("bagdir")));
-    }
-
-    @Test
-    void filesXmlAllFilesHaveFormatButSomeDont() throws Exception {
-        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
-            + "    <file filepath=\"data/random images/image01.png\">\n"
-            + "        <dcterms:title>The first image</dcterms:title>\n"
-            + "        <dcterms:description>This description will be archived, but not displayed anywhere in the Web-UI</dcterms:description>\n"
-            + "        <dcterms:format>image/png</dcterms:format>\n"
-            + "        <dcterms:created>2016-11-11</dcterms:created>\n"
-            + "    </file>\n"
-            + "    <file filepath=\"data/random images/image02.jpeg\">\n"
-            + "        <dcterms:format>image/jpeg</dcterms:format>\n"
-            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
-            + "    </file>\n"
-            + "    <file filepath=\"data/random images/image03.jpeg\">\n"
-            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
-            + "    </file>\n"
-            + "    <file filepath=\"data/a/deeper/path/With some file.txt\">\n"
-            + "        <dcterms:format>text/plain</dcterms:format>\n"
-            + "        <dcterms:created>2016-11-09</dcterms:created>\n"
-            + "    </file>\n"
-            + "</files>\n"
-            + "\n";
-        var document = parseXmlString(xml);
-        Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
-
-        var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
-
-        assertThrows(RuleViolationDetailsException.class,
-            () -> checker.filesXmlAllFilesHaveFormat().validate(Path.of("bagdir")));
-    }
-
-    @Test
-    void filesXmlFilesHaveOnlyAllowedNamespaces() throws Exception {
-        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\" xmlns:something=\"http://dans.knaw.nl/\">\n"
-            + "    <file filepath=\"data/random images/image01.png\">\n"
-            + "        <dcterms:title>The first image</dcterms:title>\n"
-            + "        <dcterms:description>This description will be archived, but not displayed anywhere in the Web-UI</dcterms:description>\n"
-            + "        <dcterms:format>image/png</dcterms:format>\n"
-            + "        <dcterms:created>2016-11-11</dcterms:created>\n"
-            + "    </file>\n"
-            + "    <file filepath=\"data/random images/image02.jpeg\">\n"
-            + "        <dcterms:format>image/jpeg</dcterms:format>\n"
-            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
-            + "    </file>\n"
-            + "    <file filepath=\"data/random images/image03.jpeg\">\n"
-            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
-            + "    </file>\n"
-            + "    <file filepath=\"data/a/deeper/path/With some file.txt\">\n"
-            + "        <dcterms:format>text/plain</dcterms:format>\n"
-            + "        <dcterms:created>2016-11-09</dcterms:created>\n"
-            + "    </file>\n"
-            + "</files>\n"
-            + "\n";
-        var document = parseXmlString(xml);
-        Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
-
-        var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
-
-        assertDoesNotThrow(() -> checker.filesXmlFilesHaveOnlyAllowedNamespaces().validate(Path.of("bagdir")));
-    }
-
-    @Test
-    void filesXmlFilesHaveOnlyAllowedNamespacesButOneIsDifferent() throws Exception {
-        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\" xmlns:something=\"http://dans.knaw.nl/\">\n"
-            + "    <file filepath=\"data/random images/image01.png\">\n"
-            + "        <dcterms:title>The first image</dcterms:title>\n"
-            + "        <dcterms:description>This description will be archived, but not displayed anywhere in the Web-UI</dcterms:description>\n"
-            + "        <dcterms:format>image/png</dcterms:format>\n"
-            + "        <dcterms:created>2016-11-11</dcterms:created>\n"
-            + "    </file>\n"
-            + "    <file filepath=\"data/random images/image02.jpeg\">\n"
-            + "        <something:format>image/jpeg</something:format>\n"
-            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
-            + "    </file>\n"
-            + "    <file filepath=\"data/random images/image03.jpeg\">\n"
-            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
-            + "    </file>\n"
-            + "    <file filepath=\"data/a/deeper/path/With some file.txt\">\n"
-            + "        <dcterms:format>text/plain</dcterms:format>\n"
-            + "        <dcterms:created>2016-11-09</dcterms:created>\n"
-            + "    </file>\n"
-            + "</files>\n"
-            + "\n";
-        var document = parseXmlString(xml);
-        Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
-
-        var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
-
-        assertThrows(RuleViolationDetailsException.class,
-            () -> checker.filesXmlFilesHaveOnlyAllowedNamespaces().validate(Path.of("bagdir")));
-    }
-
-    @Test
-    void filesXmlFilesHaveOnlyAllowedAccessRights() throws Exception {
-        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
-            + "    <file filepath=\"data/random images/image01.png\">\n"
-            + "        <dcterms:title>The first image</dcterms:title>\n"
-            + "        <dcterms:description>This description will be archived, but not displayed anywhere in the Web-UI</dcterms:description>\n"
-            + "        <dcterms:format>image/png</dcterms:format>\n"
-            + "        <dcterms:created>2016-11-11</dcterms:created>\n"
-            + "    </file>\n"
-            + "    <file filepath=\"data/random images/image02.jpeg\">\n"
-            + "        <dcterms:format>image/jpeg</dcterms:format>\n"
-            + "        <dcterms:accessRights>ANONYMOUS</dcterms:accessRights>\n"
-            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
-            + "    </file>\n"
-            + "    <file filepath=\"data/random images/image03.jpeg\">\n"
-            + "        <dcterms:format>image/jpeg</dcterms:format>\n"
-            + "        <dcterms:accessRights>RESTRICTED_REQUEST</dcterms:accessRights>\n"
-            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
-            + "    </file>\n"
-            + "    <file filepath=\"data/random images/image04.jpeg\">\n"
-            + "        <dcterms:format>image/jpeg</dcterms:format>\n"
-            + "        <dcterms:accessRights>NONE</dcterms:accessRights>\n"
-            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
-            + "    </file>\n"
-            + "</files>\n"
-            + "\n";
-        var document = parseXmlString(xml);
-        Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
-
-        var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
-
-        assertDoesNotThrow(() -> checker.filesXmlFilesHaveOnlyAllowedAccessRights().validate(Path.of("bagdir")));
-    }
-
-    @Test
-    void filesXmlFilesHaveOnlyAllowedAccessRightsButOneIsIncorrected() throws Exception {
-        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
-            + "    <file filepath=\"data/random images/image01.png\">\n"
-            + "        <dcterms:title>The first image</dcterms:title>\n"
-            + "        <dcterms:description>This description will be archived, but not displayed anywhere in the Web-UI</dcterms:description>\n"
-            + "        <dcterms:format>image/png</dcterms:format>\n"
-            + "        <dcterms:created>2016-11-11</dcterms:created>\n"
-            + "    </file>\n"
-            + "    <file filepath=\"data/random images/image02.jpeg\">\n"
-            + "        <dcterms:format>image/jpeg</dcterms:format>\n"
-            + "        <dcterms:accessRights>WRONG_VALUE</dcterms:accessRights>\n"
-            + "        <dcterms:created>2016-11-10</dcterms:created>\n"
-            + "    </file>\n"
-            + "</files>\n"
-            + "\n";
-        var document = parseXmlString(xml);
-        Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
-
-        var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
-
-        var e = assertThrows(RuleViolationDetailsException.class,
-            () -> checker.filesXmlFilesHaveOnlyAllowedAccessRights().validate(Path.of("bagdir")));
-
-        assertTrue(e.getExceptions().get(0).getLocalizedMessage().contains("WRONG_VALUE"));
-    }
 }

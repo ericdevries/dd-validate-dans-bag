@@ -58,10 +58,6 @@ public class LicenseValidatorImpl implements LicenseValidator {
         // strip trailing slashes so url's are more consistent
         var licenses = validLicenses.stream().map(this::normalizeLicense).collect(Collectors.toSet());
 
-        if (!licenses.contains(normalizeLicense(license))) {
-            return false;
-        }
-
-        return true;
+        return licenses.contains(normalizeLicense(license));
     }
 }

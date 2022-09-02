@@ -17,7 +17,6 @@ package nl.knaw.dans.validatedansbag.resource;
 
 import io.dropwizard.testing.junit5.DropwizardExtensionsSupport;
 import io.dropwizard.testing.junit5.ResourceExtension;
-import nl.knaw.dans.lib.dataverse.DataverseException;
 import nl.knaw.dans.lib.dataverse.model.dataset.DatasetLatestVersion;
 import nl.knaw.dans.lib.dataverse.model.search.SearchResult;
 import nl.knaw.dans.openapi.api.ValidateCommandDto;
@@ -91,7 +90,7 @@ class ValidateResourceIntegrationTest {
         var licenseValidator = new LicenseValidatorImpl();
 
         // set up the different rule implementations
-        var bagRules = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, dataverseService, daiDigestCalculator, polygonListValidator, licenseValidator);
+        var bagRules = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, licenseValidator);
         var filesXmlRules = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
         var xmlRules = new XmlRulesImpl(xmlReader, xmlSchemaValidator, fileService);
         var datastationRules = new DatastationRulesImpl(bagItMetadataReader, dataverseService);
@@ -175,6 +174,27 @@ class ValidateResourceIntegrationTest {
         assertEquals(0, response.getRuleViolations().size());
     }
 
+    @Test
+    void validateFormDataWithInValidBagAndOriginalFilepaths() throws Exception {
+        var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("bags/original-filepaths-invalid-bag")).getFile();
+
+        var data = new ValidateCommandDto();
+        data.setBagLocation(filename);
+        data.setPackageType(ValidateCommandDto.PackageTypeEnum.MIGRATION);
+        var multipart = new FormDataMultiPart()
+            .field("command", data, MediaType.APPLICATION_JSON_TYPE);
+
+        var response = EXT.target("/validate")
+            .register(MultiPartFeature.class)
+            .request()
+            .post(Entity.entity(multipart, multipart.getMediaType()), ValidateOkDto.class);
+
+        assertFalse(response.getIsCompliant());
+        assertEquals("1.0.0", response.getProfileVersion());
+        assertEquals(ValidateOkDto.InfoPackageTypeEnum.DEPOSIT, response.getInfoPackageType());
+        assertEquals(filename, response.getBagLocation());
+        assertEquals(4, response.getRuleViolations().size());
+    }
     @Test
     void validateMultipartZipFile() throws Exception {
         var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("zips/audiences.zip"));
