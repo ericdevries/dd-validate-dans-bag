@@ -22,3 +22,4 @@
 /.dans.knaw.nl-yum-repo
 /venv/
 .attach_pid*
+/.venv-mkdocs
