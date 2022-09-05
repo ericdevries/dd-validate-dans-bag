@@ -70,4 +70,6 @@ public interface BagRules {
     BagValidatorRule ddmOrcidsAreValid();
 
     BagValidatorRule organizationalIdentifierVersionIsValid();
+
+    BagValidatorRule containsNotJustMD5Manifest();
 }

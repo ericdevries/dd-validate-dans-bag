@@ -13,15 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.validatedansbag.core.rules;
+package nl.knaw.dans.validatedansbag.core.engine;
 
-import nl.knaw.dans.validatedansbag.core.engine.RuleSkipDependenciesException;
-import nl.knaw.dans.validatedansbag.core.engine.RuleViolationDetailsException;
+public class RuleEngineConfigurationException extends Exception {
 
-import java.nio.file.Path;
-
-@FunctionalInterface
-public interface BagValidatorRule {
-    void validate(Path path) throws RuleViolationDetailsException, RuleSkipDependenciesException, Exception;
-
+    RuleEngineConfigurationException(String msg) {
+        super(msg);
+    }
 }

@@ -26,6 +26,7 @@ import nl.knaw.dans.validatedansbag.core.engine.RuleEngineImpl;
 import nl.knaw.dans.validatedansbag.core.rules.BagRulesImpl;
 import nl.knaw.dans.validatedansbag.core.rules.DatastationRulesImpl;
 import nl.knaw.dans.validatedansbag.core.rules.FilesXmlRulesImpl;
+import nl.knaw.dans.validatedansbag.core.rules.TestLicenseConfig;
 import nl.knaw.dans.validatedansbag.core.rules.XmlRulesImpl;
 import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReaderImpl;
 import nl.knaw.dans.validatedansbag.core.service.DataverseService;
@@ -48,7 +49,6 @@ import org.xml.sax.SAXException;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.net.MalformedURLException;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -81,7 +81,7 @@ class ValidateResourceIntegrationTest {
         var daiDigestCalculator = new IdentifierValidatorImpl();
         var polygonListValidator = new PolygonListValidatorImpl();
         var originalFilepathsService = new OriginalFilepathsServiceImpl(fileService);
-        var licenseValidator = new LicenseValidatorImpl();
+        var licenseValidator = new LicenseValidatorImpl(new TestLicenseConfig());
 
         // set up the different rule implementations
         var bagRules = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, licenseValidator);
@@ -119,7 +119,7 @@ class ValidateResourceIntegrationTest {
 
         assertFalse(response.getIsCompliant());
         assertEquals("1.0.0", response.getProfileVersion());
-        assertEquals(ValidateOkDto.InfoPackageTypeEnum.DEPOSIT, response.getInfoPackageType());
+        assertEquals(ValidateOkDto.InformationPackageTypeEnum.DEPOSIT, response.getInformationPackageType());
         assertEquals(filename, response.getBagLocation());
         assertEquals(1, response.getRuleViolations().size());
     }
@@ -163,7 +163,7 @@ class ValidateResourceIntegrationTest {
 
         assertTrue(response.getIsCompliant());
         assertEquals("1.0.0", response.getProfileVersion());
-        assertEquals(ValidateOkDto.InfoPackageTypeEnum.MIGRATION, response.getInfoPackageType());
+        assertEquals(ValidateOkDto.InformationPackageTypeEnum.MIGRATION, response.getInformationPackageType());
         assertEquals(filename, response.getBagLocation());
         assertEquals(0, response.getRuleViolations().size());
     }
@@ -185,9 +185,9 @@ class ValidateResourceIntegrationTest {
 
         assertFalse(response.getIsCompliant());
         assertEquals("1.0.0", response.getProfileVersion());
-        assertEquals(ValidateOkDto.InfoPackageTypeEnum.MIGRATION, response.getInfoPackageType());
+        assertEquals(ValidateOkDto.InformationPackageTypeEnum.MIGRATION, response.getInformationPackageType());
         assertEquals(filename, response.getBagLocation());
-        assertEquals(4, response.getRuleViolations().size());
+        assertEquals(3, response.getRuleViolations().size());
     }
 
     @Test
@@ -207,7 +207,7 @@ class ValidateResourceIntegrationTest {
 
         assertTrue(response.getIsCompliant());
         assertEquals("1.0.0", response.getProfileVersion());
-        assertEquals(ValidateOkDto.InfoPackageTypeEnum.DEPOSIT, response.getInfoPackageType());
+        assertEquals(ValidateOkDto.InformationPackageTypeEnum.DEPOSIT, response.getInformationPackageType());
         assertNull(response.getBagLocation());
         assertEquals(0, response.getRuleViolations().size());
     }
@@ -224,7 +224,7 @@ class ValidateResourceIntegrationTest {
 
         assertTrue(response.getIsCompliant());
         assertEquals("1.0.0", response.getProfileVersion());
-        assertEquals(ValidateOkDto.InfoPackageTypeEnum.DEPOSIT, response.getInfoPackageType());
+        assertEquals(ValidateOkDto.InformationPackageTypeEnum.DEPOSIT, response.getInformationPackageType());
         assertNull(response.getBagLocation());
         assertEquals(0, response.getRuleViolations().size());
     }
@@ -241,8 +241,12 @@ class ValidateResourceIntegrationTest {
             .header("accept", "text/plain")
             .post(Entity.entity(filename.openStream(), MediaType.valueOf("application/zip")), String.class);
 
-        assertTrue(response.contains("bagLocation:"));
-        assertTrue(response.contains("ruleViolations:"));
+        assertTrue(response.contains("Bag location:"));
+        assertTrue(response.contains("Name:"));
+        assertTrue(response.contains("Profile version:"));
+        assertTrue(response.contains("Information package type:"));
+        assertTrue(response.contains("Is compliant:"));
+        assertTrue(response.contains("Rule violations:"));
     }
 
     @Test
@@ -311,7 +315,7 @@ class ValidateResourceIntegrationTest {
             + "          \"name\": \"dansDataVaultMetadata\",\n"
             + "          \"fields\": [\n"
             + "            {\n"
-            + "              \"typeName\": \"dansBagId\",\n"
+            + "              \"typeName\": \"dansSwordToken\",\n"
             + "              \"multiple\": false,\n"
             + "              \"typeClass\": \"primitive\",\n"
             + "              \"value\": \"urn:uuid:34632f71-11f8-48d8-9bf3-79551ad22b5e\"\n"
@@ -490,7 +494,7 @@ class ValidateResourceIntegrationTest {
             + "          \"name\": \"dansDataVaultMetadata\",\n"
             + "          \"fields\": [\n"
             + "            {\n"
-            + "              \"typeName\": \"dansBagId\",\n"
+            + "              \"typeName\": \"dansSwordToken\",\n"
             + "              \"multiple\": false,\n"
             + "              \"typeClass\": \"primitive\",\n"
             + "              \"value\": \"urn:uuid:34632f71-11f8-48d8-9bf3-79551ad22b5e\"\n"

@@ -94,7 +94,6 @@ public class ValidateResource {
     @Produces({ MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN })
     public Response validateZip(InputStream inputStream) {
         try {
-            // TODO rename fields in return type to match text version of original specs in api.yml
             var validateResult = validateInputStream(inputStream, DepositType.DEPOSIT);
             return Response.ok(validateResult).build();
         }
@@ -135,7 +134,7 @@ public class ValidateResource {
         result.setIsCompliant(isValid);
         result.setName(bagDir.getFileName().toString());
         result.setProfileVersion("1.0.0");
-        result.setInfoPackageType(toInfoPackageType(depositType));
+        result.setInformationPackageType(toInfoPackageType(depositType));
         result.setRuleViolations(results.stream()
             .filter(r -> r.getStatus().equals(RuleValidationResult.RuleValidationResultStatus.FAILURE))
             .map(rule -> {
@@ -169,10 +168,10 @@ public class ValidateResource {
         return DepositType.DEPOSIT;
     }
 
-    ValidateOkDto.InfoPackageTypeEnum toInfoPackageType(DepositType value) {
+    ValidateOkDto.InformationPackageTypeEnum toInfoPackageType(DepositType value) {
         if (value == DepositType.MIGRATION) {
-            return ValidateOkDto.InfoPackageTypeEnum.MIGRATION;
+            return ValidateOkDto.InformationPackageTypeEnum.MIGRATION;
         }
-        return ValidateOkDto.InfoPackageTypeEnum.DEPOSIT;
+        return ValidateOkDto.InformationPackageTypeEnum.DEPOSIT;
     }
 }

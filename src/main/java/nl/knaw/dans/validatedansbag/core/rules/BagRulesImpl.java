@@ -15,8 +15,15 @@
  */
 package nl.knaw.dans.validatedansbag.core.rules;
 
+import gov.loc.repository.bagit.exceptions.CorruptChecksumException;
+import gov.loc.repository.bagit.exceptions.FileNotInPayloadDirectoryException;
+import gov.loc.repository.bagit.exceptions.InvalidBagitFileFormatException;
+import gov.loc.repository.bagit.exceptions.MissingBagitFileException;
+import gov.loc.repository.bagit.exceptions.MissingPayloadDirectoryException;
+import gov.loc.repository.bagit.exceptions.MissingPayloadManifestException;
+import gov.loc.repository.bagit.exceptions.VerificationException;
 import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms;
-import nl.knaw.dans.validatedansbag.core.engine.RuleSkippedException;
+import nl.knaw.dans.validatedansbag.core.engine.RuleSkipDependenciesException;
 import nl.knaw.dans.validatedansbag.core.engine.RuleViolationDetailsException;
 import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReader;
 import nl.knaw.dans.validatedansbag.core.service.FileService;
@@ -32,7 +39,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Node;
 
-import javax.xml.xpath.XPathExpressionException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.CharacterCodingException;
@@ -60,16 +66,11 @@ public class BagRulesImpl implements BagRules {
 
     private final Pattern doiPattern = Pattern.compile("^10(\\.\\d+)+/.+");
 
-    private final Pattern doiUrlPattern = Pattern.compile("^((https?://(dx\\.)?)?doi\\.org/(urn:)?(doi:)?)?10(\\.\\d+)+/.+");
-    private final Pattern urnPattern = Pattern.compile("^urn:[A-Za-z\\d][A-Za-z\\d-]{0,31}:[a-z\\d()+,\\-\\\\.:=@;$_!*'%/?#]+$");
-
     private final IdentifierValidator identifierValidator;
 
     private final PolygonListValidator polygonListValidator;
 
     private final LicenseValidator licenseValidator;
-
-    private final String namespaceDcterms = "http://purl.org/dc/terms/";
 
     public BagRulesImpl(FileService fileService, BagItMetadataReader bagItMetadataReader, XmlReader xmlReader, OriginalFilepathsService originalFilepathsService,
         IdentifierValidator identifierValidator,
@@ -89,7 +90,9 @@ public class BagRulesImpl implements BagRules {
             try {
                 bagItMetadataReader.verifyBag(path);
             }
-            catch (Exception e) {
+            // only catch exceptions that have to do with the bag verification; other exceptions such as IOException should be propagated to the rule engine
+            catch (InvalidBagitFileFormatException | MissingPayloadManifestException | MissingPayloadDirectoryException | FileNotInPayloadDirectoryException | MissingBagitFileException |
+                   CorruptChecksumException | VerificationException e) {
                 throw new RuleViolationDetailsException(e.getLocalizedMessage(), e);
             }
         };
@@ -178,13 +181,6 @@ public class BagRulesImpl implements BagRules {
                     String.format("bag-info.txt may contain at most one element: '%s'", key)
                 );
             }
-            // TODO should this happen?
-            else if (items.size() == 0) {
-                // TODO rename exception to indicate that dependent rules can be skipped
-                throw new RuleSkippedException();
-            }
-
-//            return RuleResult.NOT_APPLICABLE;
         };
     }
 
@@ -278,21 +274,14 @@ public class BagRulesImpl implements BagRules {
     @Override
     public BagValidatorRule hasOnlyValidFileNames() {
         return (path) -> {
-            var bag = bagItMetadataReader.getBag(path)
-                .orElseThrow(() -> bagNotFoundException(path));
-
-            var manifest = bagItMetadataReader.getBagManifest(bag, StandardSupportedAlgorithms.SHA1)
-                .orElseThrow(() -> new RuleViolationDetailsException(String.format(
-                    "Dependent rule should have failed: Could not get bag '%s'", path
-                )));
-
+            var basePath = path.resolve("data");
             var invalidCharacters = ":*?\"<>|;#";
 
-            var files = manifest.getFileToChecksumMap().keySet()
+            var files = fileService.getAllFiles(basePath)
                 .stream()
-                .filter(file -> {
+                .filter(f -> {
                     for (var c : invalidCharacters.toCharArray()) {
-                        if (file.toString().indexOf(c) > -1) {
+                        if (f.getFileName().toString().indexOf(c) > -1) {
                             return true;
                         }
                     }
@@ -317,7 +306,7 @@ public class BagRulesImpl implements BagRules {
                     fileService.readFileContents(target, StandardCharsets.UTF_8);
                 }
                 else {
-                    throw new RuleSkippedException();
+                    throw new RuleSkipDependenciesException();
                 }
             }
             catch (CharacterCodingException e) {
@@ -352,6 +341,10 @@ public class BagRulesImpl implements BagRules {
     @Override
     public BagValidatorRule isOriginalFilepathsFileComplete() {
         return (path) -> {
+            if (!originalFilepathsService.exists(path)) {
+                throw new RuleSkipDependenciesException();
+            }
+
             var mapping = originalFilepathsService.getMapping(path);
 
             var document = xmlReader.readXmlFile(path.resolve("metadata/files.xml"));
@@ -360,16 +353,7 @@ public class BagRulesImpl implements BagRules {
                 "/files/file/@filepath");
 
             // the files defined in metadata/files.xml
-            var fileXmlPaths = searchExpressions.stream().map(e -> {
-                    try {
-                        return xmlReader.xpathToStream(document, e);
-                    }
-                    catch (XPathExpressionException ex) {
-                        return null;
-                    }
-                })
-                .filter(Objects::nonNull)
-                .flatMap(i -> i)
+            var fileXmlPaths = xmlReader.xpathsToStream(document, searchExpressions)
                 .map(Node::getTextContent)
                 .map(Path::of)
                 .collect(Collectors.toSet());
@@ -450,7 +434,7 @@ public class BagRulesImpl implements BagRules {
             var attr = node.getAttributes().getNamedItem("xsi:type").getTextContent();
 
             // converts a namespace uri into a prefix that is used in the document
-            var prefix = document.lookupPrefix(namespaceDcterms);
+            var prefix = document.lookupPrefix(XmlReader.NAMESPACE_DCTERMS);
 
             if (!attr.equals(String.format("%s:URI", prefix))) {
                 throw new RuleViolationDetailsException("No license with xsi:type=\"dcterms:URI\"");
@@ -568,13 +552,12 @@ public class BagRulesImpl implements BagRules {
     @Override
     public BagValidatorRule polygonsInSameMultiSurfaceHaveSameSrsName() {
         return (path) -> {
-            // TODO check if namespaces can be used
             var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
-            var expr = "//*[local-name() = 'MultiSurface']";
+            var expr = "//gml:MultiSurface";
             var nodes = xmlReader.xpathToStream(document, expr);
             var match = nodes.filter(node -> {
                     try {
-                        var srsNames = xmlReader.xpathToStream(node, ".//*[local-name() = 'Polygon']")
+                        var srsNames = xmlReader.xpathToStream(node, ".//gml:Polygon")
                             .map(p -> p.getAttributes().getNamedItem("srsName"))
                             .filter(Objects::nonNull)
                             .map(Node::getTextContent)
@@ -697,13 +680,7 @@ public class BagRulesImpl implements BagRules {
 
             var elementSelectors = xmlReader.xpathsToStream(document, expr);
 
-            var doiValues = xmlReader.xpathsToStream(document, List.of("//*[@scheme = 'id-type:DOI']", "//*[@scheme = 'DOI']"))
-                .filter(node -> node.getAttributes().getNamedItem("href") == null);
-
-            var urnValues = xmlReader.xpathsToStream(document, List.of("//*[@scheme = 'id-type:URN']", "//*[@scheme = 'URN']"))
-                .filter(node -> node.getAttributes().getNamedItem("href") == null);
-
-            var nodes = Stream.of(hrefNodes, schemeURINodes, valueURINodes, elementSelectors)
+            var errors = Stream.of(hrefNodes, schemeURINodes, valueURINodes, elementSelectors)
                 .flatMap(i -> i)
                 .map(node -> {
                     var value = node.getTextContent();
@@ -726,28 +703,7 @@ public class BagRulesImpl implements BagRules {
                     return null;
                 })
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
-
-            // TODO verify why DOI's are checked again
-            var dois = doiValues
-                .map(Node::getTextContent)
-                .filter(textContent -> !doiUrlPattern.matcher(textContent).matches())
-                .collect(Collectors.joining(", "));
-
-            var urns = urnValues
-                .map(Node::getTextContent)
-                .filter(textContent -> !urnPattern.matcher(textContent).matches())
-                .collect(Collectors.joining(", "));
-
-            var errors = new ArrayList<>(nodes);
-
-            if (dois.length() > 0) {
-                errors.add(new RuleViolationDetailsException(String.format("Invalid DOIs: %s", dois)));
-            }
-
-            if (urns.length() > 0) {
-                errors.add(new RuleViolationDetailsException(String.format("Invalid URNs: %s", urns)));
-            }
+                .collect(Collectors.toCollection(ArrayList::new));
 
             if (errors.size() > 0) {
                 throw new RuleViolationDetailsException(errors);
@@ -794,10 +750,30 @@ public class BagRulesImpl implements BagRules {
             var hasOrganizationalIdentifier = bagItMetadataReader.getField(path, "Has-Organizational-Identifier");
 
             if (hasOrganizationalIdentifier.isEmpty()) {
-                throw new RuleSkippedException();
+                throw new RuleSkipDependenciesException();
             }
 
             bagInfoContainsAtMostOneOf("Has-Organizational-Identifier-Version").validate(path);
+        };
+    }
+
+    @Override
+    public BagValidatorRule containsNotJustMD5Manifest() {
+        return path -> {
+            var bag = bagItMetadataReader.getBag(path).orElseThrow();
+            var manifests = bagItMetadataReader.getBagManifests(bag);
+
+            var hasOtherManifests = false;
+
+            for (var manifest : manifests) {
+                if (!StandardSupportedAlgorithms.MD5.equals(manifest.getAlgorithm())) {
+                    hasOtherManifests = true;
+                }
+            }
+
+            if (!hasOtherManifests) {
+                throw new RuleViolationDetailsException("The bag contains no manifests or only a MD5 manifest");
+            }
         };
     }
 }

@@ -15,6 +15,6 @@
  */
 package nl.knaw.dans.validatedansbag.core.engine;
 
-public class RuleSkippedException extends Throwable {
+public class RuleSkipDependenciesException extends Throwable {
 
 }

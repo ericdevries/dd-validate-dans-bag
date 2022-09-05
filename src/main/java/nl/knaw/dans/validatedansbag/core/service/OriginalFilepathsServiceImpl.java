@@ -68,4 +68,9 @@ public class OriginalFilepathsServiceImpl implements OriginalFilepathsService {
 
         return result;
     }
+
+    @Override
+    public boolean exists(Path path) {
+        return fileService.exists(path.resolve(filename));
+    }
 }

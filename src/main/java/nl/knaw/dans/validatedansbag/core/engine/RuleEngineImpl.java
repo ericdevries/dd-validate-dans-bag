@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class RuleEngineImpl implements RuleEngine {
     private static final Logger log = LoggerFactory.getLogger(RuleEngineImpl.class);
@@ -46,7 +47,7 @@ public class RuleEngineImpl implements RuleEngine {
         return true;
     }
 
-    // return true if one of its dependencies was skipped or it has failed
+    // return true if one of its dependencies was skipped, or it has failed
     private boolean shouldBeSkipped(NumberedRule rule, Map<String, RuleValidationResult> results) {
         if (rule.getDependencies() != null && rule.getDependencies().size() > 0) {
             for (var dependency : rule.getDependencies()) {
@@ -66,8 +67,28 @@ public class RuleEngineImpl implements RuleEngine {
 
     @Override
     public List<RuleValidationResult> validateRules(Path bag, NumberedRule[] rules, DepositType depositType) throws Exception {
+        // validate each rule number is unique
+        var duplicateRules = getDuplicateRules(rules);
+
+        if (!duplicateRules.isEmpty()) {
+            throw new RuleEngineConfigurationException(String.format(
+                "Duplicate rule numbers found: %s", String.join(", ", duplicateRules)
+            ));
+        }
+
+        var unresolvedDependencies = getUnresolvedDependencies(rules);
+
+        if (!unresolvedDependencies.isEmpty()) {
+            throw new RuleEngineConfigurationException(String.format(
+                "Some rules depend on other rules that do not exist: %s", String.join(", ", unresolvedDependencies)
+            ));
+        }
+        return doValidateRules(bag, rules, depositType);
+    }
+
+    public List<RuleValidationResult> doValidateRules(Path bag, NumberedRule[] rules, DepositType depositType) throws Exception {
         var ruleResults = new HashMap<String, RuleValidationResult>();
-        var remainingRules = new ArrayList<>(Arrays.asList(rules));
+        var remainingRules = filterRulesOnDepositType(rules, depositType);
 
         while (remainingRules.size() > 0) {
             var toRemove = new HashSet<NumberedRule>();
@@ -92,7 +113,7 @@ public class RuleEngineImpl implements RuleEngine {
                         rule.getRule().validate(bag);
                         ruleResults.put(number, new RuleValidationResult(number, RuleValidationResult.RuleValidationResultStatus.SUCCESS));
                     }
-                    catch (RuleSkippedException e) {
+                    catch (RuleSkipDependenciesException e) {
                         log.trace("Task {} was skipped because it does not apply to this deposit", rule.getNumber());
                         ruleResults.put(number, new RuleValidationResult(number, RuleValidationResult.RuleValidationResultStatus.SKIPPED));
                     }
@@ -124,11 +145,69 @@ public class RuleEngineImpl implements RuleEngine {
         return new ArrayList<>(ruleResults.values());
     }
 
+    // find any rule that depends on a rule that doesn't exist
+    private List<String> getUnresolvedDependencies(NumberedRule[] rules) {
+        var unresolved = new ArrayList<String>();
+
+        for (var depositType : List.of(DepositType.DEPOSIT, DepositType.MIGRATION)) {
+            var typedRules = filterRulesOnDepositType(rules, depositType);
+
+            var keys = typedRules.stream()
+                .map(NumberedRule::getNumber)
+                .collect(Collectors.toSet());
+
+            // this does not check for circular dependencies or self-references
+            for (var rule : typedRules) {
+                if (rule.getDependencies() != null && !keys.containsAll(rule.getDependencies())) {
+                    unresolved.add(rule.getNumber());
+                }
+            }
+        }
+
+        return unresolved;
+    }
+
+    // find any rule that has a number that is present multiple times in the list
+    private List<String> getDuplicateRules(NumberedRule[] rules) {
+        var duplicates = new ArrayList<String>();
+        var seen = new HashMap<String, DepositType>();
+
+        for (var rule : rules) {
+            var number = rule.getNumber();
+
+            // it is considered a duplicate if
+            // - one of the 2 (or both) rules have type ALL
+            // - both have the same type
+            if (seen.containsKey(number)) {
+                var s = seen.get(number);
+
+                if (s.equals(DepositType.ALL) || rule.getDepositType().equals(DepositType.ALL)) {
+                    duplicates.add(number);
+                }
+
+                else if (s.equals(rule.getDepositType())) {
+                    duplicates.add(number);
+                }
+            }
+
+            seen.put(number, rule.getDepositType());
+        }
+
+        return duplicates;
+    }
+
     private boolean shouldBeIgnoredBecauseOfDepositType(NumberedRule rule, DepositType depositType) {
         if (DepositType.ALL.equals(rule.getDepositType())) {
             return false;
         }
 
         return !rule.getDepositType().equals(depositType);
+    }
+
+    List<NumberedRule> filterRulesOnDepositType(NumberedRule[] rules, DepositType depositType) {
+
+        return Arrays.stream(rules)
+            .filter(rule -> !shouldBeIgnoredBecauseOfDepositType(rule, depositType))
+            .collect(Collectors.toList());
     }
 }

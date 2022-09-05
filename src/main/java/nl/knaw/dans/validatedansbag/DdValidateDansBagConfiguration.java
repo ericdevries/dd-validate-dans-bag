@@ -18,6 +18,7 @@ package nl.knaw.dans.validatedansbag;
 
 import io.dropwizard.Configuration;
 import nl.knaw.dans.validatedansbag.core.config.DataverseConfig;
+import nl.knaw.dans.validatedansbag.core.config.LicenseConfig;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
@@ -28,6 +29,13 @@ public class DdValidateDansBagConfiguration extends Configuration {
     @Valid
     @NotNull
     private DataverseConfig dataverse;
+    @Valid
+    @NotNull
+    private LicenseConfig licenseConfig;
+
+    public LicenseConfig getLicenseConfig() {
+        return licenseConfig;
+    }
 
     public DataverseConfig getDataverse() {
         return dataverse;

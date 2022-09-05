@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface BagItMetadataReader {
 
@@ -45,4 +46,6 @@ public interface BagItMetadataReader {
     List<String> getField(Path bagDir, String field);
 
     String getSingleField(Path bagDir, String field);
+
+    Set<Manifest> getBagManifests(Bag bag);
 }

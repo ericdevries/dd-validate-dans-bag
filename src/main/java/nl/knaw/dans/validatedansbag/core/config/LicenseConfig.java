@@ -16,43 +16,20 @@
 package nl.knaw.dans.validatedansbag.core.config;
 
 import javax.validation.Valid;
-import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
-import java.util.Set;
+import java.net.URI;
+import java.util.List;
 
-@SuppressWarnings("unused")
-public class DataverseConfig {
+public class LicenseConfig {
     @Valid
     @NotNull
-    private String baseUrl;
-    @Valid
-    @NotNull
-    private String apiToken;
-    @Valid
-    @NotEmpty
-    private Set<String> allowedDepositorRoles;
+    private List<URI> allowedLicenses;
 
-    public Set<String> getAllowedDepositorRoles() {
-        return allowedDepositorRoles;
+    public List<URI> getAllowedLicenses() {
+        return allowedLicenses;
     }
 
-    public void setAllowedDepositorRoles(Set<String> allowedDepositorRoles) {
-        this.allowedDepositorRoles = allowedDepositorRoles;
-    }
-
-    public String getApiToken() {
-        return apiToken;
-    }
-
-    public void setApiToken(String apiToken) {
-        this.apiToken = apiToken;
-    }
-
-    public String getBaseUrl() {
-        return baseUrl;
-    }
-
-    public void setBaseUrl(String baseUrl) {
-        this.baseUrl = baseUrl;
+    public void setAllowedLicenses(List<URI> allowedLicenses) {
+        this.allowedLicenses = allowedLicenses;
     }
 }

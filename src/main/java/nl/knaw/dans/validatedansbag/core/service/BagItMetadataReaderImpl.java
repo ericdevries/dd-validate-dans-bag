@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public class BagItMetadataReaderImpl implements BagItMetadataReader {
     private static final Logger log = LoggerFactory.getLogger(BagItMetadataReaderImpl.class);
@@ -89,5 +90,10 @@ public class BagItMetadataReaderImpl implements BagItMetadataReader {
             .stream()
             .findFirst()
             .orElse(null);
+    }
+
+    @Override
+    public Set<Manifest> getBagManifests(Bag bag) {
+        return bag.getPayLoadManifests();
     }
 }

@@ -63,7 +63,7 @@ class BagRulesImplTest {
     final OriginalFilepathsService originalFilepathsService = Mockito.mock(OriginalFilepathsService.class);
     final DataverseService dataverseService = Mockito.mock(DataverseService.class);
 
-    final LicenseValidator licenseValidator = new LicenseValidatorImpl();
+    final LicenseValidator licenseValidator = new LicenseValidatorImpl(new TestLicenseConfig());
 
     @AfterEach
     void afterEach() {
@@ -933,7 +933,7 @@ class BagRulesImplTest {
         var exceptions = assertThrows(RuleViolationDetailsException.class,
             () -> checker.allUrlsAreValid().validate(Path.of("bagdir")));
 
-        assertEquals(6, exceptions.getExceptions().size());
+        assertEquals(4, exceptions.getExceptions().size());
     }
 
     @Test

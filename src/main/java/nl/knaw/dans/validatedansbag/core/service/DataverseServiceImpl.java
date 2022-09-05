@@ -30,6 +30,7 @@ import nl.knaw.dans.validatedansbag.core.config.DataverseConfig;
 import java.io.IOException;
 import java.net.URI;
 import java.util.List;
+import java.util.Set;
 
 public class DataverseServiceImpl implements DataverseService {
     private final DataverseConfig dataverseConfig;
@@ -76,5 +77,10 @@ public class DataverseServiceImpl implements DataverseService {
         var client = this.getDataverseClient();
 
         return client.dataset(globalId).getLatestVersion();
+    }
+
+    @Override
+    public Set<String> getAllowedDepositorRoles() {
+        return dataverseConfig.getAllowedDepositorRoles();
     }
 }

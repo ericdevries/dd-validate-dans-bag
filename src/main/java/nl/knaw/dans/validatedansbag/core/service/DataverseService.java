@@ -24,6 +24,7 @@ import nl.knaw.dans.lib.dataverse.model.search.SearchResult;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 
 public interface DataverseService {
 
@@ -31,6 +32,7 @@ public interface DataverseService {
     DataverseResponse<SearchResult> searchBySwordToken(String token) throws IOException, DataverseException;
     DataverseResponse<SearchResult> searchDatasetsByOrganizationalIdentifier(String identifier) throws IOException, DataverseException;
     DataverseHttpResponse<List<RoleAssignmentReadOnly>> getRoleAssignments(String identifier) throws IOException, DataverseException;
-
     DataverseResponse<DatasetLatestVersion> getDataset(String globalId) throws IOException, DataverseException;
+
+    Set<String> getAllowedDepositorRoles();
 }

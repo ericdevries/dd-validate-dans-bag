@@ -42,9 +42,9 @@ public class ValidateOkDtoYamlMessageBodyWriter implements MessageBodyWriter<Val
     }
 
     @Override
-    public void writeTo(ValidateOkDto validateJsonOkDto, Class<?> type, Type genericType, Annotation[] annotations, MediaType mediaType, MultivaluedMap<String, Object> httpHeaders,
+    public void writeTo(ValidateOkDto validateOkResult, Class<?> type, Type genericType, Annotation[] annotations, MediaType mediaType, MultivaluedMap<String, Object> httpHeaders,
         OutputStream entityStream) throws IOException, WebApplicationException {
-        var result = objectMapper.writeValueAsString(validateJsonOkDto);
+        var result = objectMapper.writeValueAsString(validateOkResult);
         entityStream.write(result.getBytes(StandardCharsets.UTF_8));
     }
 }

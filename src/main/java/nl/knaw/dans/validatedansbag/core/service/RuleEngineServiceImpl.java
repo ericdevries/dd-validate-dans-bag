@@ -34,7 +34,6 @@ public class RuleEngineServiceImpl implements RuleEngineService {
     private final FileService fileService;
     private final NumberedRule[] defaultRules;
 
-    private final Path dataPath = Path.of("data");
     private final Path datasetPath = Path.of("metadata/dataset.xml");
     private final Path metadataPath = Path.of("metadata");
     private final Path metadataFilesPath = Path.of("metadata/files.xml");
@@ -46,7 +45,6 @@ public class RuleEngineServiceImpl implements RuleEngineService {
         // validity
         this.defaultRules = new NumberedRule[] {
             new NumberedRule("1.1.1", bagRules.bagIsValid()),
-            new NumberedRule("1.1.1(datadir)", bagRules.containsDir(dataPath)),
 
             // bag-info.txt
             new NumberedRule("1.2.1", bagRules.bagInfoExistsAndIsWellFormed()),
@@ -59,17 +57,13 @@ public class RuleEngineServiceImpl implements RuleEngineService {
             new NumberedRule("1.2.5(b)", bagRules.organizationalIdentifierVersionIsValid(), List.of("1.2.1", "1.2.5(a)")),
 
             // manifests
-            // TODO implement rules, only check if there is not just a md5 manifest
-            new NumberedRule("1.3.1(a)", bagRules.containsFile(Path.of("manifest-sha1.txt"))),
-            // TODO this one does not apply
-            new NumberedRule("1.3.1(b)", bagRules.bagShaPayloadManifestContainsAllPayloadFiles()),
+            new NumberedRule("1.3.1", bagRules.containsNotJustMD5Manifest()),
 
             // Structural
             new NumberedRule("2.1", bagRules.containsDir(metadataPath)),
             new NumberedRule("2.2(a)", bagRules.containsFile(metadataPath.resolve("dataset.xml"))),
             new NumberedRule("2.2(b)", bagRules.containsFile(metadataPath.resolve("files.xml"))),
 
-            // TODO make numbers not unique so we can have duplicates for different deposit types
             // this also covers 2.3 and 2.4 for MIGRATION status deposits
             new NumberedRule("2.4", bagRules.containsNothingElseThan(metadataPath, new String[] {
                 "dataset.xml",
@@ -89,22 +83,17 @@ public class RuleEngineServiceImpl implements RuleEngineService {
                 "files.xml"
             }), DepositType.DEPOSIT, List.of("2.1")),
 
-            // TODO dont use manifest, use actual files
             new NumberedRule("2.5", bagRules.hasOnlyValidFileNames(), List.of("2.1")),
 
             // original-filepaths.txt
-            new NumberedRule("2.6.1", bagRules.optionalFileIsUtf8Decodable(Path.of("original-filepaths.txt")), List.of("1.1.1(datadir)")),
-            // TODO just 1 rule, no need to check for whitespace
-            new NumberedRule("2.6.2(a)", bagRules.originalFilePathsDoNotContainSpaces(), List.of("1.1.1(datadir)", "2.6.1", "2.2(b)")),
-            new NumberedRule("2.6.2(b)", bagRules.isOriginalFilepathsFileComplete(), List.of("2.6.2(a)")),
+            new NumberedRule("2.6.1", bagRules.optionalFileIsUtf8Decodable(Path.of("original-filepaths.txt")), List.of("1.1.1")),
+            new NumberedRule("2.6.2", bagRules.isOriginalFilepathsFileComplete(), List.of("2.6.1")),
 
             // metadata/dataset.xml
             new NumberedRule("3.1.1", xmlRules.xmlFileConfirmsToSchema(datasetPath, "dataset.xml"), List.of("2.2(a)")),
             new NumberedRule("3.1.2", bagRules.ddmMayContainDctermsLicenseFromList(), List.of("3.1.1")),
             new NumberedRule("3.1.3", bagRules.ddmDoiIdentifiersAreValid(), List.of("3.1.1")),
 
-            // TODO check how we can validate each kind of identifier (assumptions about ISNI and ORCID are made now based on wikipedia)
-            // this should be OK now
             new NumberedRule("3.1.4(a)", bagRules.ddmDaisAreValid(), List.of("3.1.1")),
             new NumberedRule("3.1.4(b)", bagRules.ddmIsnisAreValid(), List.of("3.1.1")),
             new NumberedRule("3.1.4(c)", bagRules.ddmOrcidsAreValid(), List.of("3.1.1")),

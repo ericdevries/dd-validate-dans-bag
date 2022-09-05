@@ -121,7 +121,7 @@ class DatastationRulesImplTest {
             + "          \"name\": \"dansDataVaultMetadata\",\n"
             + "          \"fields\": [\n"
             + "            {\n"
-            + "              \"typeName\": \"dansBagId\",\n"
+            + "              \"typeName\": \"dansSwordToken\",\n"
             + "              \"multiple\": false,\n"
             + "              \"typeClass\": \"primitive\",\n"
             + "              \"value\": \"urn:uuid:2cd3745a-8b42-44a7-b1ca-5c93aa6f4e32\"\n"

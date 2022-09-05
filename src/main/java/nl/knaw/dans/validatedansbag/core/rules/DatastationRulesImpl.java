@@ -17,13 +17,12 @@ package nl.knaw.dans.validatedansbag.core.rules;
 
 import nl.knaw.dans.lib.dataverse.model.dataset.PrimitiveSingleValueField;
 import nl.knaw.dans.lib.dataverse.model.search.DatasetResultItem;
-import nl.knaw.dans.validatedansbag.core.engine.RuleSkippedException;
+import nl.knaw.dans.validatedansbag.core.engine.RuleSkipDependenciesException;
 import nl.knaw.dans.validatedansbag.core.engine.RuleViolationDetailsException;
 import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReader;
 import nl.knaw.dans.validatedansbag.core.service.DataverseService;
 
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 public class DatastationRulesImpl implements DatastationRules {
@@ -35,14 +34,6 @@ public class DatastationRulesImpl implements DatastationRules {
         this.dataverseService = dataverseService;
     }
 
-    /**
-     * (a) The bag-info.txt file MAY contain at most one element called Has-Organizational-Identifier. The value of this element MUST start with a client specific prefix agreed between the client and
-     * DANS. If there already exists a dataset in the targeted Data Station with the same value in the dataset metadata field dansOtherId then Is-Version-Of as described in 1.2.4 MUST be specified to
-     * indicate that this deposit is an update of that dataset. (b) If this Has-Organizational-Identifier is given, at most one Has-Organizational-Identifier-Version MAY be present, containing the
-     * version number.
-     *
-     * @return
-     */
     @Override
     public BagValidatorRule organizationalIdentifierIsValid() {
 
@@ -54,7 +45,7 @@ public class DatastationRulesImpl implements DatastationRules {
             var hasOrganizationalIdentifier = bagItMetadataReader.getField(path, "Has-Organizational-Identifier");
 
             if (hasOrganizationalIdentifier.isEmpty()) {
-                throw new RuleSkippedException();
+                throw new RuleSkipDependenciesException();
             }
 
             else if (hasOrganizationalIdentifier.size() > 1) {
@@ -65,9 +56,6 @@ public class DatastationRulesImpl implements DatastationRules {
             // get isVersionOf or null if it doesn't exist
             // note that the limitation of 'there can only be one' is checked in another rule
             var isVersionOf = bagItMetadataReader.getSingleField(path, "Is-Version-Of");
-
-            // check if prefix matches what was agreed on
-            // TODO determine how to check for a client specific prefix agreed between the client and DANS
 
             // check if dataset exists in the datastation
             var searchResult = dataverseService.searchDatasetsByOrganizationalIdentifier(identifier);
@@ -151,8 +139,8 @@ public class DatastationRulesImpl implements DatastationRules {
 
                 var assignments = dataverseService.getRoleAssignments(itemId);
 
-                // TODO move to config?
-                var validRoles = Set.of("contributor", "contributorplus");
+                // when the user has one of these valid roles, the check succeeds
+                var validRoles = dataverseService.getAllowedDepositorRoles();
                 var matchingAssignments = assignments.getData().stream()
                     .filter(a -> a.getAssignee().replaceFirst("@", "").equals(userAccount))
                     .filter(a -> validRoles.contains(a.get_roleAlias()))

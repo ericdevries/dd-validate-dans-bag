@@ -54,31 +54,9 @@ public class FilesXmlRulesImpl implements FilesXmlRules {
 
     @Override
     public BagValidatorRule filesXmlFilePathAttributesContainLocalBagPathAndNonPayloadFilesAreNotDescribed() {
-        return path -> {
-            var errors = new ArrayList<RuleViolationDetailsException>();
-
-            // TODO files.xml is always checked against XSD, so filepath attribute is always set
-            // Each file element's filepath attribute MUST contain the bag local path to the payload file described.
-            try {
-                filesXmlFileElementsAllHaveFilepathAttribute(path);
-            }
-            catch (RuleViolationDetailsException e) {
-                errors.add(e);
-            }
-
-            // 2.6.2 is already checked
-            // Directories and non-payload files MUST NOT be described by a file element.
-            try {
-                filesXmlDescribesOnlyPayloadFiles(path);
-            }
-            catch (RuleViolationDetailsException e) {
-                errors.add(e);
-            }
-
-            if (errors.size() > 0) {
-                throw new RuleViolationDetailsException(errors);
-            }
-        };
+        // 2.6.2 is already checked
+        // Directories and non-payload files MUST NOT be described by a file element.
+        return this::filesXmlDescribesOnlyPayloadFiles;
     }
 
     @Override

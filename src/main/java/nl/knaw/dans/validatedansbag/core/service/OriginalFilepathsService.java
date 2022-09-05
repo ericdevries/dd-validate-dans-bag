@@ -24,6 +24,8 @@ public interface OriginalFilepathsService {
     List<OriginalFilePathItem> getMapping(Path bagDir);
     Map<Path, Path> getMappingsFromOriginalToRenamed(Path bagDir);
 
+    boolean exists(Path path);
+
     class OriginalFilePathItem {
         private final Path originalFilename;
         private final Path renamedFilename;

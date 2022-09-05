@@ -15,28 +15,39 @@
  */
 package nl.knaw.dans.validatedansbag.core.validator;
 
-import nl.knaw.dans.validatedansbag.core.validator.LicenseValidatorImpl;
+import nl.knaw.dans.validatedansbag.core.config.LicenseConfig;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import java.net.URI;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class LicenseValidatorImplTest {
+
+    LicenseConfig config = new LicenseConfig();
 
     @Test
     void isValidLicense() {
         var license = "http://creativecommons.org/licenses/by-nc-nd/4.0/";
-        assertTrue(new LicenseValidatorImpl().isValidLicense(license));
+        config.setAllowedLicenses(List.of(URI.create(license)));
+        assertTrue(new LicenseValidatorImpl(config).isValidLicense(license));
     }
 
     @Test
     void isValidLicenseWhenTrailingSlashIsMissing() {
         var license = "http://creativecommons.org/licenses/by-nc-nd/4.0";
-        assertTrue(new LicenseValidatorImpl().isValidLicense(license));
+        config.setAllowedLicenses(List.of(URI.create(license)));
+        assertTrue(new LicenseValidatorImpl(config).isValidLicense(license));
     }
+
     @Test
     void isInvalidLicense() {
         var license = "http://creativecommons.org/licenses/by-nc-nd/4";
-        assertFalse(new LicenseValidatorImpl().isValidLicense(license));
-        assertFalse(new LicenseValidatorImpl().isValidLicense("something completely different"));
+        var validLicense = "http://creativecommons.org/licenses/by-nc-nd/4.0";
+        config.setAllowedLicenses(List.of(URI.create(validLicense)));
+        assertFalse(new LicenseValidatorImpl(config).isValidLicense(license));
+        assertFalse(new LicenseValidatorImpl(config).isValidLicense("something completely different"));
     }
 }

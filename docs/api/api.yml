@@ -123,28 +123,28 @@ components:
         - isCompliant
         - ruleViolations
       properties:
-        bagLocation:
+        Bag location:
           description: the local path to the bag; if not provided, the bag was sent as ZIP file in the
             message body
           type: string
           format: path
-        name:
+        Name:
           description: the name of the top directory of the bag
           type: string
           format: url
-        profileVersion:
+        Profile version:
           description: the exact version of DANS BagIt Profile that was used to validate
           type: string
-        infoPackageType:
+        Information package type:
           description: how the bag was validated (as DEPOSIT or MIGRATION)
           type: string
           enum:
             - DEPOSIT
             - MIGRATION
-        isCompliant:
+        Is compliant:
           description: true if the bag was compliant, false otherwise
           type: boolean
-        ruleViolations:
+        Rule violations:
           description: list of violations, if isCompliant is true, an emty list
           type: array
           items:
