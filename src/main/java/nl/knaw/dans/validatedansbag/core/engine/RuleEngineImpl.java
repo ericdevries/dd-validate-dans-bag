@@ -55,7 +55,7 @@ public class RuleEngineImpl implements RuleEngine {
 
                 if (result != null) {
                     // if the parent was skipped or failed, return true
-                    if (RuleValidationResult.RuleValidationResultStatus.SKIPPED.equals(result.getStatus()) || RuleValidationResult.RuleValidationResultStatus.FAILURE.equals(result.getStatus())) {
+                    if (RuleValidationResult.RuleValidationResultStatus.SKIPPED.equals(result.getStatus()) || RuleValidationResult.RuleValidationResultStatus.FAILURE.equals(result.getStatus()) || result.isShouldSkipDependencies()) {
                         return true;
                     }
                 }
@@ -114,8 +114,10 @@ public class RuleEngineImpl implements RuleEngine {
                         ruleResults.put(number, new RuleValidationResult(number, RuleValidationResult.RuleValidationResultStatus.SUCCESS));
                     }
                     catch (RuleSkipDependenciesException e) {
-                        log.trace("Task {} was skipped because it does not apply to this deposit", rule.getNumber());
-                        ruleResults.put(number, new RuleValidationResult(number, RuleValidationResult.RuleValidationResultStatus.SKIPPED));
+                        log.trace("Task {} will skip dependent tasks because it does not apply to this deposit", rule.getNumber());
+                        var result = new RuleValidationResult(number, RuleValidationResult.RuleValidationResultStatus.SUCCESS);
+                        result.setShouldSkipDependencies(true);
+                        ruleResults.put(number, result);
                     }
                     catch (RuleViolationDetailsException e) {
                         log.trace("Task {} failed", rule.getNumber(), e);

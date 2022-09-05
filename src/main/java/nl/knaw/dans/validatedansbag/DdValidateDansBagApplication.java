@@ -63,7 +63,7 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
         var daiDigestCalculator = new IdentifierValidatorImpl();
         var polygonListValidator = new PolygonListValidatorImpl();
         var originalFilepathsService = new OriginalFilepathsServiceImpl(fileService);
-        var licenseValidator = new LicenseValidatorImpl(configuration.getLicenseConfig());
+        var licenseValidator = new LicenseValidatorImpl(configuration.getLicenses());
 
         var xmlSchemaValidator = new XmlSchemaValidatorImpl();
 

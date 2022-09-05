@@ -32,7 +32,7 @@ dataverse:
     - contributorplus
 
 licenses:
-  validLicenses:
+  allowedLicenses:
     - "http://creativecommons.org/licenses/by-nc-nd/4.0/"
     - "http://creativecommons.org/licenses/by-nc-sa/3.0"
     - "http://creativecommons.org/licenses/by-nc-sa/4.0/"

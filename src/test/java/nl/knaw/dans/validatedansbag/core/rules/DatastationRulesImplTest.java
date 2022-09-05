@@ -30,6 +30,7 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.message.BasicHttpResponse;
 import org.apache.http.message.BasicStatusLine;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -37,6 +38,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -45,7 +47,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class DatastationRulesImplTest {
 
     final BagItMetadataReader bagItMetadataReader = Mockito.mock(BagItMetadataReader.class);
-    final DataverseServiceImpl dataverseService = new DataverseServiceImpl(new DataverseConfig());
+    final DataverseServiceImpl dataverseService = new DataverseServiceImpl(new DataverseConfig("", "", Set.of("contributor", "contributorplus")));
     final HttpClient httpClient = Mockito.mock(HttpClient.class);
 
     @AfterEach

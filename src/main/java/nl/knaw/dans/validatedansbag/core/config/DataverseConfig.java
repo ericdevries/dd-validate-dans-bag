@@ -32,6 +32,16 @@ public class DataverseConfig {
     @NotEmpty
     private Set<String> allowedDepositorRoles;
 
+    public DataverseConfig() {
+
+    }
+
+    public DataverseConfig(String baseUrl, String apiToken, Set<String> allowedDepositorRoles) {
+        this.baseUrl = baseUrl;
+        this.apiToken = apiToken;
+        this.allowedDepositorRoles = allowedDepositorRoles;
+    }
+
     public Set<String> getAllowedDepositorRoles() {
         return allowedDepositorRoles;
     }

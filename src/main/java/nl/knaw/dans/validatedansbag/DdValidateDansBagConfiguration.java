@@ -31,10 +31,10 @@ public class DdValidateDansBagConfiguration extends Configuration {
     private DataverseConfig dataverse;
     @Valid
     @NotNull
-    private LicenseConfig licenseConfig;
+    private LicenseConfig licenses;
 
-    public LicenseConfig getLicenseConfig() {
-        return licenseConfig;
+    public LicenseConfig getLicenses() {
+        return licenses;
     }
 
     public DataverseConfig getDataverse() {

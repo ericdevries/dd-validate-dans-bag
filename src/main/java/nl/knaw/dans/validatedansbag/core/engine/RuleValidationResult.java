@@ -20,6 +20,7 @@ public class RuleValidationResult {
     private final String number;
     private final RuleValidationResultStatus status;
     private final RuleViolationDetailsException exception;
+    private boolean shouldSkipDependencies = false;
 
     public RuleValidationResult(String number, RuleValidationResultStatus status) {
         this.number = number;
@@ -31,6 +32,14 @@ public class RuleValidationResult {
         this.number = number;
         this.status = status;
         this.exception = exception;
+    }
+
+    public boolean isShouldSkipDependencies() {
+        return shouldSkipDependencies;
+    }
+
+    public void setShouldSkipDependencies(boolean shouldSkipDependencies) {
+        this.shouldSkipDependencies = shouldSkipDependencies;
     }
 
     public String getNumber() {
