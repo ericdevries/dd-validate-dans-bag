@@ -163,7 +163,7 @@ class ValidateResourceIntegrationTest {
 
         assertTrue(response.getIsCompliant());
         assertEquals("1.0.0", response.getProfileVersion());
-        assertEquals(ValidateOkDto.InfoPackageTypeEnum.DEPOSIT, response.getInfoPackageType());
+        assertEquals(ValidateOkDto.InfoPackageTypeEnum.MIGRATION, response.getInfoPackageType());
         assertEquals(filename, response.getBagLocation());
         assertEquals(0, response.getRuleViolations().size());
     }
@@ -185,7 +185,7 @@ class ValidateResourceIntegrationTest {
 
         assertFalse(response.getIsCompliant());
         assertEquals("1.0.0", response.getProfileVersion());
-        assertEquals(ValidateOkDto.InfoPackageTypeEnum.DEPOSIT, response.getInfoPackageType());
+        assertEquals(ValidateOkDto.InfoPackageTypeEnum.MIGRATION, response.getInfoPackageType());
         assertEquals(filename, response.getBagLocation());
         assertEquals(4, response.getRuleViolations().size());
     }
