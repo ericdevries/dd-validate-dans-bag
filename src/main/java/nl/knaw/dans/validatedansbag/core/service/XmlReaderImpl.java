@@ -90,7 +90,6 @@ public class XmlReaderImpl implements XmlReader {
             .parse(path.toFile());
     }
 
-    @Override
     public Document readXmlString(String str) throws ParserConfigurationException, IOException, SAXException {
         var factory = getFactory();
 
@@ -99,8 +98,7 @@ public class XmlReaderImpl implements XmlReader {
             .parse(new InputSource(new StringReader(str)));
     }
 
-    @Override
-    public Object evaluateXpath(Node node, String expr, QName type) throws XPathExpressionException {
+    private Object evaluateXpath(Node node, String expr, QName type) throws XPathExpressionException {
         return xpath.compile(expr).evaluate(node, type);
     }
 

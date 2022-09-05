@@ -148,7 +148,7 @@ class DatastationRulesImplTest {
     }
 
     @Test
-    void testOrganizationIdentifierHasMoreThanOneEntry() throws Exception {
+    void testOrganizationIdentifierHasMoreThanOneEntry() {
         var dv = createDataverseServiceSpy();
         var checker = new DatastationRulesImpl(bagItMetadataReader, dv);
 

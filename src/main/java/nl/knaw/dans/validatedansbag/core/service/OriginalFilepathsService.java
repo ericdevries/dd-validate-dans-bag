@@ -21,8 +21,6 @@ import java.util.Map;
 
 public interface OriginalFilepathsService {
 
-    boolean exists(Path bagDir);
-
     List<OriginalFilePathItem> getMapping(Path bagDir);
     Map<Path, Path> getMappingsFromOriginalToRenamed(Path bagDir);
 

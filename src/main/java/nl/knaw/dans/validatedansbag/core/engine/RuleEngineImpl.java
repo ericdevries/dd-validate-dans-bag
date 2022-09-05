@@ -46,6 +46,7 @@ public class RuleEngineImpl implements RuleEngine {
         return true;
     }
 
+    // return true if one of its dependencies was skipped or it has failed
     private boolean shouldBeSkipped(NumberedRule rule, Map<String, RuleValidationResult> results) {
         if (rule.getDependencies() != null && rule.getDependencies().size() > 0) {
             for (var dependency : rule.getDependencies()) {

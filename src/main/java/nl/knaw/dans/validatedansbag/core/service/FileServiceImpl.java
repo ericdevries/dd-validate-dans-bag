@@ -32,7 +32,6 @@ import java.util.stream.Collectors;
 import java.util.zip.ZipInputStream;
 
 public class FileServiceImpl implements FileService {
-    private final String BAG_PREFIX = "bag-";
 
     @Override
     public boolean isDirectory(Path path) {
@@ -76,12 +75,12 @@ public class FileServiceImpl implements FileService {
     @Override
     public CharBuffer readFileContents(Path path, Charset charset) throws IOException {
         var contents = readFileContents(path);
-        return StandardCharsets.UTF_8.newDecoder().decode(ByteBuffer.wrap(contents));
+        return charset.newDecoder().decode(ByteBuffer.wrap(contents));
     }
 
     @Override
     public Optional<Path> extractZipFile(InputStream inputStream) throws IOException {
-        var tempPath = Files.createTempDirectory(BAG_PREFIX);
+        var tempPath = Files.createTempDirectory("bag-");
 
         try (var input = new ZipInputStream(inputStream)) {
             var entry = input.getNextEntry();

@@ -15,7 +15,6 @@
  */
 package nl.knaw.dans.validatedansbag.core.service;
 
-import nl.knaw.dans.validatedansbag.core.BagNotFoundException;
 import nl.knaw.dans.validatedansbag.core.engine.DepositType;
 import nl.knaw.dans.validatedansbag.core.engine.RuleValidationResult;
 

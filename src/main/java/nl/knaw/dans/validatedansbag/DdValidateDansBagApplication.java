@@ -37,9 +37,6 @@ import nl.knaw.dans.validatedansbag.core.validator.LicenseValidatorImpl;
 import nl.knaw.dans.validatedansbag.core.validator.PolygonListValidatorImpl;
 import nl.knaw.dans.validatedansbag.resource.ValidateOkDtoYamlMessageBodyWriter;
 import nl.knaw.dans.validatedansbag.resource.ValidateResource;
-import org.xml.sax.SAXException;
-
-import java.net.MalformedURLException;
 
 public class DdValidateDansBagApplication extends Application<DdValidateDansBagConfiguration> {
 
@@ -58,7 +55,7 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
     }
 
     @Override
-    public void run(final DdValidateDansBagConfiguration configuration, final Environment environment) throws MalformedURLException, SAXException {
+    public void run(final DdValidateDansBagConfiguration configuration, final Environment environment) {
 
         var fileService = new FileServiceImpl();
         var bagItMetadataReader = new BagItMetadataReaderImpl();

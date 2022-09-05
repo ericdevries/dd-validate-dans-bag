@@ -149,6 +149,7 @@ public class DatastationRulesImpl implements DatastationRules {
 
                 var assignments = dataverseService.getDatasetAssignments(itemId);
 
+                // TODO move to config?
                 var validRoles = Set.of("contributor", "contributorplus");
                 var matchingAssignments = assignments.getData().stream()
                     .filter(a -> a.getAssignee().replaceFirst("@", "").equals(userAccount))

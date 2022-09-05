@@ -57,29 +57,23 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 @ExtendWith(DropwizardExtensionsSupport.class)
 class ValidateResourceIntegrationTest {
     public static final ResourceExtension EXT;
 
-    private static DataverseService dataverseService = Mockito.mock(DataverseService.class);
-    private static XmlSchemaValidator xmlSchemaValidator = Mockito.mock(XmlSchemaValidator.class);
+    private static final DataverseService dataverseService = Mockito.mock(DataverseService.class);
+    private static final XmlSchemaValidator xmlSchemaValidator = Mockito.mock(XmlSchemaValidator.class);
 
     static {
-        try {
-            EXT = ResourceExtension.builder()
-                .addProvider(MultiPartFeature.class)
-                .addProvider(ValidateOkDtoYamlMessageBodyWriter.class)
-                .addResource(buildValidateResource())
-                .build();
-        }
-        catch (MalformedURLException | SAXException e) {
-            throw new RuntimeException(e);
-        }
+        EXT = ResourceExtension.builder()
+            .addProvider(MultiPartFeature.class)
+            .addProvider(ValidateOkDtoYamlMessageBodyWriter.class)
+            .addResource(buildValidateResource())
+            .build();
     }
 
-    static ValidateResource buildValidateResource() throws MalformedURLException, SAXException {
+    static ValidateResource buildValidateResource() {
 
         var fileService = new FileServiceImpl();
         var bagItMetadataReader = new BagItMetadataReaderImpl();
@@ -109,7 +103,7 @@ class ValidateResourceIntegrationTest {
     }
 
     @Test
-    void validateFormDataWithInvalidBag() throws Exception {
+    void validateFormDataWithInvalidBag() {
         var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("bags/audiences-invalid")).getFile();
 
         var data = new ValidateCommandDto();
@@ -153,7 +147,7 @@ class ValidateResourceIntegrationTest {
     }
 
     @Test
-    void validateFormDataWithValidBagAndOriginalFilepaths() throws Exception {
+    void validateFormDataWithValidBagAndOriginalFilepaths() {
         var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("bags/original-filepaths-valid-bag")).getFile();
 
         var data = new ValidateCommandDto();
@@ -175,7 +169,7 @@ class ValidateResourceIntegrationTest {
     }
 
     @Test
-    void validateFormDataWithInValidBagAndOriginalFilepaths() throws Exception {
+    void validateFormDataWithInValidBagAndOriginalFilepaths() {
         var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("bags/original-filepaths-invalid-bag")).getFile();
 
         var data = new ValidateCommandDto();
@@ -195,6 +189,7 @@ class ValidateResourceIntegrationTest {
         assertEquals(filename, response.getBagLocation());
         assertEquals(4, response.getRuleViolations().size());
     }
+
     @Test
     void validateMultipartZipFile() throws Exception {
         var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("zips/audiences.zip"));
@@ -251,7 +246,7 @@ class ValidateResourceIntegrationTest {
     }
 
     @Test
-    void validateMultipartDataLocationCouldNotBeRead() throws Exception {
+    void validateMultipartDataLocationCouldNotBeRead() {
         var data = new ValidateCommandDto();
         data.setBagLocation("/some/non/existing/filename");
         data.setPackageType(ValidateCommandDto.PackageTypeEnum.DEPOSIT);

@@ -48,8 +48,6 @@ public interface BagRules {
 
     BagValidatorRule ddmMayContainDctermsLicenseFromList();
 
-    BagValidatorRule ddmContainsUrnNbnIdentifier();
-
     BagValidatorRule ddmDoiIdentifiersAreValid();
 
     BagValidatorRule ddmDaisAreValid();

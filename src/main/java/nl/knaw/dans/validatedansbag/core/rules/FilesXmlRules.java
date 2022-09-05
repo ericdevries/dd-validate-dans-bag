@@ -17,16 +17,6 @@ package nl.knaw.dans.validatedansbag.core.rules;
 
 public interface FilesXmlRules {
 
-//    BagValidatorRule filesXmlHasDocumentElementFiles();
-//
-//    BagValidatorRule filesXmlHasOnlyFiles();
-//
-//    BagValidatorRule filesXmlMatchesWithPayload();
-//
-//    BagValidatorRule filesXmlAllFilesHaveFormat();
-//
-//    BagValidatorRule filesXmlFilesHaveOnlyAllowedNamespaces();
-
     BagValidatorRule filesXmlFilePathAttributesContainLocalBagPathAndNonPayloadFilesAreNotDescribed();
 
     BagValidatorRule filesXmlNoDuplicateFilesAndEveryPayloadFileIsDescribed();

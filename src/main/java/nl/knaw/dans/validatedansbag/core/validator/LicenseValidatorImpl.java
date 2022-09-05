@@ -19,6 +19,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class LicenseValidatorImpl implements LicenseValidator {
+    // TODO move to config?
     private final Set<String> validLicenses = Set.of(
         "http://creativecommons.org/licenses/by-nc-nd/4.0/",
         "http://creativecommons.org/licenses/by-nc-sa/3.0",

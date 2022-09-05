@@ -18,6 +18,7 @@ package nl.knaw.dans.validatedansbag.core.config;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
+@SuppressWarnings("unused")
 public class DataverseConfig {
     @Valid
     @NotNull

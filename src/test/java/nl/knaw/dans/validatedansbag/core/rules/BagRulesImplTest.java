@@ -95,7 +95,7 @@ class BagRulesImplTest {
     }
 
     @Test
-    void containsDirWorks() throws Exception {
+    void containsDirWorks() {
         var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
 
         Mockito.when(fileService.isDirectory(Mockito.any()))
@@ -162,7 +162,7 @@ class BagRulesImplTest {
     }
 
     @Test
-    void bagInfoDoesExistButItCouldNotBeOpened() throws Exception {
+    void bagInfoDoesExistButItCouldNotBeOpened() {
         var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
 
         Mockito.when(fileService.isFile(Mockito.any()))
@@ -175,7 +175,7 @@ class BagRulesImplTest {
     }
 
     @Test
-    void bagInfoCreatedElementIsIso8601Date() throws Exception {
+    void bagInfoCreatedElementIsIso8601Date() {
 
         var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
 
@@ -186,7 +186,7 @@ class BagRulesImplTest {
     }
 
     @Test
-    void bagInfoCreatedElementIsNotAValidDate() throws Exception {
+    void bagInfoCreatedElementIsNotAValidDate() {
 
         var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
 
@@ -199,7 +199,7 @@ class BagRulesImplTest {
     }
 
     @Test
-    void bagInfoContainsExactlyOneOf() throws Exception {
+    void bagInfoContainsExactlyOneOf() {
         var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Key")))
             .thenReturn(List.of("value"));
@@ -208,7 +208,7 @@ class BagRulesImplTest {
     }
 
     @Test
-    void bagInfoContainsExactlyOneOfButInRealityItIsTwo() throws Exception {
+    void bagInfoContainsExactlyOneOfButInRealityItIsTwo() {
         var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Key")))
             .thenReturn(List.of("value", "secondvalue"));
@@ -217,7 +217,7 @@ class BagRulesImplTest {
     }
 
     @Test
-    void bagInfoContainsExactlyOneOfButInRealityItIsZero() throws Exception {
+    void bagInfoContainsExactlyOneOfButInRealityItIsZero() {
         var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Key")))
             .thenReturn(new ArrayList<>());
@@ -226,7 +226,7 @@ class BagRulesImplTest {
     }
 
     @Test
-    void bagInfoContainsAtMostOne() throws Exception {
+    void bagInfoContainsAtMostOne() {
         var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Key")))
             .thenReturn(List.of("value"));
@@ -235,7 +235,7 @@ class BagRulesImplTest {
     }
 
     @Test
-    void bagInfoIsVersionOfIsValidUrnUuid() throws Exception {
+    void bagInfoIsVersionOfIsValidUrnUuid() {
         var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
 
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Is-Version-Of")))
@@ -245,7 +245,7 @@ class BagRulesImplTest {
     }
 
     @Test
-    void bagInfoIsVersionOfIsNotValidUrnUuid() throws Exception {
+    void bagInfoIsVersionOfIsNotValidUrnUuid() {
         var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
 
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Is-Version-Of")))
@@ -262,7 +262,7 @@ class BagRulesImplTest {
     }
 
     @Test
-    void bagInfoContainsAtMostOneButItReturnsTwo() throws Exception {
+    void bagInfoContainsAtMostOneButItReturnsTwo() {
         var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Key")))
             .thenReturn(List.of("value", "secondvalue"));
@@ -271,7 +271,7 @@ class BagRulesImplTest {
     }
 
     @Test
-    void bagInfoContainsAtMostOneOfButInRealityItIsZero() throws Exception {
+    void bagInfoContainsAtMostOneOfButInRealityItIsZero() {
         var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Key")))
             .thenReturn(new ArrayList<>());
@@ -353,13 +353,11 @@ class BagRulesImplTest {
         Mockito.when(fileService.getAllFilesAndDirectories(Mockito.eq(basePath)))
             .thenReturn(List.of(basePath.resolve("1.txt"), basePath.resolve("2.txt")));
 
-        assertDoesNotThrow(() -> {
-            checker.containsNothingElseThan(Path.of("metadata"), new String[] {
-                "1.txt",
-                "2.txt",
-                "3.txt"
-            }).validate(Path.of("bagdir"));
-        });
+        assertDoesNotThrow(() -> checker.containsNothingElseThan(Path.of("metadata"), new String[] {
+            "1.txt",
+            "2.txt",
+            "3.txt"
+        }).validate(Path.of("bagdir")));
     }
 
     @Test
@@ -371,101 +369,16 @@ class BagRulesImplTest {
         Mockito.when(fileService.getAllFilesAndDirectories(Mockito.eq(basePath)))
             .thenReturn(List.of(basePath.resolve("1.txt"), basePath.resolve("2.txt"), basePath.resolve("oh no.txt")));
 
-        assertThrows(RuleViolationDetailsException.class, () -> {
-            checker.containsNothingElseThan(Path.of("metadata"), new String[] {
-                "1.txt"
-                ,
-                "2.txt",
-                "3.txt"
-            }).validate(Path.of("bagdir"));
-        });
+        assertThrows(RuleViolationDetailsException.class, () -> checker.containsNothingElseThan(Path.of("metadata"), new String[] {
+            "1.txt"
+            ,
+            "2.txt",
+            "3.txt"
+        }).validate(Path.of("bagdir")));
     }
 
     private Document parseXmlString(String str) throws ParserConfigurationException, IOException, SAXException {
         return new XmlReaderImpl().readXmlString(str);
-    }
-
-    @Test
-    void ddmContainsUrnNbnIdentifier() throws ParserConfigurationException, IOException, SAXException {
-        final String validDocument = "<ddm:DDM\n"
-            + "        xmlns:dc=\"http://purl.org/dc/elements/1.1/\"\n"
-            + "        xmlns:dcx-dai=\"http://easy.dans.knaw.nl/schemas/dcx/dai/\"\n"
-            + "        xmlns:ddm=\"http://easy.dans.knaw.nl/schemas/md/ddm/\"\n"
-            + "        xmlns:dcterms=\"http://purl.org/dc/terms/\"\n"
-            + "        xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
-            + "        xmlns:id-type=\"http://easy.dans.knaw.nl/schemas/vocab/identifier-type/\">\n"
-            + "    <ddm:dcmiMetadata>\n"
-            + "        <dcterms:identifier xsi:type=\"id-type:URN\">urn:nbn:nl:ui:blabla</dcterms:identifier>\n"
-            + "        <dcterms:identifier xsi:type=\"id-type:DOI\">10.1234/fantasy-doi-id</dcterms:identifier>\n"
-            + "        <dcterms:identifier xsi:type=\"id-type:DOI\">10.1234.567/issn-987-654</dcterms:identifier>\n"
-            + "    </ddm:dcmiMetadata>\n"
-            + "</ddm:DDM>";
-
-        var document = parseXmlString(validDocument);
-        var reader = Mockito.spy(new XmlReaderImpl());
-
-        Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
-
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
-
-        assertDoesNotThrow(() -> {
-            checker.ddmContainsUrnNbnIdentifier().validate(Path.of("bagdir"));
-        });
-    }
-
-    @Test
-    void ddmNotContainsUrnNbnIdentifier() throws ParserConfigurationException, IOException, SAXException {
-        final String xml = "<ddm:DDM\n"
-            + "        xmlns:dc=\"http://purl.org/dc/elements/1.1/\"\n"
-            + "        xmlns:dcx-dai=\"http://easy.dans.knaw.nl/schemas/dcx/dai/\"\n"
-            + "        xmlns:ddm=\"http://easy.dans.knaw.nl/schemas/md/ddm/\"\n"
-            + "        xmlns:dcterms=\"http://purl.org/dc/terms/\"\n"
-            + "        xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
-            + "        xmlns:id-type=\"http://easy.dans.knaw.nl/schemas/vocab/identifier-type/\">\n"
-            + "    <ddm:dcmiMetadata>\n"
-            + "        <dcterms:identifier xsi:type=\"id-type:DOI\">10.1234/fantasy-doi-id</dcterms:identifier>\n"
-            + "        <dcterms:identifier xsi:type=\"id-type:DOI\">10.1234.567/issn-987-654</dcterms:identifier>\n"
-            + "    </ddm:dcmiMetadata>\n"
-            + "</ddm:DDM>";
-
-        var document = parseXmlString(xml);
-        var reader = Mockito.spy(new XmlReaderImpl());
-
-        Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
-
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
-
-        assertThrows(RuleViolationDetailsException.class, () -> {
-            checker.ddmContainsUrnNbnIdentifier().validate(Path.of("bagdir"));
-        });
-    }
-
-    @Test
-    void ddmContainsInvalidURNIdentifier() throws ParserConfigurationException, IOException, SAXException {
-        final String xml = "<ddm:DDM\n"
-            + "        xmlns:dc=\"http://purl.org/dc/elements/1.1/\"\n"
-            + "        xmlns:dcx-dai=\"http://easy.dans.knaw.nl/schemas/dcx/dai/\"\n"
-            + "        xmlns:ddm=\"http://easy.dans.knaw.nl/schemas/md/ddm/\"\n"
-            + "        xmlns:dcterms=\"http://purl.org/dc/terms/\"\n"
-            + "        xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
-            + "        xmlns:id-type=\"http://easy.dans.knaw.nl/schemas/vocab/identifier-type/\">\n"
-            + "    <ddm:dcmiMetadata>\n"
-            + "        <dcterms:identifier xsi:type=\"id-type:URN\">invalid_urn</dcterms:identifier>\n"
-            + "        <dcterms:identifier xsi:type=\"id-type:DOI\">10.1234/fantasy-doi-id</dcterms:identifier>\n"
-            + "        <dcterms:identifier xsi:type=\"id-type:DOI\">10.1234.567/issn-987-654</dcterms:identifier>\n"
-            + "    </ddm:dcmiMetadata>\n"
-            + "</ddm:DDM>";
-
-        var document = parseXmlString(xml);
-        var reader = Mockito.spy(new XmlReaderImpl());
-
-        Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
-
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, reader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
-
-        assertThrows(RuleViolationDetailsException.class, () -> {
-            checker.ddmContainsUrnNbnIdentifier().validate(Path.of("bagdir"));
-        });
     }
 
     @Test

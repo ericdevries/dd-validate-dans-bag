@@ -15,17 +15,16 @@
  */
 package nl.knaw.dans.validatedansbag.core.validator;
 
-import nl.knaw.dans.validatedansbag.core.validator.IdentifierValidator;
-
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
+@SuppressWarnings("FieldCanBeLocal")
 public class IdentifierValidatorImpl implements IdentifierValidator {
     private final String daiPrefix = "info:eu-repo/dai/nl/";
-    private final String orcidPrefix = "https://orcid.org/";
-    private final String isniPrefix = "https://isni.org/isni/";
+    // private final String orcidPrefix = "https://orcid.org/";
+    // private final String isniPrefix = "https://isni.org/isni/";
 
     private final List<String> orcidDomains = List.of("orcid.org", "www.orcid.org");
     private final List<String> isniDomains = List.of("isni.org", "www.isni.org");

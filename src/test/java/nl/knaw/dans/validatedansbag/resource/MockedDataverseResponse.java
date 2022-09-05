@@ -24,13 +24,13 @@ import nl.knaw.dans.lib.dataverse.ResultItemDeserializer;
 import nl.knaw.dans.lib.dataverse.model.dataset.MetadataField;
 import nl.knaw.dans.lib.dataverse.model.dataverse.DataverseItem;
 import nl.knaw.dans.lib.dataverse.model.search.ResultItem;
-import nl.knaw.dans.openapi.api.ValidateCommandDto;
 
 public class MockedDataverseResponse<T> extends DataverseResponse<T> {
     public MockedDataverseResponse(String bodyText, Class<?>... args) {
         super(bodyText, buildObjectMapper(), args);
     }
 
+    @SuppressWarnings("unchecked")
     static ObjectMapper buildObjectMapper() {
         var mapper = new ObjectMapper();
         var module = new SimpleModule();

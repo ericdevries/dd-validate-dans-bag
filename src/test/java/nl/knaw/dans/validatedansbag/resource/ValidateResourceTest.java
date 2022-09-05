@@ -54,7 +54,7 @@ class ValidateResourceTest {
     }
 
     @Test
-    void validateFormData() throws Exception {
+    void validateFormData() {
         var data = new ValidateCommandDto();
         data.setBagLocation("it/is/here");
         data.setPackageType(ValidateCommandDto.PackageTypeEnum.DEPOSIT);
@@ -117,12 +117,13 @@ class ValidateResourceTest {
         Mockito.doThrow(BagNotFoundException.class)
             .when(ruleEngineService).validateBag(Mockito.any(), Mockito.any());
 
-        var response = EXT.target("/validate")
+        try (var response = EXT.target("/validate")
             .register(MultiPartFeature.class)
             .request()
-            .post(Entity.entity(multipart, multipart.getMediaType()), Response.class);
+            .post(Entity.entity(multipart, multipart.getMediaType()), Response.class)) {
 
-        Assertions.assertEquals(400, response.getStatus());
+            Assertions.assertEquals(400, response.getStatus());
+        }
     }
 
     @Test
@@ -132,11 +133,12 @@ class ValidateResourceTest {
         Mockito.doThrow(ZipError.class)
             .when(fileService).extractZipFile(Mockito.any(InputStream.class));
 
-        var response = EXT.target("/validate")
+        try (var response = EXT.target("/validate")
             .register(MultiPartFeature.class)
             .request()
-            .post(zip, Response.class);
+            .post(zip, Response.class)) {
 
-        Assertions.assertEquals(500, response.getStatus());
+            Assertions.assertEquals(500, response.getStatus());
+        }
     }
 }

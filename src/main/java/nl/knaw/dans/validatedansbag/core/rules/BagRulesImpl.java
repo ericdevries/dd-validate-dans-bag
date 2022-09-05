@@ -19,7 +19,6 @@ import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms;
 import nl.knaw.dans.validatedansbag.core.engine.RuleSkippedException;
 import nl.knaw.dans.validatedansbag.core.engine.RuleViolationDetailsException;
 import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReader;
-import nl.knaw.dans.validatedansbag.core.service.DataverseService;
 import nl.knaw.dans.validatedansbag.core.service.FileService;
 import nl.knaw.dans.validatedansbag.core.service.OriginalFilepathsService;
 import nl.knaw.dans.validatedansbag.core.service.XmlReader;
@@ -44,7 +43,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
-import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -63,7 +61,7 @@ public class BagRulesImpl implements BagRules {
     private final Pattern doiPattern = Pattern.compile("^10(\\.\\d+)+/.+");
 
     private final Pattern doiUrlPattern = Pattern.compile("^((https?://(dx\\.)?)?doi\\.org/(urn:)?(doi:)?)?10(\\.\\d+)+/.+");
-    private final Pattern urnPattern = Pattern.compile("^urn:[A-Za-z0-9][A-Za-z0-9-]{0,31}:[a-z0-9()+,\\-\\\\.:=@;$_!*'%/?#]+$");
+    private final Pattern urnPattern = Pattern.compile("^urn:[A-Za-z\\d][A-Za-z\\d-]{0,31}:[a-z\\d()+,\\-\\\\.:=@;$_!*'%/?#]+$");
 
     private final IdentifierValidator identifierValidator;
 
@@ -200,6 +198,7 @@ public class BagRulesImpl implements BagRules {
                             return true;
                         }
 
+                        //noinspection ResultOfMethodCallIgnored
                         UUID.fromString(uri.getSchemeSpecificPart().substring("uuid:".length()));
                     }
                     catch (URISyntaxException | IllegalArgumentException e) {
@@ -325,6 +324,9 @@ public class BagRulesImpl implements BagRules {
         return (path) -> {
             var mapping = originalFilepathsService.getMapping(path);
 
+            // the file is organized in a <physical-name><whitespace><original-name> fashion
+            // so if there is whitespace in the physical name, it will be considered part of the original name
+            // meaning this rule will never fail
             var invalidFilenames = mapping.stream()
                 .map(p -> p.getRenamedFilename().toString())
                 .filter(p -> p.matches(".*\\s+.*"))
@@ -334,7 +336,7 @@ public class BagRulesImpl implements BagRules {
                 var errors = String.join(", ", invalidFilenames);
 
                 throw new RuleViolationDetailsException(String.format(
-                    "original-filepaths physical relative path should not contain whitespace; culprits: %s", errors
+                    "original-filepaths.txt: physical relative path should not contain whitespace; culprits: %s", errors
                 ));
             }
         };
@@ -453,20 +455,6 @@ public class BagRulesImpl implements BagRules {
                     "Found unknown or unsupported license: %s", license
                 ));
             }
-        };
-    }
-
-    @Override
-    public BagValidatorRule ddmContainsUrnNbnIdentifier() {
-        return (path) -> {
-            var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
-            var expr = "//dcterms:identifier[@xsi:type=\"id-type:URN\"]";
-
-            var nodes = xmlReader.xpathToStream(document, expr);
-
-            nodes.filter((node) -> node.getTextContent().contains("urn:nbn"))
-                .findFirst()
-                .orElseThrow(() -> new RuleViolationDetailsException("URN:NBN identifier is missing"));
         };
     }
 

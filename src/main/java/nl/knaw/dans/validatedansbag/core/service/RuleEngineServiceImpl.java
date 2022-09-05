@@ -96,7 +96,6 @@ public class RuleEngineServiceImpl implements RuleEngineService {
             // metadata/dataset.xml
             new NumberedRule("3.1.1", xmlRules.xmlFileConfirmsToSchema(datasetPath, "dataset.xml"), List.of("2.2(a)")),
             new NumberedRule("3.1.2", bagRules.ddmMayContainDctermsLicenseFromList(), List.of("3.1.1")),
-            //            new NumberedRule("3.1.3(a)", validator.ddmContainsUrnNbnIdentifier(), List.of("3.1.1")),
             new NumberedRule("3.1.3", bagRules.ddmDoiIdentifiersAreValid(), List.of("3.1.1")),
 
             // TODO check how we can validate each kind of identifier (assumptions about ISNI and ORCID are made now based on wikipedia)

@@ -41,10 +41,6 @@ public interface XmlReader {
 
     Document readXmlFile(Path path) throws ParserConfigurationException, IOException, SAXException;
 
-    Document readXmlString(String str) throws ParserConfigurationException, IOException, SAXException;
-
-    Object evaluateXpath(Node node, String expr, QName type) throws XPathExpressionException;
-
     Stream<Node> xpathToStream(Node node, String expression) throws XPathExpressionException;
 
     Stream<Node> xpathsToStream(Node node, Collection<String> expressions) throws XPathExpressionException;

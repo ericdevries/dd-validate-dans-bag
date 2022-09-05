@@ -126,7 +126,7 @@ class XmlRulesImplTest {
     }
 
     @Test
-    void xmlFileIfExistsConformsToSchemaButFileDoesNotExist() throws Exception {
+    void xmlFileIfExistsConformsToSchemaButFileDoesNotExist() {
         var reader = Mockito.spy(new XmlReaderImpl());
 
         Mockito.doReturn(false).when(fileService).exists(Path.of("bagdir/metadata/dataset.xml"));

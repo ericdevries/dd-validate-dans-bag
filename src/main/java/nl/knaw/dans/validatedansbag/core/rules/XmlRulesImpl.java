@@ -56,9 +56,7 @@ public class XmlRulesImpl implements XmlRules {
 
     @Override
     public BagValidatorRule xmlFileConfirmsToSchema(Path file, String schema) {
-        return (path) -> {
-            validateXmlFile(path.resolve(file), schema);
-        };
+        return (path) -> validateXmlFile(path.resolve(file), schema);
     }
 
     @Override

@@ -37,11 +37,6 @@ public class OriginalFilepathsServiceImpl implements OriginalFilepathsService {
     }
 
     @Override
-    public boolean exists(Path bagDir) {
-        return fileService.exists(bagDir.resolve(filename));
-    }
-
-    @Override
     public List<OriginalFilePathItem> getMapping(Path bagDir) {
         try {
             var bytes = fileService.readFileContents(bagDir.resolve(filename));
@@ -56,7 +51,7 @@ public class OriginalFilepathsServiceImpl implements OriginalFilepathsService {
                 .collect(Collectors.toList());
         }
         catch (Exception e) {
-            log.error("Error while reading original-filepaths.txt", e);
+            log.error("Error while reading {}", filename, e);
         }
 
         return List.of();
