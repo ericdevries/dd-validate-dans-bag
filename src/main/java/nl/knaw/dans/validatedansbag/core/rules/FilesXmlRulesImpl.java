@@ -57,6 +57,7 @@ public class FilesXmlRulesImpl implements FilesXmlRules {
         return path -> {
             var errors = new ArrayList<RuleViolationDetailsException>();
 
+            // TODO files.xml is always checked against XSD, so filepath attribute is always set
             // Each file element's filepath attribute MUST contain the bag local path to the payload file described.
             try {
                 filesXmlFileElementsAllHaveFilepathAttribute(path);

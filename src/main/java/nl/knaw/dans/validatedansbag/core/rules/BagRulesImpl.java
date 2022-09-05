@@ -178,6 +178,13 @@ public class BagRulesImpl implements BagRules {
                     String.format("bag-info.txt may contain at most one element: '%s'", key)
                 );
             }
+            // TODO should this happen?
+            else if (items.size() == 0) {
+                // TODO rename exception to indicate that dependent rules can be skipped
+                throw new RuleSkippedException();
+            }
+
+//            return RuleResult.NOT_APPLICABLE;
         };
     }
 
@@ -377,7 +384,6 @@ public class BagRulesImpl implements BagRules {
             var renamedFiles = mapping.stream().map(OriginalFilepathsService.OriginalFilePathItem::getRenamedFilename).collect(Collectors.toSet());
             var originalFiles = mapping.stream().map(OriginalFilepathsService.OriginalFilePathItem::getOriginalFilename).collect(Collectors.toSet());
 
-
             // disjunction returns the difference between 2 sets
             // so {1,2,3} disjunction {2,3,4} would return {1,4}
             var physicalFileSetsDiffer = CollectionUtils.disjunction(actualFiles, renamedFiles).size() > 0;
@@ -475,8 +481,6 @@ public class BagRulesImpl implements BagRules {
             if (match.length() > 0) {
                 throw new RuleViolationDetailsException("Invalid DOIs: " + match);
             }
-
-            // TODO should it be resolvable, and how?
         };
     }
 
@@ -564,6 +568,7 @@ public class BagRulesImpl implements BagRules {
     @Override
     public BagValidatorRule polygonsInSameMultiSurfaceHaveSameSrsName() {
         return (path) -> {
+            // TODO check if namespaces can be used
             var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
             var expr = "//*[local-name() = 'MultiSurface']";
             var nodes = xmlReader.xpathToStream(document, expr);
@@ -723,6 +728,7 @@ public class BagRulesImpl implements BagRules {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
 
+            // TODO verify why DOI's are checked again
             var dois = doiValues
                 .map(Node::getTextContent)
                 .filter(textContent -> !doiUrlPattern.matcher(textContent).matches())
@@ -773,11 +779,11 @@ public class BagRulesImpl implements BagRules {
             var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
 
             var inRole = xmlReader.xpathToStream(document, "//dcx-dai:author/dcx-dai:role")
-                .filter(node -> node.getTextContent().contains("RightsHolder"))
+                .filter(node -> node.getTextContent().equals("RightsHolder"))
                 .findFirst();
 
             if (inRole.isEmpty()) {
-                throw new RuleViolationDetailsException("No rightsholder found in <dcx-dai:role> element");
+                throw new RuleViolationDetailsException("No RightsHolder found in <dcx-dai:role> element");
             }
         };
     }

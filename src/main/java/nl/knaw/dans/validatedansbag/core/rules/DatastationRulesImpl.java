@@ -46,6 +46,10 @@ public class DatastationRulesImpl implements DatastationRules {
     @Override
     public BagValidatorRule organizationalIdentifierIsValid() {
 
+        // TODO do not check with dataverse for is-version-of,
+        // just check if Is-Version-Of is set if Has-Org... is defined and a
+        // dataset exists in dataverse
+        // TODO wait for Jan's thoughts
         return path -> {
             var hasOrganizationalIdentifier = bagItMetadataReader.getField(path, "Has-Organizational-Identifier");
 
@@ -87,7 +91,7 @@ public class DatastationRulesImpl implements DatastationRules {
                 var dansBagId = Optional.ofNullable(dataset.getData().getLatestVersion().getMetadataBlocks())
                     .map(m -> m.get("dansDataVaultMetadata"))
                     .map(m -> m.getFields().stream()
-                        .filter(f -> f.getTypeName().equals("dansBagId"))
+                        .filter(f -> f.getTypeName().equals("dansSwordToken"))
                         .filter(f -> f instanceof PrimitiveSingleValueField)
                         .map(f -> (PrimitiveSingleValueField) f)
                         .map(PrimitiveSingleValueField::getValue)
@@ -115,14 +119,12 @@ public class DatastationRulesImpl implements DatastationRules {
                 var result = dataverseService.searchBySwordToken(isVersionOf);
                 var data = result.getData().getItems();
 
-                // no results means it does not exist
+                // no result means it does not exist
                 if (data.isEmpty()) {
                     throw new RuleViolationDetailsException(String.format(
                         "If 'Is-Version-Of' is specified, it must be a valid SWORD token in the data station; no tokens were found: %s", isVersionOf
                     ));
                 }
-
-                // TODO figure out how to check if the dataset was deposited by the same user as this one
             }
         };
     }
@@ -137,7 +139,7 @@ public class DatastationRulesImpl implements DatastationRules {
                 var result = dataverseService.searchBySwordToken(isVersionOf);
                 var data = result.getData().getItems();
 
-                // no results means it does not exist
+                // no result means it does not exist
                 if (data.isEmpty()) {
                     throw new RuleViolationDetailsException(String.format(
                         "If 'Is-Version-Of' is specified, it must be a valid SWORD token in the data station; no tokens were found: %s", isVersionOf
@@ -147,7 +149,7 @@ public class DatastationRulesImpl implements DatastationRules {
                 var item = (DatasetResultItem) data.get(0);
                 var itemId = item.getGlobalId();
 
-                var assignments = dataverseService.getDatasetAssignments(itemId);
+                var assignments = dataverseService.getRoleAssignments(itemId);
 
                 // TODO move to config?
                 var validRoles = Set.of("contributor", "contributorplus");

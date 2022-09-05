@@ -30,7 +30,7 @@ public interface DataverseService {
 
     DataverseResponse<SearchResult> searchBySwordToken(String token) throws IOException, DataverseException;
     DataverseResponse<SearchResult> searchDatasetsByOrganizationalIdentifier(String identifier) throws IOException, DataverseException;
-    DataverseHttpResponse<List<RoleAssignmentReadOnly>> getDatasetAssignments(String identifier) throws IOException, DataverseException;
+    DataverseHttpResponse<List<RoleAssignmentReadOnly>> getRoleAssignments(String identifier) throws IOException, DataverseException;
 
     DataverseResponse<DatasetLatestVersion> getDataset(String globalId) throws IOException, DataverseException;
 }

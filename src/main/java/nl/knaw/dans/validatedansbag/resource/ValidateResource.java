@@ -94,6 +94,7 @@ public class ValidateResource {
     @Produces({ MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN })
     public Response validateZip(InputStream inputStream) {
         try {
+            // TODO rename fields in return type to match text version of original specs in api.yml
             var validateResult = validateInputStream(inputStream, DepositType.DEPOSIT);
             return Response.ok(validateResult).build();
         }

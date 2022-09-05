@@ -65,7 +65,7 @@ public class DataverseServiceImpl implements DataverseService {
     }
 
     @Override
-    public DataverseHttpResponse<List<RoleAssignmentReadOnly>> getDatasetAssignments(String identifier) throws IOException, DataverseException {
+    public DataverseHttpResponse<List<RoleAssignmentReadOnly>> getRoleAssignments(String identifier) throws IOException, DataverseException {
         var client = this.getDataverseClient();
         return client.dataset(identifier).listRoleAssignments();
 
