@@ -24,8 +24,6 @@ import gov.loc.repository.bagit.exceptions.MissingPayloadManifestException;
 import gov.loc.repository.bagit.exceptions.VerificationException;
 import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms;
 import nl.knaw.dans.validatedansbag.core.engine.RuleResult;
-import nl.knaw.dans.validatedansbag.core.engine.RuleSkipDependenciesException;
-import nl.knaw.dans.validatedansbag.core.engine.RuleViolationDetailsException;
 import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReader;
 import nl.knaw.dans.validatedansbag.core.service.FileService;
 import nl.knaw.dans.validatedansbag.core.service.OriginalFilepathsService;
@@ -519,13 +517,12 @@ public class BagRulesImpl implements BagRules {
                         polygonListValidator.validatePolygonList(posList);
                     }
                     catch (PolygonListValidator.PolygonValidationException e) {
-                        return new RuleViolationDetailsException(e.getLocalizedMessage(), e);
+                        return e.getLocalizedMessage();
                     }
 
                     return null;
                 })
                 .filter(Objects::nonNull)
-                .map(Throwable::getLocalizedMessage)
                 .collect(Collectors.toList());
 
             if (!match.isEmpty()) {

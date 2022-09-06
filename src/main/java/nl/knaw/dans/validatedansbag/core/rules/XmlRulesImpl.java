@@ -16,7 +16,6 @@
 package nl.knaw.dans.validatedansbag.core.rules;
 
 import nl.knaw.dans.validatedansbag.core.engine.RuleResult;
-import nl.knaw.dans.validatedansbag.core.engine.RuleViolationDetailsException;
 import nl.knaw.dans.validatedansbag.core.service.FileService;
 import nl.knaw.dans.validatedansbag.core.service.XmlReader;
 import nl.knaw.dans.validatedansbag.core.service.XmlSchemaValidator;
@@ -74,7 +73,8 @@ public class XmlRulesImpl implements XmlRules {
 
             if (fileService.exists(fileName)) {
                 return xmlFileConfirmsToSchema(file, schema).validate(path);
-            } else {
+            }
+            else {
                 return RuleResult.skipDependencies();
             }
         };

@@ -99,15 +99,7 @@ public class FileServiceImpl implements FileService {
         }
 
         return tempPath;
-
-        /*
-        try (var s = Files.walk(tempPath)) {
-            return s.filter(this::isDirectory).skip(1).findFirst();
-        }
-
-         */
     }
-
 
     @Override
     public void deleteDirectoryAndContents(Path path) throws IOException {

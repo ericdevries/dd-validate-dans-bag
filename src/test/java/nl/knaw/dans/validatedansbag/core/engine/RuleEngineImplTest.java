@@ -45,7 +45,7 @@ class RuleEngineImplTest {
     }
 
     @Test
-    void testRulesButOneIsSkipped() throws Exception, RuleViolationDetailsException, RuleSkipDependenciesException {
+    void testRulesButOneIsSkipped() throws Exception {
         var fakeRule = Mockito.mock(BagValidatorRule.class);
         var fakeRuleSkipped = Mockito.mock(BagValidatorRule.class);
         var result = new RuleResult(RuleResult.Status.SUCCESS, List.of());
@@ -68,7 +68,7 @@ class RuleEngineImplTest {
     }
 
     @Test
-    void testRulesButOneHasFailed() throws Exception, RuleViolationDetailsException, RuleSkipDependenciesException {
+    void testRulesButOneHasFailed() throws Exception {
         var fakeRule = Mockito.mock(BagValidatorRule.class);
         var fakeRuleFailed = Mockito.mock(BagValidatorRule.class);
         var result = new RuleResult(RuleResult.Status.SUCCESS, List.of());

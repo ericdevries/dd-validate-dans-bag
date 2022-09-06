@@ -16,8 +16,6 @@
 package nl.knaw.dans.validatedansbag.core.rules;
 
 import nl.knaw.dans.validatedansbag.core.engine.RuleResult;
-import nl.knaw.dans.validatedansbag.core.engine.RuleSkipDependenciesException;
-import nl.knaw.dans.validatedansbag.core.engine.RuleViolationDetailsException;
 
 import java.nio.file.Path;
 

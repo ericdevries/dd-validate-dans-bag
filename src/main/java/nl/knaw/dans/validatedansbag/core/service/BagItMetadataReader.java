@@ -27,7 +27,6 @@ import gov.loc.repository.bagit.exceptions.MissingPayloadManifestException;
 import gov.loc.repository.bagit.exceptions.UnparsableVersionException;
 import gov.loc.repository.bagit.exceptions.UnsupportedAlgorithmException;
 import gov.loc.repository.bagit.exceptions.VerificationException;
-import gov.loc.repository.bagit.hash.SupportedAlgorithm;
 
 import java.io.IOException;
 import java.nio.file.Path;
