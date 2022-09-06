@@ -27,8 +27,10 @@ import static org.junit.jupiter.api.Assertions.*;
 class RuleEngineImplTest {
 
     @Test
-    void testRules() throws Exception, RuleViolationDetailsException, RuleSkipDependenciesException {
+    void testRules() throws Exception {
         var fakeRule = Mockito.mock(BagValidatorRule.class);
+        var result = new RuleResult(RuleResult.Status.SUCCESS, List.of());
+        Mockito.when(fakeRule.validate(Mockito.any())).thenReturn(result);
         var rules = new NumberedRule[] {
             new NumberedRule("1.1", fakeRule),
             new NumberedRule("1.2", fakeRule),
@@ -46,6 +48,8 @@ class RuleEngineImplTest {
     void testRulesButOneIsSkipped() throws Exception, RuleViolationDetailsException, RuleSkipDependenciesException {
         var fakeRule = Mockito.mock(BagValidatorRule.class);
         var fakeRuleSkipped = Mockito.mock(BagValidatorRule.class);
+        var result = new RuleResult(RuleResult.Status.SUCCESS, List.of());
+        Mockito.when(fakeRule.validate(Mockito.any())).thenReturn(result);
         var rules = new NumberedRule[] {
             new NumberedRule("1.1", fakeRule),
             new NumberedRule("1.2", fakeRuleSkipped),
@@ -53,7 +57,8 @@ class RuleEngineImplTest {
             new NumberedRule("1.4", fakeRule),
         };
 
-        Mockito.doThrow(new RuleSkipDependenciesException()).when(fakeRuleSkipped).validate(Mockito.any());
+        var failedResult = new RuleResult(RuleResult.Status.ERROR, List.of());
+        Mockito.when(fakeRuleSkipped.validate(Mockito.any())).thenReturn(failedResult);
 
         var engine = new RuleEngineImpl();
         assertDoesNotThrow(() -> engine.validateRules(Path.of("somedir"), rules, DepositType.DEPOSIT));
@@ -66,6 +71,8 @@ class RuleEngineImplTest {
     void testRulesButOneHasFailed() throws Exception, RuleViolationDetailsException, RuleSkipDependenciesException {
         var fakeRule = Mockito.mock(BagValidatorRule.class);
         var fakeRuleFailed = Mockito.mock(BagValidatorRule.class);
+        var result = new RuleResult(RuleResult.Status.SUCCESS, List.of());
+        Mockito.when(fakeRule.validate(Mockito.any())).thenReturn(result);
         var rules = new NumberedRule[] {
             new NumberedRule("1.1", fakeRule),
             new NumberedRule("1.2", fakeRuleFailed),
@@ -73,7 +80,8 @@ class RuleEngineImplTest {
             new NumberedRule("1.4", fakeRule),
         };
 
-        Mockito.doThrow(new RuleViolationDetailsException("it broke")).when(fakeRuleFailed).validate(Mockito.any());
+        var failedResult = new RuleResult(RuleResult.Status.ERROR, List.of());
+        Mockito.doReturn(failedResult).when(fakeRuleFailed).validate(Mockito.any());
 
         var engine = new RuleEngineImpl();
         assertDoesNotThrow(() -> engine.validateRules(Path.of("somedir"), rules, DepositType.DEPOSIT));
@@ -83,8 +91,11 @@ class RuleEngineImplTest {
     }
 
     @Test
-    void testRulesWithTwoDepositTypes() throws Exception, RuleViolationDetailsException, RuleSkipDependenciesException {
+    void testRulesWithTwoDepositTypes() throws Exception {
         var fakeRule = Mockito.mock(BagValidatorRule.class);
+        var result = new RuleResult(RuleResult.Status.SUCCESS, List.of());
+        Mockito.when(fakeRule.validate(Mockito.any())).thenReturn(result);
+
         var rules = new NumberedRule[] {
             new NumberedRule("1.1", fakeRule),
             new NumberedRule("1.2", fakeRule, DepositType.DEPOSIT),
@@ -100,8 +111,10 @@ class RuleEngineImplTest {
     }
 
     @Test
-    void testRulesWithDuplicateNumbers() {
+    void testRulesWithDuplicateNumbers() throws Exception {
         var fakeRule = Mockito.mock(BagValidatorRule.class);
+        var result = new RuleResult(RuleResult.Status.SUCCESS, List.of());
+        Mockito.when(fakeRule.validate(Mockito.any())).thenReturn(result);
         var rules = new NumberedRule[] {
             new NumberedRule("1.1", fakeRule),
             new NumberedRule("1.2", fakeRule, DepositType.DEPOSIT),
@@ -118,8 +131,10 @@ class RuleEngineImplTest {
     }
 
     @Test
-    void testRulesWithMissingDependencies() {
+    void testRulesWithMissingDependencies() throws Exception {
         var fakeRule = Mockito.mock(BagValidatorRule.class);
+        var result = new RuleResult(RuleResult.Status.SUCCESS, List.of());
+        Mockito.when(fakeRule.validate(Mockito.any())).thenReturn(result);
         var rules = new NumberedRule[] {
             new NumberedRule("1.1", fakeRule),
             new NumberedRule("1.3", fakeRule, List.of("1.2")),
@@ -134,8 +149,10 @@ class RuleEngineImplTest {
     }
 
     @Test
-    void testRulesWithMissingDependenciesDueToDepositTypes() {
+    void testRulesWithMissingDependenciesDueToDepositTypes() throws Exception {
         var fakeRule = Mockito.mock(BagValidatorRule.class);
+        var result = new RuleResult(RuleResult.Status.SUCCESS, List.of());
+        Mockito.when(fakeRule.validate(Mockito.any())).thenReturn(result);
         var rules = new NumberedRule[] {
             new NumberedRule("1.1", fakeRule),
             new NumberedRule("1.2", fakeRule, DepositType.DEPOSIT),
@@ -151,8 +168,10 @@ class RuleEngineImplTest {
     }
 
     @Test
-    void testRulesWithTooManyRules() {
+    void testRulesWithTooManyRules() throws Exception {
         var fakeRule = Mockito.mock(BagValidatorRule.class);
+        var result = new RuleResult(RuleResult.Status.SUCCESS, List.of());
+        Mockito.when(fakeRule.validate(Mockito.any())).thenReturn(result);
         var rules = new NumberedRule[] {
             new NumberedRule("1.1", fakeRule),
             new NumberedRule("1.2", fakeRule),
@@ -169,8 +188,10 @@ class RuleEngineImplTest {
     }
 
     @Test
-    void testRulesWithDifferentDepositTypesDependOnAllRule() {
+    void testRulesWithDifferentDepositTypesDependOnAllRule() throws Exception {
         var fakeRule = Mockito.mock(BagValidatorRule.class);
+        var result = new RuleResult(RuleResult.Status.SUCCESS, List.of());
+        Mockito.when(fakeRule.validate(Mockito.any())).thenReturn(result);
         var rules = new NumberedRule[] {
             new NumberedRule("1.1", fakeRule),
             new NumberedRule("1.2", fakeRule),
@@ -187,8 +208,10 @@ class RuleEngineImplTest {
     }
 
     @Test
-    void testRulesWithDifferentDepositTypesDependOnAllRuleTwoLevels() {
+    void testRulesWithDifferentDepositTypesDependOnAllRuleTwoLevels() throws Exception {
         var fakeRule = Mockito.mock(BagValidatorRule.class);
+        var result = new RuleResult(RuleResult.Status.SUCCESS, List.of());
+        Mockito.when(fakeRule.validate(Mockito.any())).thenReturn(result);
         var rules = new NumberedRule[] {
             new NumberedRule("1.1", fakeRule),
             new NumberedRule("1.2", fakeRule),

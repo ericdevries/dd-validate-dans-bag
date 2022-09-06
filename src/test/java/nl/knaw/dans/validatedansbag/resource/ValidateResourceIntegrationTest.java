@@ -15,6 +15,7 @@
  */
 package nl.knaw.dans.validatedansbag.resource;
 
+import io.dropwizard.logging.BootstrapLogging;
 import io.dropwizard.testing.junit5.DropwizardExtensionsSupport;
 import io.dropwizard.testing.junit5.ResourceExtension;
 import nl.knaw.dans.lib.dataverse.model.dataset.DatasetLatestVersion;

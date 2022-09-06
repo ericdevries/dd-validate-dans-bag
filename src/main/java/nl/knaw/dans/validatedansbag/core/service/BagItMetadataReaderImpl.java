@@ -24,9 +24,9 @@ import gov.loc.repository.bagit.exceptions.MaliciousPathException;
 import gov.loc.repository.bagit.exceptions.MissingBagitFileException;
 import gov.loc.repository.bagit.exceptions.MissingPayloadDirectoryException;
 import gov.loc.repository.bagit.exceptions.MissingPayloadManifestException;
+import gov.loc.repository.bagit.exceptions.UnparsableVersionException;
 import gov.loc.repository.bagit.exceptions.UnsupportedAlgorithmException;
 import gov.loc.repository.bagit.exceptions.VerificationException;
-import gov.loc.repository.bagit.hash.SupportedAlgorithm;
 import gov.loc.repository.bagit.reader.BagReader;
 import gov.loc.repository.bagit.verify.BagVerifier;
 import org.slf4j.Logger;
@@ -47,23 +47,18 @@ public class BagItMetadataReaderImpl implements BagItMetadataReader {
             return Optional.of(new BagReader().read(path));
         }
         catch (Exception e) {
+            e.printStackTrace();
             return Optional.empty();
         }
     }
 
     @Override
-    public Optional<Manifest> getBagManifest(Bag bag, SupportedAlgorithm algorithm) {
-        return bag.getPayLoadManifests().stream()
-            .filter(m -> m.getAlgorithm().equals(algorithm))
-            .findFirst();
-    }
-
-    @Override
     public void verifyBag(Path path)
         throws MaliciousPathException, UnsupportedAlgorithmException, InvalidBagitFileFormatException, IOException, MissingPayloadManifestException,
-        MissingPayloadDirectoryException, FileNotInPayloadDirectoryException, InterruptedException, MissingBagitFileException, CorruptChecksumException, VerificationException {
+        MissingPayloadDirectoryException, FileNotInPayloadDirectoryException, InterruptedException, MissingBagitFileException, CorruptChecksumException, VerificationException,
+        UnparsableVersionException {
 
-        var bag = getBag(path).orElseThrow();
+        var bag = new BagReader().read(path);
 
         try (var verifier = new BagVerifier()) {
             var ignoreHiddenFiles = false;

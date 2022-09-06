@@ -65,10 +65,10 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/validateJsonOk"
+            $ref: "#/components/schemas/validateOk"
         text/plain:
           schema:
-            $ref: "#/components/schemas/validateTextOk"
+            $ref: "#/components/schemas/validateOk"
 
     InternalServerError:
       description: Internal Server Error.

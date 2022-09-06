@@ -15,6 +15,7 @@
  */
 package nl.knaw.dans.validatedansbag.core.rules;
 
+import nl.knaw.dans.validatedansbag.core.engine.RuleResult;
 import nl.knaw.dans.validatedansbag.core.engine.RuleViolationDetailsException;
 import nl.knaw.dans.validatedansbag.core.service.FileService;
 import nl.knaw.dans.validatedansbag.core.service.XmlReader;
@@ -24,6 +25,7 @@ import org.xml.sax.SAXException;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.stream.Collectors;
 
 public class XmlRulesImpl implements XmlRules {
@@ -38,25 +40,31 @@ public class XmlRulesImpl implements XmlRules {
         this.fileService = fileService;
     }
 
-    private void validateXmlFile(Path file, String schema) throws RuleViolationDetailsException, ParserConfigurationException, IOException, SAXException {
+    private List<String> validateXmlFile(Path file, String schema) throws ParserConfigurationException, IOException, SAXException {
         var document = xmlReader.readXmlFile(file);
         var results = xmlSchemaValidator.validateDocument(document, schema);
 
-        if (results.size() > 0) {
-            var errorList = results.stream()
-                .map(Throwable::getLocalizedMessage)
-                .map(e -> String.format(" - %s", e))
-                .collect(Collectors.joining("\n"));
-
-            throw new RuleViolationDetailsException(String.format(
-                "%s does not confirm to %s: \n%s", file, schema, errorList
-            ));
-        }
+        return results.stream()
+            .map(Throwable::getLocalizedMessage)
+            .map(e -> String.format(" - %s", e))
+            .collect(Collectors.toList());
     }
 
     @Override
     public BagValidatorRule xmlFileConfirmsToSchema(Path file, String schema) {
-        return (path) -> validateXmlFile(path.resolve(file), schema);
+        return (path) -> {
+            var fileName = path.resolve(file);
+            var errors = validateXmlFile(fileName, schema);
+
+            if (errors.size() > 0) {
+                var msg = String.format("%s does not confirm to %s: \n%s",
+                    file, schema, String.join("\n", errors));
+
+                return RuleResult.error(msg);
+            }
+
+            return RuleResult.ok();
+        };
     }
 
     @Override
@@ -65,7 +73,9 @@ public class XmlRulesImpl implements XmlRules {
             var fileName = path.resolve(file);
 
             if (fileService.exists(fileName)) {
-                validateXmlFile(fileName, schema);
+                return xmlFileConfirmsToSchema(file, schema).validate(path);
+            } else {
+                return RuleResult.skipDependencies();
             }
         };
     }

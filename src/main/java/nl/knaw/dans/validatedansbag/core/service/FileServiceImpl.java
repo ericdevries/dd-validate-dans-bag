@@ -23,7 +23,6 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -79,7 +78,7 @@ public class FileServiceImpl implements FileService {
     }
 
     @Override
-    public Optional<Path> extractZipFile(InputStream inputStream) throws IOException {
+    public Path extractZipFile(InputStream inputStream) throws IOException {
         var tempPath = Files.createTempDirectory("bag-");
 
         try (var input = new ZipInputStream(inputStream)) {
@@ -99,14 +98,27 @@ public class FileServiceImpl implements FileService {
             }
         }
 
+        return tempPath;
+
+        /*
         try (var s = Files.walk(tempPath)) {
             return s.filter(this::isDirectory).skip(1).findFirst();
         }
+
+         */
     }
+
 
     @Override
     public void deleteDirectoryAndContents(Path path) throws IOException {
         FileUtils.deleteDirectory(path.toFile());
+    }
+
+    @Override
+    public Optional<Path> getFirstDirectory(Path path) throws IOException {
+        try (var s = Files.walk(path)) {
+            return s.filter(this::isDirectory).skip(1).findFirst();
+        }
     }
 
     void writeStreamToFile(InputStream inputStream, Path target) throws IOException {

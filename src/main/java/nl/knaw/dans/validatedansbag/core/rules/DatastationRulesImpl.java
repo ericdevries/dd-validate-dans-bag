@@ -17,6 +17,7 @@ package nl.knaw.dans.validatedansbag.core.rules;
 
 import nl.knaw.dans.lib.dataverse.model.dataset.PrimitiveSingleValueField;
 import nl.knaw.dans.lib.dataverse.model.search.DatasetResultItem;
+import nl.knaw.dans.validatedansbag.core.engine.RuleResult;
 import nl.knaw.dans.validatedansbag.core.engine.RuleSkipDependenciesException;
 import nl.knaw.dans.validatedansbag.core.engine.RuleViolationDetailsException;
 import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReader;
@@ -45,11 +46,11 @@ public class DatastationRulesImpl implements DatastationRules {
             var hasOrganizationalIdentifier = bagItMetadataReader.getField(path, "Has-Organizational-Identifier");
 
             if (hasOrganizationalIdentifier.isEmpty()) {
-                throw new RuleSkipDependenciesException();
+                return RuleResult.skipDependencies();
             }
 
             else if (hasOrganizationalIdentifier.size() > 1) {
-                throw new RuleViolationDetailsException("More than one 'Has-Organizational-Identifier' field found in bag, only one allowed");
+                return RuleResult.error("More than one 'Has-Organizational-Identifier' field found in bag, only one allowed");
             }
 
             var identifier = hasOrganizationalIdentifier.get(0);
@@ -70,7 +71,7 @@ public class DatastationRulesImpl implements DatastationRules {
 
                 // when the dataset is found in dataverse, is-version-of is mandatory
                 if (isVersionOf == null) {
-                    throw new RuleViolationDetailsException("'Is-Version-Of' is required when 'Has-Organizational-Identifier' is set and there is a matching dataset in Dataverse");
+                    return RuleResult.error("'Is-Version-Of' is required when 'Has-Organizational-Identifier' is set and there is a matching dataset in Dataverse");
                 }
 
                 var dataset = dataverseService.getDataset(deposit.getGlobalId());
@@ -89,12 +90,14 @@ public class DatastationRulesImpl implements DatastationRules {
                     .orElse(null);
 
                 if (!isVersionOf.equals(dansBagId)) {
-                    throw new RuleViolationDetailsException(String.format(
+                    return RuleResult.error(String.format(
                         "'Is-Version-Of' (%s) does not refer to the same bag as the 'Has-Organizational-Identifier' (%s) would expect, but instead refers to bag with ID %s",
                         isVersionOf, identifier, dansBagId
                     ));
                 }
             }
+
+            return RuleResult.ok();
         };
     }
 
@@ -109,11 +112,15 @@ public class DatastationRulesImpl implements DatastationRules {
 
                 // no result means it does not exist
                 if (data.isEmpty()) {
-                    throw new RuleViolationDetailsException(String.format(
+                    return RuleResult.error(String.format(
                         "If 'Is-Version-Of' is specified, it must be a valid SWORD token in the data station; no tokens were found: %s", isVersionOf
                     ));
+                } else {
+                    return RuleResult.ok();
                 }
             }
+
+            return RuleResult.skipDependencies();
         };
     }
 
@@ -129,7 +136,7 @@ public class DatastationRulesImpl implements DatastationRules {
 
                 // no result means it does not exist
                 if (data.isEmpty()) {
-                    throw new RuleViolationDetailsException(String.format(
+                    return RuleResult.error(String.format(
                         "If 'Is-Version-Of' is specified, it must be a valid SWORD token in the data station; no tokens were found: %s", isVersionOf
                     ));
                 }
@@ -147,12 +154,16 @@ public class DatastationRulesImpl implements DatastationRules {
                     .collect(Collectors.toList());
 
                 if (matchingAssignments.isEmpty()) {
-                    throw new RuleViolationDetailsException(String.format(
+                    return RuleResult.error(String.format(
                         "If 'Data-Station-User-Account' is set, it must contain the user name of the Data Station account that is authorized to deposit the bag with ID %s; user name is %s",
                         isVersionOf, userAccount
                     ));
                 }
+
+                return RuleResult.ok();
             }
+
+            return RuleResult.skipDependencies();
         };
     }
 }

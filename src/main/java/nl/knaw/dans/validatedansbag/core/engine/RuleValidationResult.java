@@ -19,27 +19,36 @@ public class RuleValidationResult {
 
     private final String number;
     private final RuleValidationResultStatus status;
-    private final RuleViolationDetailsException exception;
-    private boolean shouldSkipDependencies = false;
+    private final String errorMessage;
+    private final boolean shouldSkipDependencies;
 
     public RuleValidationResult(String number, RuleValidationResultStatus status) {
         this.number = number;
         this.status = status;
-        this.exception = null;
+        this.errorMessage = null;
+        this.shouldSkipDependencies = false;
     }
 
-    public RuleValidationResult(String number, RuleValidationResultStatus status, RuleViolationDetailsException exception) {
+    public RuleValidationResult(String number, RuleValidationResultStatus status, String errorMessage) {
         this.number = number;
         this.status = status;
-        this.exception = exception;
+        this.errorMessage = errorMessage;
+        this.shouldSkipDependencies = false;
+    }
+
+    public RuleValidationResult(String number, RuleValidationResultStatus status, boolean shouldSkipDependencies) {
+        this.number = number;
+        this.status = status;
+        this.errorMessage = null;
+        this.shouldSkipDependencies = shouldSkipDependencies;
+    }
+
+    public String getErrorMessage() {
+        return errorMessage;
     }
 
     public boolean isShouldSkipDependencies() {
         return shouldSkipDependencies;
-    }
-
-    public void setShouldSkipDependencies(boolean shouldSkipDependencies) {
-        this.shouldSkipDependencies = shouldSkipDependencies;
     }
 
     public String getNumber() {
@@ -50,14 +59,19 @@ public class RuleValidationResult {
         return status;
     }
 
-    public RuleViolationDetailsException getException() {
-        return exception;
-    }
-
     public enum RuleValidationResultStatus {
         SUCCESS,
         FAILURE,
         SKIPPED
     }
 
+    @Override
+    public String toString() {
+        return "RuleValidationResult{" +
+            "number='" + number + '\'' +
+            ", status=" + status +
+            ", errorMessage='" + errorMessage + '\'' +
+            ", shouldSkipDependencies=" + shouldSkipDependencies +
+            '}';
+    }
 }

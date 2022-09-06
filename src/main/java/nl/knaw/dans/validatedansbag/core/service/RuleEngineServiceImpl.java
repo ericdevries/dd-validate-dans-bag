@@ -30,10 +30,8 @@ import java.util.List;
 
 public class RuleEngineServiceImpl implements RuleEngineService {
     private final RuleEngine ruleEngine;
-
     private final FileService fileService;
     private final NumberedRule[] defaultRules;
-
     private final Path datasetPath = Path.of("metadata/dataset.xml");
     private final Path metadataPath = Path.of("metadata");
     private final Path metadataFilesPath = Path.of("metadata/files.xml");
@@ -57,12 +55,12 @@ public class RuleEngineServiceImpl implements RuleEngineService {
             new NumberedRule("1.2.5(b)", bagRules.organizationalIdentifierVersionIsValid(), List.of("1.2.1", "1.2.5(a)")),
 
             // manifests
-            new NumberedRule("1.3.1", bagRules.containsNotJustMD5Manifest()),
+            new NumberedRule("1.3.1", bagRules.containsNotJustMD5Manifest(), List.of("1.1.1")),
 
             // Structural
-            new NumberedRule("2.1", bagRules.containsDir(metadataPath)),
-            new NumberedRule("2.2(a)", bagRules.containsFile(metadataPath.resolve("dataset.xml"))),
-            new NumberedRule("2.2(b)", bagRules.containsFile(metadataPath.resolve("files.xml"))),
+            new NumberedRule("2.1", bagRules.containsDir(metadataPath), List.of("1.1.1")),
+            new NumberedRule("2.2(a)", bagRules.containsFile(metadataPath.resolve("dataset.xml")), List.of("2.1")),
+            new NumberedRule("2.2(b)", bagRules.containsFile(metadataPath.resolve("files.xml")), List.of("2.1")),
 
             // this also covers 2.3 and 2.4 for MIGRATION status deposits
             new NumberedRule("2.4", bagRules.containsNothingElseThan(metadataPath, new String[] {
@@ -90,7 +88,7 @@ public class RuleEngineServiceImpl implements RuleEngineService {
             new NumberedRule("2.6.2", bagRules.isOriginalFilepathsFileComplete(), List.of("2.6.1")),
 
             // metadata/dataset.xml
-            new NumberedRule("3.1.1", xmlRules.xmlFileConfirmsToSchema(datasetPath, "dataset.xml"), List.of("2.2(a)")),
+            new NumberedRule("3.1.1", xmlRules.xmlFileConfirmsToSchema(datasetPath, "dataset.xml"), List.of("1.1.1", "2.2(a)")),
             new NumberedRule("3.1.2", bagRules.ddmMayContainDctermsLicenseFromList(), List.of("3.1.1")),
             new NumberedRule("3.1.3", bagRules.ddmDoiIdentifiersAreValid(), List.of("3.1.1")),
 
@@ -122,8 +120,8 @@ public class RuleEngineServiceImpl implements RuleEngineService {
             // provenance.xml
             new NumberedRule("3.3.4", xmlRules.xmlFileIfExistsConformsToSchema(Path.of("metadata/provenance.xml"), "provenance.xml"), DepositType.MIGRATION),
 
-            new NumberedRule("4.1", datastationRules.isVersionOfIsAValidSwordToken()),
-            new NumberedRule("4.2", datastationRules.dataStationUserAccountIsAuthorized())
+            new NumberedRule("4.1", datastationRules.isVersionOfIsAValidSwordToken(), List.of("1.1.1")),
+            new NumberedRule("4.2", datastationRules.dataStationUserAccountIsAuthorized(), List.of("1.1.1"))
         };
     }
 

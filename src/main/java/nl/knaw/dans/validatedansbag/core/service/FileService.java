@@ -40,7 +40,9 @@ public interface FileService {
 
     CharBuffer readFileContents(Path path, Charset charset) throws IOException;
 
-    Optional<Path> extractZipFile(InputStream inputStream) throws IOException;
+    Path extractZipFile(InputStream inputStream) throws IOException;
 
     void deleteDirectoryAndContents(Path path) throws IOException;
+
+    Optional<Path> getFirstDirectory(Path path) throws IOException;
 }

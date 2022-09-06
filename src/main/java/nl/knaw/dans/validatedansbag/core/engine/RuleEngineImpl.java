@@ -25,7 +25,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class RuleEngineImpl implements RuleEngine {
     private static final Logger log = LoggerFactory.getLogger(RuleEngineImpl.class);
@@ -55,7 +57,8 @@ public class RuleEngineImpl implements RuleEngine {
 
                 if (result != null) {
                     // if the parent was skipped or failed, return true
-                    if (RuleValidationResult.RuleValidationResultStatus.SKIPPED.equals(result.getStatus()) || RuleValidationResult.RuleValidationResultStatus.FAILURE.equals(result.getStatus()) || result.isShouldSkipDependencies()) {
+                    if (RuleValidationResult.RuleValidationResultStatus.SKIPPED.equals(result.getStatus()) || RuleValidationResult.RuleValidationResultStatus.FAILURE.equals(result.getStatus())
+                        || result.isShouldSkipDependencies()) {
                         return true;
                     }
                 }
@@ -76,6 +79,7 @@ public class RuleEngineImpl implements RuleEngine {
             ));
         }
 
+        // make sure each rule depends on an existing rule
         var unresolvedDependencies = getUnresolvedDependencies(rules);
 
         if (!unresolvedDependencies.isEmpty()) {
@@ -83,6 +87,7 @@ public class RuleEngineImpl implements RuleEngine {
                 "Some rules depend on other rules that do not exist: %s", String.join(", ", unresolvedDependencies)
             ));
         }
+
         return doValidateRules(bag, rules, depositType);
     }
 
@@ -109,19 +114,27 @@ public class RuleEngineImpl implements RuleEngine {
                 }
                 else if (canBeExecuted(rule, ruleResults)) {
                     log.trace("Executing task {}", rule.getNumber());
-                    try {
-                        rule.getRule().validate(bag);
-                        ruleResults.put(number, new RuleValidationResult(number, RuleValidationResult.RuleValidationResultStatus.SUCCESS));
+                    var response = rule.getRule().validate(bag);
+
+                    log.trace("Task result: {}", response.getStatus());
+                    RuleValidationResult ruleValidationResult = null;
+
+                    switch (response.getStatus()) {
+                        case SUCCESS:
+                            ruleValidationResult = new RuleValidationResult(number, RuleValidationResult.RuleValidationResultStatus.SUCCESS);
+                            break;
+                        case SKIP_DEPENDENCIES:
+                            ruleValidationResult = new RuleValidationResult(number, RuleValidationResult.RuleValidationResultStatus.SUCCESS, true);
+                            break;
+                        case ERROR:
+                            ruleValidationResult = new RuleValidationResult(number, RuleValidationResult.RuleValidationResultStatus.FAILURE, formatErrorMessages(response.getErrorMessages()));
+                            break;
                     }
-                    catch (RuleSkipDependenciesException e) {
-                        log.trace("Task {} will skip dependent tasks because it does not apply to this deposit", rule.getNumber());
-                        var result = new RuleValidationResult(number, RuleValidationResult.RuleValidationResultStatus.SUCCESS);
-                        result.setShouldSkipDependencies(true);
-                        ruleResults.put(number, result);
-                    }
-                    catch (RuleViolationDetailsException e) {
-                        log.trace("Task {} failed", rule.getNumber(), e);
-                        ruleResults.put(number, new RuleValidationResult(number, RuleValidationResult.RuleValidationResultStatus.FAILURE, e));
+
+                    ruleResults.put(number, ruleValidationResult);
+
+                    if (response.getException() != null) {
+                        log.warn("Rule provided an exception while executing", response.getException());
                     }
 
                     toRemove.add(rule);
@@ -144,7 +157,38 @@ public class RuleEngineImpl implements RuleEngine {
             }
         }
 
-        return new ArrayList<>(ruleResults.values());
+        log.info("Bag validation report: ");
+
+        // report on the errors
+        for (var rule : rules) {
+            var number = rule.getNumber();
+            var result = ruleResults.get(number);
+
+            if (result == null) {
+                log.info("- Rule {}: {}", number, "SKIPPED");
+            }
+            else {
+                if (result.getStatus().equals(RuleValidationResult.RuleValidationResultStatus.FAILURE)) {
+                    log.info("- Rule {}: {} ({})", number, result.getStatus(), result.getErrorMessage());
+                }
+                else {
+                    log.info("- Rule {}: {}", number, result.getStatus());
+                }
+            }
+        }
+
+        return Stream.of(rules)
+            .map(rule -> ruleResults.get(rule.getNumber()))
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList());
+    }
+
+    private String formatErrorMessages(List<String> errorMessages) {
+        if (errorMessages.size() == 1) {
+            return errorMessages.get(0);
+        }
+
+        return String.join("\n", errorMessages);
     }
 
     // find any rule that depends on a rule that doesn't exist
