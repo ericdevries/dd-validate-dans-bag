@@ -63,8 +63,12 @@ components:
       description: Ok. The bag was successfully validated. Note that this may still mean the bag was
         not VALID according to the DANS BagIt Profile.
       content:
-        schema:
-          $ref: "#/components/schemas/validateOk"
+        application/json:
+          schema:
+            $ref: "#/components/schemas/validateOk"
+        text/plain:
+          schema:
+            $ref: "#/components/schemas/validateOk"
 
     InternalServerError:
       description: Internal Server Error.
@@ -105,7 +109,7 @@ components:
         bagLocation: /path/to/myBag
         name: myBag
         profileVersion: 1.0.1
-        informationPackageType: DEPOSIT
+        infoPackageType: DEPOSIT
         isCompliant: false
         ruleViolations:
           - rule: '1.2.2 (a)'
@@ -115,7 +119,7 @@ components:
       required:
         - name
         - profileVersion
-        - infoPackageType
+        - informationPackageType
         - isCompliant
         - ruleViolations
       properties:
