@@ -108,25 +108,27 @@ public class ValidateResource {
     }
 
     ValidateOkDto validateInputStream(InputStream inputStream, DepositType depositType) throws Exception {
-        var bagDir = fileService.extractZipFile(inputStream)
-            .orElseThrow(() -> new IOException("Extracted zip does not contain a directory"));
+        var tempPath = fileService.extractZipFile(inputStream);
 
         try {
+            var bagDir = fileService.getFirstDirectory(tempPath)
+                .orElseThrow(() -> new BagNotFoundException("Extracted zip does not contain a directory"));
+
             return validatePath(bagDir, depositType);
         }
         finally {
             try {
-                fileService.deleteDirectoryAndContents(bagDir.getParent());
+                fileService.deleteDirectoryAndContents(tempPath);
             }
             catch (IOException e) {
                 log.error("Error cleaning up temporary directory");
             }
         }
+
     }
 
     ValidateOkDto validatePath(java.nio.file.Path bagDir, DepositType depositType) throws Exception {
         var results = ruleEngineService.validateBag(bagDir, depositType);
-
         var isValid = results.stream().noneMatch(r -> r.getStatus().equals(RuleValidationResult.RuleValidationResultStatus.FAILURE));
 
         var result = new ValidateOkDto();
@@ -143,14 +145,8 @@ public class ValidateResource {
 
                 var message = new StringBuilder();
 
-                if (rule.getException().getLocalizedMessage() != null) {
-                    message.append(rule.getException().getLocalizedMessage());
-                }
-
-                if (rule.getException().isMultiException()) {
-                    for (var e : rule.getException().getExceptions()) {
-                        message.append("\n - ").append(e.getLocalizedMessage());
-                    }
+                if (rule.getErrorMessage() != null) {
+                    message.append(rule.getErrorMessage());
                 }
 
                 ret.setViolation(message.toString());

@@ -35,15 +35,12 @@ public interface BagRules {
 
     BagValidatorRule bagInfoIsVersionOfIsValidUrnUuid();
 
-    BagValidatorRule bagShaPayloadManifestContainsAllPayloadFiles();
-
     BagValidatorRule containsNothingElseThan(Path dir, String[] paths);
 
     BagValidatorRule hasOnlyValidFileNames();
 
     BagValidatorRule optionalFileIsUtf8Decodable(Path path);
 
-    BagValidatorRule originalFilePathsDoNotContainSpaces();
     BagValidatorRule isOriginalFilepathsFileComplete();
 
     BagValidatorRule ddmMayContainDctermsLicenseFromList();

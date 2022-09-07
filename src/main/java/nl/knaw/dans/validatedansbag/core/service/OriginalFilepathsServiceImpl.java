@@ -18,6 +18,7 @@ package nl.knaw.dans.validatedansbag.core.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -49,6 +50,9 @@ public class OriginalFilepathsServiceImpl implements OriginalFilepathsService {
                 .filter(p -> p.length == 2)
                 .map(p -> new OriginalFilePathItem(Path.of(p[1]), Path.of(p[0])))
                 .collect(Collectors.toList());
+        }
+        catch (NoSuchFileException e) {
+            log.debug("File {} not found", filename);
         }
         catch (Exception e) {
             log.error("Error while reading {}", filename, e);

@@ -16,7 +16,7 @@
 
 package nl.knaw.dans.validatedansbag.core.rules;
 
-import nl.knaw.dans.validatedansbag.core.engine.RuleViolationDetailsException;
+import nl.knaw.dans.validatedansbag.core.engine.RuleResult;
 import nl.knaw.dans.validatedansbag.core.service.FileService;
 import nl.knaw.dans.validatedansbag.core.service.OriginalFilepathsService;
 import nl.knaw.dans.validatedansbag.core.service.XmlReader;
@@ -31,9 +31,11 @@ import javax.xml.xpath.XPathExpressionException;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class FilesXmlRulesImpl implements FilesXmlRules {
@@ -56,37 +58,48 @@ public class FilesXmlRulesImpl implements FilesXmlRules {
     public BagValidatorRule filesXmlFilePathAttributesContainLocalBagPathAndNonPayloadFilesAreNotDescribed() {
         // 2.6.2 is already checked
         // Directories and non-payload files MUST NOT be described by a file element.
-        return this::filesXmlDescribesOnlyPayloadFiles;
+        return (path) -> {
+            var missingInFilesXml = filesXmlDescribesOnlyPayloadFiles(path);
+
+            if (missingInFilesXml.size() > 0) {
+                var paths = missingInFilesXml.stream().map(Path::toString).collect(Collectors.joining(", "));
+                return RuleResult.error(String.format("files.xml: duplicate entries found: {%s}", paths));
+            }
+
+            return RuleResult.ok();
+        };
     }
 
     @Override
     public BagValidatorRule filesXmlNoDuplicateFilesAndEveryPayloadFileIsDescribed() {
         return path -> {
-            var errors = new ArrayList<RuleViolationDetailsException>();
+            var errors = new ArrayList<String>();
+
+            var duplicates = filesXmlNoDuplicates(path);
 
             // There MUST NOT be more than one file element corresponding to a payload file
-            try {
-                filesXmlNoDuplicates(path);
-            }
-            catch (RuleViolationDetailsException e) {
-                errors.add(e);
+            if (duplicates.size() > 0) {
+                var paths = duplicates.stream().map(Path::toString).collect(Collectors.joining(", "));
+                errors.add(String.format("files.xml: duplicate entries found: {%s}", paths));
             }
 
+            var missingPayloadFiles = filesXmlDescribesAllPayloadFiles(path);
+
             // every payload file MUST be described by a file element.
-            try {
-                filesXmlDescribesAllPayloadFiles(path);
-            }
-            catch (RuleViolationDetailsException e) {
-                errors.add(e);
+            if (missingPayloadFiles.size() > 0) {
+                var paths = missingPayloadFiles.stream().map(Path::toString).collect(Collectors.joining(", "));
+                errors.add(String.format("files.xml does not describe all payload files: {%s}", paths));
             }
 
             if (errors.size() > 0) {
-                throw new RuleViolationDetailsException(errors);
+                return RuleResult.error(errors);
             }
+
+            return RuleResult.ok();
         };
     }
 
-    void filesXmlDescribesAllPayloadFiles(Path path) throws ParserConfigurationException, IOException, SAXException, XPathExpressionException, RuleViolationDetailsException {
+    Set<Path> filesXmlDescribesAllPayloadFiles(Path path) throws ParserConfigurationException, IOException, SAXException, XPathExpressionException {
         var dataPath = path.resolve("data");
         var document = xmlReader.readXmlFile(path.resolve("metadata/files.xml"));
 
@@ -111,20 +124,10 @@ public class FilesXmlRulesImpl implements FilesXmlRules {
             .map(p -> Optional.ofNullable(bagPathMapping.get(p)).orElse(p))
             .collect(Collectors.toSet());
 
-        var onlyInBag = CollectionUtils.subtract(bagPaths, xmlPaths);
-
-        if (onlyInBag.size() > 0) {
-            var msg = onlyInBag.stream()
-                .map(Path::toString)
-                .collect(Collectors.joining(", "));
-
-            throw new RuleViolationDetailsException(String.format(
-                "files.xml does not describe all payload files: {%s}", msg));
-
-        }
+        return new HashSet<>(CollectionUtils.subtract(bagPaths, xmlPaths));
     }
 
-    void filesXmlDescribesOnlyPayloadFiles(Path path) throws ParserConfigurationException, IOException, SAXException, XPathExpressionException, RuleViolationDetailsException {
+    Set<Path> filesXmlDescribesOnlyPayloadFiles(Path path) throws ParserConfigurationException, IOException, SAXException, XPathExpressionException {
         var dataPath = path.resolve("data");
         var document = xmlReader.readXmlFile(path.resolve("metadata/files.xml"));
 
@@ -155,38 +158,10 @@ public class FilesXmlRulesImpl implements FilesXmlRules {
         // throw an exception
         var onlyInXml = CollectionUtils.subtract(xmlPaths, bagPaths);
 
-        if (onlyInXml.size() > 0) {
-            var incorrectFiles = onlyInXml.stream()
-                .map(Path::toString)
-                .collect(Collectors.joining(", "));
-
-            throw new RuleViolationDetailsException(String.format(
-                "files.xml describes non-payload files or directories: {%s}", incorrectFiles
-            ));
-        }
+        return new HashSet<>(onlyInXml);
     }
 
-    void filesXmlFileElementsAllHaveFilepathAttribute(Path path)
-        throws ParserConfigurationException, IOException, SAXException, XPathExpressionException, RuleViolationDetailsException {
-        var document = xmlReader.readXmlFile(path.resolve("metadata/files.xml"));
-
-        var missingAttributes = xmlReader.xpathToStream(document, "/files/file")
-            .filter(node -> {
-                var attributes = node.getAttributes();
-                var attr = attributes.getNamedItem("filepath");
-
-                return attr == null || attr.getTextContent().isEmpty();
-            })
-            .collect(Collectors.toList());
-
-        if (!missingAttributes.isEmpty()) {
-            throw new RuleViolationDetailsException(String.format(
-                "%s 'file' element(s) don't have a 'filepath' attribute", missingAttributes.size()
-            ));
-        }
-    }
-
-    void filesXmlNoDuplicates(Path path) throws RuleViolationDetailsException, IOException, XPathExpressionException, ParserConfigurationException, SAXException {
+    Set<Path> filesXmlNoDuplicates(Path path) throws IOException, XPathExpressionException, ParserConfigurationException, SAXException {
         var document = xmlReader.readXmlFile(path.resolve("metadata/files.xml"));
 
         var searchExpressions = List.of(
@@ -196,21 +171,15 @@ public class FilesXmlRulesImpl implements FilesXmlRules {
         var filePathNodes = xmlReader.xpathsToStream(document, searchExpressions).collect(Collectors.toList());
 
         // list all duplicate entries in files.xml
-        var duplicatePaths = filePathNodes.stream()
+
+        return filePathNodes.stream()
             .map(Node::getTextContent)
             .map(Path::of)
             .collect(Collectors.groupingBy(Path::normalize))
             .entrySet()
             .stream()
             .filter(item -> item.getValue().size() > 1)
+            .map(Map.Entry::getKey)
             .collect(Collectors.toSet());
-
-        if (duplicatePaths.size() > 0) {
-            var msg = duplicatePaths.stream().map(Map.Entry::getKey).map(Path::toString).collect(Collectors.joining(", "));
-
-            throw new RuleViolationDetailsException(String.format(
-                "files.xml duplicate entries found: {%s}", msg
-            ));
-        }
     }
 }

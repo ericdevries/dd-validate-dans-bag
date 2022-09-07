@@ -15,7 +15,7 @@
  */
 package nl.knaw.dans.validatedansbag.core.rules;
 
-import nl.knaw.dans.validatedansbag.core.engine.RuleViolationDetailsException;
+import nl.knaw.dans.validatedansbag.core.engine.RuleResult;
 import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReader;
 import nl.knaw.dans.validatedansbag.core.service.FileService;
 import nl.knaw.dans.validatedansbag.core.service.OriginalFilepathsService;
@@ -34,8 +34,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class XmlRulesImplTest {
 
@@ -75,7 +74,8 @@ class XmlRulesImplTest {
 
         var checker = new XmlRulesImpl(reader, xmlSchemaValidator, fileService);
 
-        assertDoesNotThrow(() -> checker.xmlFileConfirmsToSchema(Path.of("metadata/dataset.xml"), "ddm").validate(Path.of("bagdir")));
+        var result = checker.xmlFileConfirmsToSchema(Path.of("metadata/dataset.xml"), "ddm").validate(Path.of("bagdir"));
+        assertEquals(RuleResult.Status.SUCCESS, result.getStatus());
     }
 
     @Test
@@ -98,8 +98,8 @@ class XmlRulesImplTest {
 
         var checker = new XmlRulesImpl(reader, xmlSchemaValidator, fileService);
 
-        assertThrows(RuleViolationDetailsException.class,
-            () -> checker.xmlFileConfirmsToSchema(Path.of("metadata/dataset.xml"), "ddm").validate(Path.of("bagdir")));
+        var result = checker.xmlFileConfirmsToSchema(Path.of("metadata/dataset.xml"), "ddm").validate(Path.of("bagdir"));
+        assertEquals(RuleResult.Status.ERROR, result.getStatus());
     }
 
     @Test
@@ -121,19 +121,20 @@ class XmlRulesImplTest {
 
         var checker = new XmlRulesImpl(reader, xmlSchemaValidator, fileService);
 
-        assertThrows(RuleViolationDetailsException.class,
-            () -> checker.xmlFileConfirmsToSchema(Path.of("metadata/dataset.xml"), "ddm").validate(Path.of("bagdir")));
+        var result = checker.xmlFileConfirmsToSchema(Path.of("metadata/dataset.xml"), "ddm").validate(Path.of("bagdir"));
+        assertEquals(RuleResult.Status.ERROR, result.getStatus());
     }
 
     @Test
-    void xmlFileIfExistsConformsToSchemaButFileDoesNotExist() {
+    void xmlFileIfExistsConformsToSchemaButFileDoesNotExist() throws Exception {
         var reader = Mockito.spy(new XmlReaderImpl());
 
         Mockito.doReturn(false).when(fileService).exists(Path.of("bagdir/metadata/dataset.xml"));
 
         var checker = new XmlRulesImpl(reader, xmlSchemaValidator, fileService);
 
-        assertDoesNotThrow(() ->
-            checker.xmlFileIfExistsConformsToSchema(Path.of("metadata/dataset.xml"), "ddm").validate(Path.of("bagdir")));
+        var result = checker.xmlFileIfExistsConformsToSchema(Path.of("metadata/dataset.xml"), "ddm").validate(Path.of("bagdir"));
+        assertEquals(RuleResult.Status.SKIP_DEPENDENCIES, result.getStatus());
+
     }
 }

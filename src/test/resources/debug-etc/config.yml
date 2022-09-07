@@ -17,8 +17,7 @@ server:
 logging:
   level: INFO
   loggers:
-    "nl.knaw.dans":
-      level: TRACE
+    "nl.knaw.dans": TRACE
   appenders:
     - type: console
       logFormat: "%-5p [%d{ISO8601}] [%t] %c: %m%n%rEx"

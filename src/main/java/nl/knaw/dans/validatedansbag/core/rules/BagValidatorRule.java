@@ -15,13 +15,12 @@
  */
 package nl.knaw.dans.validatedansbag.core.rules;
 
-import nl.knaw.dans.validatedansbag.core.engine.RuleSkipDependenciesException;
-import nl.knaw.dans.validatedansbag.core.engine.RuleViolationDetailsException;
+import nl.knaw.dans.validatedansbag.core.engine.RuleResult;
 
 import java.nio.file.Path;
 
 @FunctionalInterface
 public interface BagValidatorRule {
-    void validate(Path path) throws RuleViolationDetailsException, RuleSkipDependenciesException, Exception;
+    RuleResult validate(Path path) throws Exception;
 
 }

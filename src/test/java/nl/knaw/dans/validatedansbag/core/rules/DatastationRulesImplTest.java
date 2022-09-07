@@ -19,7 +19,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import nl.knaw.dans.lib.dataverse.DataverseClient;
 import nl.knaw.dans.lib.dataverse.DataverseClientConfig;
 import nl.knaw.dans.validatedansbag.core.config.DataverseConfig;
-import nl.knaw.dans.validatedansbag.core.engine.RuleViolationDetailsException;
+import nl.knaw.dans.validatedansbag.core.engine.RuleResult;
 import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReader;
 import nl.knaw.dans.validatedansbag.core.service.DataverseService;
 import nl.knaw.dans.validatedansbag.core.service.DataverseServiceImpl;
@@ -30,7 +30,6 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.message.BasicHttpResponse;
 import org.apache.http.message.BasicStatusLine;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -40,8 +39,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DatastationRulesImplTest {
@@ -145,12 +143,13 @@ class DatastationRulesImplTest {
             .thenReturn(createStringResponse(fakeSearchResults))
             .thenReturn(createStringResponse(latestVersionResult));
 
-        assertDoesNotThrow(() -> checker.organizationalIdentifierIsValid().validate(Path.of("bagdir")));
+        var result = checker.organizationalIdentifierIsValid().validate(Path.of("bagdir"));
+        assertEquals(RuleResult.Status.SUCCESS, result.getStatus());
 
     }
 
     @Test
-    void testOrganizationIdentifierHasMoreThanOneEntry() {
+    void testOrganizationIdentifierHasMoreThanOneEntry() throws Exception {
         var dv = createDataverseServiceSpy();
         var checker = new DatastationRulesImpl(bagItMetadataReader, dv);
 
@@ -160,7 +159,8 @@ class DatastationRulesImplTest {
         Mockito.doReturn("urn:uuid:2cd3745a-8b42-44a7-b1ca-5c93aa6f4e32")
             .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
 
-        assertThrows(RuleViolationDetailsException.class, () -> checker.organizationalIdentifierIsValid().validate(Path.of("bagdir")));
+        var result = checker.organizationalIdentifierIsValid().validate(Path.of("bagdir"));
+        assertEquals(RuleResult.Status.ERROR, result.getStatus());
     }
 
     @Test
@@ -234,8 +234,8 @@ class DatastationRulesImplTest {
             .thenReturn(createStringResponse(fakeSearchResults))
             .thenReturn(createStringResponse(latestVersionResult));
 
-        assertThrows(RuleViolationDetailsException.class,
-            () -> checker.organizationalIdentifierIsValid().validate(Path.of("bagdir")));
+        var result = checker.organizationalIdentifierIsValid().validate(Path.of("bagdir"));
+        assertEquals(RuleResult.Status.ERROR, result.getStatus());
 
     }
 
@@ -267,7 +267,8 @@ class DatastationRulesImplTest {
         Mockito.when(httpClient.execute(Mockito.any()))
             .thenReturn(createStringResponse(fakeSearchResults));
 
-        assertDoesNotThrow(() -> checker.organizationalIdentifierIsValid().validate(Path.of("bagdir")));
+        var result = checker.organizationalIdentifierIsValid().validate(Path.of("bagdir"));
+        assertEquals(RuleResult.Status.SUCCESS, result.getStatus());
     }
 
     @Test
@@ -341,8 +342,8 @@ class DatastationRulesImplTest {
             .thenReturn(createStringResponse(fakeSearchResults))
             .thenReturn(createStringResponse(latestVersionResult));
 
-        assertThrows(RuleViolationDetailsException.class,
-            () -> checker.organizationalIdentifierIsValid().validate(Path.of("bagdir")));
+        var result = checker.organizationalIdentifierIsValid().validate(Path.of("bagdir"));
+        assertEquals(RuleResult.Status.ERROR, result.getStatus());
 
     }
 
@@ -411,8 +412,8 @@ class DatastationRulesImplTest {
             .thenReturn(createStringResponse(fakeSearchResults))
             .thenReturn(createStringResponse(latestVersionResult));
 
-        assertThrows(RuleViolationDetailsException.class,
-            () -> checker.organizationalIdentifierIsValid().validate(Path.of("bagdir")));
+        var result = checker.organizationalIdentifierIsValid().validate(Path.of("bagdir"));
+        assertEquals(RuleResult.Status.ERROR, result.getStatus());
 
     }
 
@@ -470,8 +471,9 @@ class DatastationRulesImplTest {
             .thenReturn(createStringResponse(fakeSearchResults))
             .thenReturn(createStringResponse(assignmentResult));
 
-        assertDoesNotThrow(() -> checker.dataStationUserAccountIsAuthorized().validate(Path.of("bagdir")));
+        var result = checker.dataStationUserAccountIsAuthorized().validate(Path.of("bagdir"));
 
+        assertEquals(RuleResult.Status.SUCCESS, result.getStatus());
     }
 
     @Test
@@ -528,10 +530,10 @@ class DatastationRulesImplTest {
             .thenReturn(createStringResponse(fakeSearchResults))
             .thenReturn(createStringResponse(assignmentResult));
 
-        var e = assertThrows(RuleViolationDetailsException.class,
-            () -> checker.dataStationUserAccountIsAuthorized().validate(Path.of("bagdir")));
+        var result = checker.dataStationUserAccountIsAuthorized().validate(Path.of("bagdir"));
 
-        assertTrue(e.getMessage().contains("Data Station account that is authorized to deposit the bag"));
+        assertEquals(RuleResult.Status.ERROR, result.getStatus());
+        assertTrue(result.getErrorMessages().get(0).contains("Data Station account that is authorized to deposit the bag"));
 
     }
 
@@ -589,7 +591,8 @@ class DatastationRulesImplTest {
             .thenReturn(createStringResponse(fakeSearchResults))
             .thenReturn(createStringResponse(assignmentResult));
 
-        assertDoesNotThrow(() -> checker.dataStationUserAccountIsAuthorized().validate(Path.of("bagdir")));
+        var result = checker.dataStationUserAccountIsAuthorized().validate(Path.of("bagdir"));
+        assertEquals(RuleResult.Status.SKIP_DEPENDENCIES, result.getStatus());
 
     }
 
@@ -641,10 +644,10 @@ class DatastationRulesImplTest {
             .thenReturn(createStringResponse(fakeSearchResults))
             .thenReturn(createStringResponse(assignmentResult));
 
-        var e = assertThrows(RuleViolationDetailsException.class,
-            () -> checker.dataStationUserAccountIsAuthorized().validate(Path.of("bagdir")));
+        var result = checker.dataStationUserAccountIsAuthorized().validate(Path.of("bagdir"));
 
-        assertTrue(e.getMessage().contains("it must be a valid SWORD token in the data station"));
+        assertTrue(result.getErrorMessages().get(0).contains("it must be a valid SWORD token in the data station"));
+        assertEquals(RuleResult.Status.ERROR, result.getStatus());
     }
 
     @Test
@@ -701,10 +704,10 @@ class DatastationRulesImplTest {
             .thenReturn(createStringResponse(fakeSearchResults))
             .thenReturn(createStringResponse(assignmentResult));
 
-        var e = assertThrows(RuleViolationDetailsException.class,
-            () -> checker.dataStationUserAccountIsAuthorized().validate(Path.of("bagdir")));
+        var result = checker.dataStationUserAccountIsAuthorized().validate(Path.of("bagdir"));
 
-        assertTrue(e.getMessage().contains("Data Station account that is authorized to deposit the bag"));
+        assertEquals(RuleResult.Status.ERROR, result.getStatus());
+        assertTrue(result.getErrorMessages().get(0).contains("Data Station account that is authorized to deposit the bag"));
 
     }
 }

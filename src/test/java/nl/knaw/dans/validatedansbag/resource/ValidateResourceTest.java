@@ -80,8 +80,11 @@ class ValidateResourceTest {
             .field("command", data, MediaType.APPLICATION_JSON_TYPE)
             .field("zip", new ByteArrayInputStream(new byte[4]), MediaType.valueOf("application/zip"));
 
-        Mockito.doReturn(Optional.of(Path.of("audiences")))
+        Mockito.doReturn(Path.of("/tmp/bag-1"))
             .when(fileService).extractZipFile(Mockito.any(InputStream.class));
+
+        Mockito.doReturn(Optional.of(Path.of("bagdir")))
+            .when(fileService).getFirstDirectory(Mockito.any());
 
         var response = EXT.target("/validate")
             .register(MultiPartFeature.class)
@@ -95,8 +98,11 @@ class ValidateResourceTest {
     void validateZipFile() throws Exception {
         var zip = Entity.entity(new ByteArrayInputStream(new byte[4]), MediaType.valueOf("application/zip"));
 
-        Mockito.doReturn(Optional.of(Path.of("audiences")))
+        Mockito.doReturn(Path.of("/tmp/bag-1"))
             .when(fileService).extractZipFile(Mockito.any(InputStream.class));
+
+        Mockito.doReturn(Optional.of(Path.of("bagdir")))
+            .when(fileService).getFirstDirectory(Mockito.any());
 
         var response = EXT.target("/validate")
             .request()
