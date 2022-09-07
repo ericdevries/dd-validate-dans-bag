@@ -23,8 +23,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 @SuppressWarnings("FieldCanBeLocal")
 public class IdentifierValidatorImpl implements IdentifierValidator {
     private final String daiPrefix = "info:eu-repo/dai/nl/";
-    // private final String orcidPrefix = "https://orcid.org/";
-    // private final String isniPrefix = "https://isni.org/isni/";
 
     private final List<String> orcidDomains = List.of("orcid.org", "www.orcid.org");
     private final List<String> isniDomains = List.of("isni.org", "www.isni.org");
@@ -74,7 +72,7 @@ public class IdentifierValidatorImpl implements IdentifierValidator {
         try {
             // strip both https and http, although the specs state it should only have https
             // see: https://support.orcid.org/hc/en-us/articles/360006897674-Structure-of-the-ORCID-Identifier
-            // - The ORCID iD is expressed as an https URI, i.e. the 16-digit identifier is preceded by "https://orcid.org/". A hyphen is inserted every 4 digits of the identifier to aid readability.
+            // - The ORCID iD is expressed as a https URI, i.e. the 16-digit identifier is preceded by "https://orcid.org/". A hyphen is inserted every 4 digits of the identifier to aid readability.
             var uri = new URI(str);
 
             if (uri.getHost() != null) {
@@ -87,7 +85,7 @@ public class IdentifierValidatorImpl implements IdentifierValidator {
             }
         }
         catch (URISyntaxException e) {
-            // it is not a uri, but that is not a problem
+            // it is not an uri, but that is not a problem
         }
 
         str = str.replaceAll("-", "");
@@ -110,7 +108,7 @@ public class IdentifierValidatorImpl implements IdentifierValidator {
             }
         }
         catch (URISyntaxException e) {
-            // it is not a uri, but that is not a problem
+            // it is not an uri, but that is not a problem
         }
 
         str = str.replaceAll("[\\s-]", "");

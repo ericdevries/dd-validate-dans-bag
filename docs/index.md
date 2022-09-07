@@ -28,7 +28,7 @@ ARGUMENTS
 
 INSTALLATION AND CONFIGURATION
 ------------------------------
-Currently this project is built as an RPM package for RHEL7/CentOS7 and later. The RPM will install the binaries to
+Currently, this project is built as an RPM package for RHEL7/CentOS7 and later. The RPM will install the binaries to
 `/opt/dans.knaw.nl/dd-validate-dans-bag` and the configuration files to `/etc/opt/dans.knaw.nl/dd-validate-dans-bag`. 
 
 For installation on systems that do no support RPM and/or systemd:

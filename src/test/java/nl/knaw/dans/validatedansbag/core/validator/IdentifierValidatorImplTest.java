@@ -15,7 +15,6 @@
  */
 package nl.knaw.dans.validatedansbag.core.validator;
 
-import nl.knaw.dans.validatedansbag.core.validator.IdentifierValidatorImpl;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

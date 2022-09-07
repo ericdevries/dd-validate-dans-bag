@@ -78,4 +78,6 @@ public class NumberedRule {
             ", depositType=" + depositType +
             '}';
     }
+
+
 }

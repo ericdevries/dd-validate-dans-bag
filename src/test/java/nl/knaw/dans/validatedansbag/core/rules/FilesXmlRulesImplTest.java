@@ -15,7 +15,7 @@
  */
 package nl.knaw.dans.validatedansbag.core.rules;
 
-import nl.knaw.dans.validatedansbag.core.engine.RuleViolationDetailsException;
+import nl.knaw.dans.validatedansbag.core.engine.RuleResult;
 import nl.knaw.dans.validatedansbag.core.service.FileService;
 import nl.knaw.dans.validatedansbag.core.service.OriginalFilepathsService;
 import nl.knaw.dans.validatedansbag.core.service.XmlReader;
@@ -30,11 +30,9 @@ import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class FilesXmlRulesImplTest {
@@ -55,45 +53,45 @@ class FilesXmlRulesImplTest {
     }
 
     @Test
-    void filesXmlFilePathAttributesContainLocalBagPathAndNonPayloadFilesAreNotDescribed() throws Exception, RuleViolationDetailsException {
+    void filesXmlFilePathAttributesContainLocalBagPathAndNonPayloadFilesAreNotDescribed() throws Exception {
         var checker = Mockito.spy(new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService));
-        Mockito.doNothing().when(checker).filesXmlFileElementsAllHaveFilepathAttribute(Mockito.any());
-        Mockito.doNothing().when(checker).filesXmlDescribesOnlyPayloadFiles(Mockito.any());
+        Mockito.doReturn(Set.of()).when(checker).filesXmlDescribesOnlyPayloadFiles(Mockito.any());
 
-        assertDoesNotThrow(() -> checker.filesXmlFilePathAttributesContainLocalBagPathAndNonPayloadFilesAreNotDescribed().validate(Path.of("bagdir")));
+        var result = checker.filesXmlFilePathAttributesContainLocalBagPathAndNonPayloadFilesAreNotDescribed().validate(Path.of("bagdir"));
+
+        assertEquals(RuleResult.Status.SUCCESS, result.getStatus());
     }
 
     @Test
-    void filesXmlFilePathAttributesContainLocalBagPathAndNonPayloadFilesAreNotDescribedThrowsDoubleError() throws Exception, RuleViolationDetailsException {
+    void filesXmlFilePathAttributesContainLocalBagPathAndNonPayloadFilesAreNotDescribedThrowsDoubleError() throws Exception {
         var checker = Mockito.spy(new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService));
-        Mockito.doThrow(new RuleViolationDetailsException("msg1")).when(checker).filesXmlFileElementsAllHaveFilepathAttribute(Mockito.any());
-        Mockito.doThrow(new RuleViolationDetailsException("msg1")).when(checker).filesXmlDescribesOnlyPayloadFiles(Mockito.any());
+        Mockito.doReturn(Set.of(Path.of("some/path.txt"))).when(checker).filesXmlDescribesOnlyPayloadFiles(Mockito.any());
 
-        var e = assertThrows(RuleViolationDetailsException.class,
-            () -> checker.filesXmlFilePathAttributesContainLocalBagPathAndNonPayloadFilesAreNotDescribed().validate(Path.of("bagdir")));
+        var result = checker.filesXmlFilePathAttributesContainLocalBagPathAndNonPayloadFilesAreNotDescribed().validate(Path.of("bagdir"));
 
-        assertFalse(e.isMultiException());
+        assertEquals(RuleResult.Status.ERROR, result.getStatus());
     }
 
     @Test
-    void filesXmlNoDuplicateFilesAndEveryPayloadFileIsDescribed() throws Exception, RuleViolationDetailsException {
+    void filesXmlNoDuplicateFilesAndEveryPayloadFileIsDescribed() throws Exception {
         var checker = Mockito.spy(new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService));
-        Mockito.doNothing().when(checker).filesXmlNoDuplicates(Mockito.any());
-        Mockito.doNothing().when(checker).filesXmlDescribesAllPayloadFiles(Mockito.any());
+        Mockito.doReturn(Set.of()).when(checker).filesXmlNoDuplicates(Mockito.any());
+        Mockito.doReturn(Set.of()).when(checker).filesXmlDescribesAllPayloadFiles(Mockito.any());
 
-        assertDoesNotThrow(() -> checker.filesXmlNoDuplicateFilesAndEveryPayloadFileIsDescribed().validate(Path.of("bagdir")));
+        var result = checker.filesXmlNoDuplicateFilesAndEveryPayloadFileIsDescribed().validate(Path.of("bagdir"));
+        assertEquals(RuleResult.Status.SUCCESS, result.getStatus());
     }
 
     @Test
-    void filesXmlNoDuplicateFilesAndEveryPayloadFileIsDescribedThrowsDoubleError() throws Exception, RuleViolationDetailsException {
+    void filesXmlNoDuplicateFilesAndEveryPayloadFileIsDescribedThrowsDoubleError() throws Exception {
         var checker = Mockito.spy(new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService));
-        Mockito.doThrow(new RuleViolationDetailsException("msg1")).when(checker).filesXmlNoDuplicates(Mockito.any());
-        Mockito.doThrow(new RuleViolationDetailsException("msg2")).when(checker).filesXmlDescribesAllPayloadFiles(Mockito.any());
+        Mockito.doReturn(Set.of(Path.of("broken"))).when(checker).filesXmlNoDuplicates(Mockito.any());
+        Mockito.doReturn(Set.of(Path.of("another"))).when(checker).filesXmlDescribesAllPayloadFiles(Mockito.any());
 
-        var e = assertThrows(RuleViolationDetailsException.class,
-            () -> checker.filesXmlNoDuplicateFilesAndEveryPayloadFileIsDescribed().validate(Path.of("bagdir")));
+        var result = checker.filesXmlNoDuplicateFilesAndEveryPayloadFileIsDescribed().validate(Path.of("bagdir"));
 
-        assertEquals(2, e.getExceptions().size());
+        assertEquals(RuleResult.Status.ERROR, result.getStatus());
+        assertEquals(2, result.getErrorMessages().size());
     }
 
     @Test
@@ -121,9 +119,9 @@ class FilesXmlRulesImplTest {
         Mockito.doReturn(files).when(fileService).getAllFiles(Mockito.any());
 
         var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
+        var result = checker.filesXmlDescribesOnlyPayloadFiles(Path.of("bagdir"));
 
-        assertDoesNotThrow(() ->
-            checker.filesXmlDescribesOnlyPayloadFiles(Path.of("bagdir")));
+        assertEquals(0, result.size());
     }
 
     @Test
@@ -155,56 +153,9 @@ class FilesXmlRulesImplTest {
         Mockito.doReturn(files).when(fileService).getAllFiles(Mockito.any());
 
         var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
+        var result = checker.filesXmlDescribesOnlyPayloadFiles(Path.of("bagdir"));
 
-        var e = assertThrows(RuleViolationDetailsException.class, () ->
-            checker.filesXmlDescribesOnlyPayloadFiles(Path.of("bagdir")));
-
-        assertTrue(e.getMessage().contains("image02.png"));
-    }
-
-    @Test
-    void filesXmlFileElementsAllHaveFilepathAttribute() throws Exception {
-        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
-            + "    <file filepath=\"data/random images/image01.png\">\n"
-            + "        <dcterms:title>The first image</dcterms:title>\n"
-            + "    </file>\n"
-            + "</files>\n"
-            + "\n";
-
-        var document = parseXmlString(xml);
-        Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
-
-        var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
-
-        assertDoesNotThrow(() -> checker.filesXmlFileElementsAllHaveFilepathAttribute(Path.of("bagdir")));
-    }
-
-    @Test
-    void filesXmlFileElementsAllHaveFilepathAttributeButNotALl() throws Exception {
-        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-            + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
-            + "    <file filepath=\"data/random images/image01.png\">\n"
-            + "        <dcterms:title>The first image</dcterms:title>\n"
-            + "    </file>\n"
-            + "    <file>\n"
-            + "        <dcterms:title>The first image</dcterms:title>\n"
-            + "    </file>\n"
-            + "    <file filepath=\"\">\n"
-            + "        <dcterms:title>The first image</dcterms:title>\n"
-            + "    </file>\n"
-            + "</files>\n"
-            + "\n";
-
-        var document = parseXmlString(xml);
-        Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
-
-        var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
-
-        var e = assertThrows(RuleViolationDetailsException.class,
-            () -> checker.filesXmlFileElementsAllHaveFilepathAttribute(Path.of("bagdir")));
-
-        assertTrue(e.getLocalizedMessage().startsWith("2 "));
+        assertEquals(1, result.size());
     }
 
     @Test
@@ -229,7 +180,8 @@ class FilesXmlRulesImplTest {
 
         var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
 
-        assertDoesNotThrow(() -> checker.filesXmlNoDuplicates(Path.of("bagdir")));
+        var result = checker.filesXmlNoDuplicates(Path.of("bagdir"));
+        assertEquals(0, result.size());
     }
 
     @Test
@@ -253,9 +205,8 @@ class FilesXmlRulesImplTest {
         Mockito.doReturn(document).when(xmlReader).readXmlFile(Mockito.any());
 
         var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
-
-        var e = assertThrows(RuleViolationDetailsException.class, () -> checker.filesXmlNoDuplicates(Path.of("bagdir")));
-        assertTrue(e.getMessage().contains("image02.png"));
+        var result = checker.filesXmlNoDuplicates(Path.of("bagdir"));
+        assertEquals(1, result.size());
     }
 
     @Test
@@ -287,7 +238,9 @@ class FilesXmlRulesImplTest {
         Mockito.doReturn(files).when(fileService).getAllFiles(Mockito.any());
 
         var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
-        assertDoesNotThrow(() -> checker.filesXmlDescribesAllPayloadFiles(Path.of("bagdir")));
+        var result = checker.filesXmlDescribesAllPayloadFiles(Path.of("bagdir"));
+
+        assertEquals(0, result.size());
     }
 
     @Test
@@ -320,9 +273,9 @@ class FilesXmlRulesImplTest {
         Mockito.doReturn(files).when(fileService).getAllFiles(Mockito.any());
 
         var checker = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
-        var e = assertThrows(RuleViolationDetailsException.class,
-            () -> checker.filesXmlDescribesAllPayloadFiles(Path.of("bagdir")));
+        var result = checker.filesXmlDescribesAllPayloadFiles(Path.of("bagdir"));
 
-        assertTrue(e.getMessage().contains("image04.png"));
+        assertEquals(1, result.size());
+        assertTrue(result.stream().findAny().get().toString().contains("image04.png"));
     }
 }
