@@ -23,6 +23,7 @@ import gov.loc.repository.bagit.exceptions.MissingPayloadDirectoryException;
 import gov.loc.repository.bagit.exceptions.MissingPayloadManifestException;
 import gov.loc.repository.bagit.exceptions.VerificationException;
 import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms;
+import nl.knaw.dans.validatedansbag.core.BagNotFoundException;
 import nl.knaw.dans.validatedansbag.core.engine.RuleResult;
 import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReader;
 import nl.knaw.dans.validatedansbag.core.service.FileService;
@@ -755,7 +756,9 @@ public class BagRulesImpl implements BagRules {
     @Override
     public BagValidatorRule containsNotJustMD5Manifest() {
         return path -> {
-            var bag = bagItMetadataReader.getBag(path).orElseThrow();
+            var bag = bagItMetadataReader.getBag(path).orElseThrow(
+                () -> new BagNotFoundException(String.format("Bag on path %s could not be opened", path)));
+
             var manifests = bagItMetadataReader.getBagManifests(bag);
 
             var hasOtherManifests = false;
@@ -763,6 +766,7 @@ public class BagRulesImpl implements BagRules {
             for (var manifest : manifests) {
                 if (!StandardSupportedAlgorithms.MD5.equals(manifest.getAlgorithm())) {
                     hasOtherManifests = true;
+                    break;
                 }
             }
 

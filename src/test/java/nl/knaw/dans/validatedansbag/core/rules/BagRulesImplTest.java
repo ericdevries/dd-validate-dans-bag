@@ -16,7 +16,9 @@
 package nl.knaw.dans.validatedansbag.core.rules;
 
 import gov.loc.repository.bagit.domain.Bag;
+import gov.loc.repository.bagit.domain.Manifest;
 import gov.loc.repository.bagit.exceptions.InvalidBagitFileFormatException;
+import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms;
 import nl.knaw.dans.validatedansbag.core.engine.RuleResult;
 import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReader;
 import nl.knaw.dans.validatedansbag.core.service.DataverseService;
@@ -40,14 +42,15 @@ import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class BagRulesImplTest {
-
     final FileService fileService = Mockito.mock(FileService.class);
     final XmlReader xmlReader = Mockito.mock(XmlReader.class);
     final IdentifierValidator identifierValidator = new IdentifierValidatorImpl();
@@ -284,78 +287,6 @@ class BagRulesImplTest {
         var result = checker.bagInfoContainsAtMostOneOf("Key").validate(Path.of("bagdir"));
         assertEquals(RuleResult.Status.SKIP_DEPENDENCIES, result.getStatus());
     }
-
-    /*
-    @Test
-    void bagShaPayloadManifestContainsAllPayloadFiles() throws Exception {
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
-
-        Mockito.when(fileService.getAllFiles(Mockito.any()))
-            .thenReturn(List.of(Path.of("path/1.txt"), Path.of("path/2.txt")));
-
-        var bag = new Bag();
-        var manifest = new Manifest(StandardSupportedAlgorithms.SHA1);
-        manifest.setFileToChecksumMap(Map.of(
-            Path.of("path/2.txt"), "checksum2",
-            Path.of("path/1.txt"), "checksum1"
-        ));
-
-        bag.setPayLoadManifests(Set.of(manifest));
-
-        Mockito.when(bagItMetadataReader.getBag(Mockito.any())).thenReturn(Optional.of(bag));
-        Mockito.when(bagItMetadataReader.getBagManifest(Mockito.any(), Mockito.any()))
-            .thenReturn(Optional.of(manifest));
-
-        var result = checker.bagShaPayloadManifestContainsAllPayloadFiles().validate(Path.of("bagdir"));
-        assertEquals(RuleResult.Status.SUCCESS, result.getStatus());
-    }
-
-    @Test
-    void bagShaPayloadManifestMissesSomeFiles() throws Exception {
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
-
-        Mockito.when(fileService.getAllFiles(Mockito.any()))
-            .thenReturn(List.of(Path.of("path/1.txt"), Path.of("path/2.txt"), Path.of("path/3.txt")));
-
-        var bag = new Bag();
-        var manifest = new Manifest(StandardSupportedAlgorithms.SHA1);
-        manifest.setFileToChecksumMap(Map.of(
-            Path.of("path/1.txt"), "checksum1",
-            Path.of("path/2.txt"), "checksum2"
-        ));
-
-        bag.setPayLoadManifests(Set.of(manifest));
-
-        Mockito.when(bagItMetadataReader.getBag(Mockito.any())).thenReturn(Optional.of(bag));
-
-        assertThrows(RuleViolationDetailsException.class, () -> checker.bagShaPayloadManifestContainsAllPayloadFiles().validate(Path.of("bagdir")));
-        assertEquals(RuleResult.Status.SUCCESS, result.getStatus());
-    }
-
-    @Test
-    void bagShaPayloadManifestHasTooManyFiles() throws Exception {
-        var checker = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
-
-        Mockito.when(fileService.getAllFiles(Mockito.any()))
-            .thenReturn(List.of(Path.of("path/1.txt"), Path.of("path/2.txt")));
-
-        var bag = new Bag();
-        var manifest = new Manifest(StandardSupportedAlgorithms.SHA1);
-        manifest.setFileToChecksumMap(Map.of(
-            Path.of("path/1.txt"), "checksum1",
-            Path.of("path/2.txt"), "checksum2",
-            Path.of("path/3.txt"), "checksum3"
-        ));
-
-        bag.setPayLoadManifests(Set.of(manifest));
-
-        Mockito.when(bagItMetadataReader.getBag(Mockito.any())).thenReturn(Optional.of(bag));
-
-        assertThrows(RuleViolationDetailsException.class, () -> checker.bagShaPayloadManifestContainsAllPayloadFiles().validate(Path.of("bagdir")));
-        assertEquals(RuleResult.Status.SUCCESS, result.getStatus());
-    }
-
-     */
 
     @Test
     void containsNothingElseThan() throws Exception {
@@ -1086,4 +1017,46 @@ class BagRulesImplTest {
         assertEquals(RuleResult.Status.ERROR, result.getStatus());
     }
 
+    @Test
+    void containsNotJustMD5Manifest() throws Exception {
+        var manifests = Set.of(
+            new Manifest(StandardSupportedAlgorithms.SHA1),
+            new Manifest(StandardSupportedAlgorithms.MD5)
+        );
+
+        Mockito.when(bagItMetadataReader.getBag(Mockito.any())).thenReturn(Optional.of(new Bag()));
+        Mockito.when(bagItMetadataReader.getBagManifests(Mockito.any())).thenReturn(manifests);
+
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, null, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var result = checker.containsNotJustMD5Manifest().validate(Path.of("bagdir"));
+
+        assertEquals(RuleResult.Status.SUCCESS, result.getStatus());
+    }
+
+    @Test
+    void containsOnlyMD5Manifest() throws Exception {
+        var manifests = Set.of(
+            new Manifest(StandardSupportedAlgorithms.MD5)
+        );
+
+        Mockito.when(bagItMetadataReader.getBag(Mockito.any())).thenReturn(Optional.of(new Bag()));
+        Mockito.when(bagItMetadataReader.getBagManifests(Mockito.any())).thenReturn(manifests);
+
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, null, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var result = checker.containsNotJustMD5Manifest().validate(Path.of("bagdir"));
+
+        assertEquals(RuleResult.Status.ERROR, result.getStatus());
+    }
+    @Test
+    void containsNoManifestsAtAll() throws Exception {
+        var manifests = new HashSet<Manifest>();
+
+        Mockito.when(bagItMetadataReader.getBag(Mockito.any())).thenReturn(Optional.of(new Bag()));
+        Mockito.when(bagItMetadataReader.getBagManifests(Mockito.any())).thenReturn(manifests);
+
+        var checker = new BagRulesImpl(fileService, bagItMetadataReader, null, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator);
+        var result = checker.containsNotJustMD5Manifest().validate(Path.of("bagdir"));
+
+        assertEquals(RuleResult.Status.ERROR, result.getStatus());
+    }
 }

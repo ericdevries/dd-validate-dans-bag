@@ -157,30 +157,45 @@ public class RuleEngineImpl implements RuleEngine {
             }
         }
 
-        log.info("Bag validation report: ");
-
-        // report on the errors
-        for (var rule : rules) {
-            var number = rule.getNumber();
-            var result = ruleResults.get(number);
-
-            if (result == null) {
-                log.info("- Rule {}: {}", number, "SKIPPED");
-            }
-            else {
-                if (result.getStatus().equals(RuleValidationResult.RuleValidationResultStatus.FAILURE)) {
-                    log.info("- Rule {}: {} ({})", number, result.getStatus(), result.getErrorMessage());
-                }
-                else {
-                    log.info("- Rule {}: {}", number, result.getStatus());
-                }
-            }
-        }
+        // TODO this does not belong here, but it would be nice to log the results of the validation
+        reportOnBag(rules, ruleResults);
 
         return Stream.of(rules)
             .map(rule -> ruleResults.get(rule.getNumber()))
             .filter(Objects::nonNull)
             .collect(Collectors.toList());
+    }
+
+    private String padLeft(String s, int amount) {
+        return String.format("%" + amount + "s", s);
+    }
+
+    private void reportOnBag(NumberedRule[] rules, Map<String, RuleValidationResult> ruleResults) {
+        var maxRuleLength = Stream.of(rules)
+            .map(r -> r.getNumber().length())
+            .max(Integer::compare)
+            .orElse(0);
+
+        var resultsAsString = Stream.of(rules)
+            .map(rule -> {
+                var result = ruleResults.get(rule.getNumber());
+                var resultStatus = result == null ? RuleValidationResult.RuleValidationResultStatus.SKIPPED : result.getStatus();
+                var padding = maxRuleLength - rule.getNumber().length() + 1 + resultStatus.toString().length();
+
+                if (resultStatus.equals(RuleValidationResult.RuleValidationResultStatus.FAILURE)) {
+                    return String.format("! Rule %s: %s - %s",
+                        rule.getNumber(), padLeft(resultStatus.toString(), padding), result.getErrorMessage());
+                }
+                else {
+                    return String.format("! Rule %s: %s",
+                        rule.getNumber(), padLeft(resultStatus.toString(), padding));
+                }
+
+            })
+            .map(s -> s.replaceAll("\n", "\n!"))
+            .collect(Collectors.joining("\n"));
+
+        log.info("Bag validation report: \n{}", resultsAsString);
     }
 
     private String formatErrorMessages(List<String> errorMessages) {

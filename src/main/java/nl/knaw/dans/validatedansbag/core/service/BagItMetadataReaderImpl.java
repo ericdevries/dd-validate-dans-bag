@@ -47,7 +47,6 @@ public class BagItMetadataReaderImpl implements BagItMetadataReader {
             return Optional.of(new BagReader().read(path));
         }
         catch (Exception e) {
-            e.printStackTrace();
             return Optional.empty();
         }
     }
