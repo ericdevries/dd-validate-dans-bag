@@ -15,7 +15,7 @@ server:
 # See https://www.dropwizard.io/en/latest/manual/configuration.html#logging
 #
 logging:
-  level: TRACE
+  level: INFO
   loggers:
     "nl.knaw.dans": TRACE
   appenders:
