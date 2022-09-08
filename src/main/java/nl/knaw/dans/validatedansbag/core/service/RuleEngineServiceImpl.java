@@ -51,8 +51,9 @@ public class RuleEngineServiceImpl implements RuleEngineService {
             new NumberedRule("1.2.3", bagRules.bagInfoContainsAtMostOneOf("Data-Station-User-Account"), List.of("1.2.1")),
             new NumberedRule("1.2.4(a)", bagRules.bagInfoContainsAtMostOneOf("Is-Version-Of"), List.of("1.2.1")),
             new NumberedRule("1.2.4(b)", bagRules.bagInfoIsVersionOfIsValidUrnUuid(), List.of("1.2.4(a)")),
-            new NumberedRule("1.2.5(a)", datastationRules.organizationalIdentifierIsValid(), List.of("1.2.1")),
+            new NumberedRule("1.2.5(a)", bagRules.bagInfoContainsAtMostOneOf("Has-Organizational-Identifier"), List.of("1.2.1")),
             new NumberedRule("1.2.5(b)", bagRules.organizationalIdentifierVersionIsValid(), List.of("1.2.1", "1.2.5(a)")),
+            new NumberedRule("1.2.5(c)", bagRules.bagInfoContainsAtMostOneOf("Has-Organizational-Identifier-Version"), List.of("1.2.5(a)")),
 
             // manifests
             new NumberedRule("1.3.1", bagRules.containsNotJustMD5Manifest(), List.of("1.1.1")),
@@ -120,8 +121,10 @@ public class RuleEngineServiceImpl implements RuleEngineService {
             // provenance.xml
             new NumberedRule("3.3.4", xmlRules.xmlFileIfExistsConformsToSchema(Path.of("metadata/provenance.xml"), "provenance.xml"), DepositType.MIGRATION),
 
-            new NumberedRule("4.1", datastationRules.isVersionOfIsAValidSwordToken(), List.of("1.1.1")),
-            new NumberedRule("4.2", datastationRules.dataStationUserAccountIsAuthorized(), List.of("1.1.1"))
+            // technically identical to 1.2.3, but this allows us to skip 4.2 and 4.3 if this rule does not apply
+            new NumberedRule("4.1", bagRules.bagInfoContainsAtMostOneOf("Data-Station-User-Account"), List.of("1.2.1")),
+            new NumberedRule("4.2", datastationRules.dataStationUserAccountIsAuthorized(), List.of("4.1")),
+            new NumberedRule("4.3", datastationRules.isVersionOfIsAValidSwordToken(), List.of("4.1")),
         };
     }
 

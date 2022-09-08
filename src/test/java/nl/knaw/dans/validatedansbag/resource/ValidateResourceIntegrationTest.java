@@ -319,6 +319,12 @@ class ValidateResourceIntegrationTest {
             + "              \"multiple\": false,\n"
             + "              \"typeClass\": \"primitive\",\n"
             + "              \"value\": \"urn:uuid:34632f71-11f8-48d8-9bf3-79551ad22b5e\"\n"
+            + "            },\n"
+            + "            {\n"
+            + "              \"typeName\": \"dansOtherId\",\n"
+            + "              \"multiple\": false,\n"
+            + "              \"typeClass\": \"primitive\",\n"
+            + "              \"value\": \"organizational-identifier\"\n"
             + "            }\n"
             + "          ]\n"
             + "        }\n"
@@ -326,6 +332,7 @@ class ValidateResourceIntegrationTest {
             + "    }\n"
             + "  }\n"
             + "}";
+
         var searchResult = new MockedDataverseResponse<SearchResult>(searchResultsJson, SearchResult.class);
         var latestVersionResult = new MockedDataverseResponse<DatasetLatestVersion>(latestVersionJson, DatasetLatestVersion.class);
         var swordTokenResult = new MockedDataverseResponse<SearchResult>(searchResultsJson, SearchResult.class);
@@ -344,6 +351,7 @@ class ValidateResourceIntegrationTest {
             .request()
             .post(Entity.entity(multipart, multipart.getMediaType()), ValidateOkDto.class);
 
+        System.out.println("ERROR: " + response);
         assertTrue(response.getIsCompliant());
         assertEquals("bag-with-is-version-of", response.getName());
     }
@@ -428,10 +436,12 @@ class ValidateResourceIntegrationTest {
         var failed = response.getRuleViolations().stream()
             .map(ValidateOkRuleViolationsDto::getRule).collect(Collectors.toSet());
 
-        assertEquals(Set.of("1.2.5(a)"), failed);
+        System.out.println("RESULT: " + response);
+        assertEquals(Set.of("4.3"), failed);
         assertFalse(response.getIsCompliant());
         assertEquals("bag-with-is-version-of", response.getName());
     }
+
 
     @Test
     void validateWithNoMatchingSwordToken() throws Exception {
@@ -526,7 +536,7 @@ class ValidateResourceIntegrationTest {
         var failed = response.getRuleViolations().stream()
             .map(ValidateOkRuleViolationsDto::getRule).collect(Collectors.toSet());
 
-        assertEquals(Set.of("4.1"), failed);
+        assertEquals(Set.of("4.3"), failed);
         assertFalse(response.getIsCompliant());
         assertEquals("bag-with-is-version-of", response.getName());
     }

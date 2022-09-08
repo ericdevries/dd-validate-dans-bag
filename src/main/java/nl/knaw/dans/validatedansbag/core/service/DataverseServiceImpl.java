@@ -53,7 +53,7 @@ public class DataverseServiceImpl implements DataverseService {
     public DataverseResponse<SearchResult> searchBySwordToken(String token) throws IOException, DataverseException {
         var client = this.getDataverseClient();
 
-        return client.search().find(String.format("dansDataVaultMetadata:%s", token));
+        return client.search().find(String.format("dansSwordToken:%s", token));
     }
 
     @Override

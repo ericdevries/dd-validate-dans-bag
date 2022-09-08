@@ -15,16 +15,22 @@
  */
 package nl.knaw.dans.validatedansbag.core.rules;
 
+import nl.knaw.dans.lib.dataverse.DataverseException;
 import nl.knaw.dans.lib.dataverse.model.dataset.PrimitiveSingleValueField;
 import nl.knaw.dans.lib.dataverse.model.search.DatasetResultItem;
 import nl.knaw.dans.validatedansbag.core.engine.RuleResult;
 import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReader;
 import nl.knaw.dans.validatedansbag.core.service.DataverseService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class DatastationRulesImpl implements DatastationRules {
+    private static final Logger log = LoggerFactory.getLogger(DatastationRulesImpl.class);
     private final BagItMetadataReader bagItMetadataReader;
     private final DataverseService dataverseService;
 
@@ -105,16 +111,63 @@ public class DatastationRulesImpl implements DatastationRules {
             var isVersionOf = bagItMetadataReader.getSingleField(path, "Is-Version-Of");
 
             if (isVersionOf != null) {
-                var result = dataverseService.searchBySwordToken(isVersionOf);
-                var data = result.getData().getItems();
+                var result = dataverseService.searchBySwordToken(isVersionOf)
+                    .getData().getItems().stream()
+                    .filter(resultItem -> resultItem instanceof DatasetResultItem)
+                    .map(resultItem -> (DatasetResultItem) resultItem)
+                    .collect(Collectors.toList());
 
                 // no result means it does not exist
-                if (data.isEmpty()) {
+                if (result.isEmpty()) {
                     return RuleResult.error(String.format(
                         "If 'Is-Version-Of' is specified, it must be a valid SWORD token in the data station; no tokens were found: %s", isVersionOf
                     ));
                 }
                 else {
+                    // (b) dansOtherId must match Has-Organizational-Identifier (or both are null)
+                    var orgIdentifier = bagItMetadataReader.getSingleField(path, "Has-Organizational-Identifier");
+
+                    var matchingDatasets = result.stream()
+                        .filter(searchResult -> {
+                            try {
+                                return isValidOrganizationalIdentifierDataset(orgIdentifier, searchResult.getGlobalId());
+                            }
+                            catch (IOException | DataverseException e) {
+                                log.error("Error while searching for dataset", e);
+                                return false;
+                            }
+                        })
+                        .collect(Collectors.toList());
+
+                    if (matchingDatasets.isEmpty()) {
+                        return RuleResult.error(String.format("No datasets found that have the same value as 'Has-Organizational-Identifier' (%s)", orgIdentifier));
+                    }
+                    else {
+                        // (c) the user in data-station-user-account is authorized
+                        var username = bagItMetadataReader.getSingleField(path, "Data-Station-User_account");
+
+                        if (username != null) {
+                            var authorizedDatasets = matchingDatasets.stream()
+                                .filter(datasetResultItem -> {
+                                    try {
+                                        return userIsAuthorizedToUpdateDataset(username, datasetResultItem.getGlobalId());
+                                    }
+                                    catch (IOException | DataverseException e) {
+                                        log.error("Error checking dataset authorization", e);
+                                    }
+                                    return false;
+                                })
+                                .collect(Collectors.toList());
+
+                            if (authorizedDatasets.isEmpty()) {
+                                return RuleResult.error(String.format("No datasets found that user %s is authorized to update", username));
+                            }
+                        }
+                        else {
+                            log.debug("No username found in metadata, not checking with dataverse");
+                        }
+                    }
+
                     return RuleResult.ok();
                 }
             }
@@ -130,18 +183,21 @@ public class DatastationRulesImpl implements DatastationRules {
             var isVersionOf = bagItMetadataReader.getSingleField(path, "Is-Version-Of");
 
             if (userAccount != null && isVersionOf != null) {
-                var result = dataverseService.searchBySwordToken(isVersionOf);
-                var data = result.getData().getItems();
+                // get all matching datasets, and then convert them to DatasetResultItems
+                var result = dataverseService.searchBySwordToken(isVersionOf)
+                    .getData().getItems().stream()
+                    .filter(resultItem -> resultItem instanceof DatasetResultItem)
+                    .map(resultItem -> (DatasetResultItem) resultItem)
+                    .collect(Collectors.toList());
 
                 // no result means it does not exist
-                if (data.isEmpty()) {
+                if (result.isEmpty()) {
                     return RuleResult.error(String.format(
                         "If 'Is-Version-Of' is specified, it must be a valid SWORD token in the data station; no tokens were found: %s", isVersionOf
                     ));
                 }
 
-                var item = (DatasetResultItem) data.get(0);
-                var itemId = item.getGlobalId();
+                var itemId = result.get(0).getGlobalId();
 
                 var assignments = dataverseService.getRoleAssignments(itemId);
 
@@ -164,5 +220,50 @@ public class DatastationRulesImpl implements DatastationRules {
 
             return RuleResult.skipDependencies();
         };
+
+    }
+
+    boolean isValidOrganizationalIdentifierDataset(String orgIdentifier, String datasetId) throws IOException, DataverseException {
+
+        var dataset = dataverseService.getDataset(datasetId);
+        var otherId = Optional.ofNullable(dataset.getData().getLatestVersion().getMetadataBlocks())
+            .map(m -> m.get("dansDataVaultMetadata"))
+            .map(m -> m.getFields().stream()
+                .filter(f -> f.getTypeName().equals("dansOtherId"))
+                .filter(f -> f instanceof PrimitiveSingleValueField)
+                .map(f -> (PrimitiveSingleValueField) f)
+                .map(PrimitiveSingleValueField::getValue)
+                .findFirst()
+            )
+            .flatMap(f -> f)
+            .orElse(null);
+
+        if (otherId == null && orgIdentifier == null) {
+            log.trace("Dataset does not have 'dansOtherId' set, nor is 'Has-Organizational-Identifier' set in the bag information, so this is a valid match");
+            return true;
+        }
+        else if (Objects.equals(otherId, orgIdentifier)) {
+            // this is also valid
+            log.trace("Dataset with dansOtherId {} and 'Has-Organizational-Identifier' {} match", otherId, orgIdentifier);
+            return true;
+        }
+        else {
+            // this is not valid
+            log.trace("Dataset with dansOtherId {} and 'Has-Organizational-Identifier' {} do not match", otherId, orgIdentifier);
+        }
+        return false;
+    }
+
+    boolean userIsAuthorizedToUpdateDataset(String user, String datasetId) throws IOException, DataverseException {
+        var assignments = dataverseService.getRoleAssignments(datasetId);
+
+        // when the user has one of these valid roles, the check succeeds
+        var validRoles = dataverseService.getAllowedDepositorRoles();
+        var matchingAssignments = assignments.getData().stream()
+            .filter(a -> a.getAssignee().replaceFirst("@", "").equals(user))
+            .filter(a -> validRoles.contains(a.get_roleAlias()))
+            .collect(Collectors.toList());
+
+        return !matchingAssignments.isEmpty();
     }
 }
