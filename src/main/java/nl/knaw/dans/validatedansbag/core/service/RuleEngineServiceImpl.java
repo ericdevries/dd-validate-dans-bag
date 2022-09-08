@@ -123,8 +123,10 @@ public class RuleEngineServiceImpl implements RuleEngineService {
 
             // technically identical to 1.2.3, but this allows us to skip 4.2 and 4.3 if this rule does not apply
             new NumberedRule("4.1", bagRules.bagInfoContainsAtMostOneOf("Data-Station-User-Account"), List.of("1.2.1")),
-            new NumberedRule("4.2", datastationRules.dataStationUserAccountIsAuthorized(), List.of("4.1")),
-            new NumberedRule("4.3", datastationRules.isVersionOfIsAValidSwordToken(), List.of("4.1")),
+            new NumberedRule("4.2", datastationRules.userIsAuthorizedToCreateDataset(), List.of("4.1")),
+            new NumberedRule("4.3(a)", datastationRules.bagExistsInDatastation(), List.of("4.1")),
+            new NumberedRule("4.3(b)", datastationRules.organizationalIdentifierExistsInDataset(), List.of("4.1")),
+            new NumberedRule("4.3(c)", datastationRules.userIsAuthorizedToUpdateDataset(), List.of("4.1")),
         };
     }
 

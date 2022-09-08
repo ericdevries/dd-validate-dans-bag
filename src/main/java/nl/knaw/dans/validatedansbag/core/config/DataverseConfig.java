@@ -16,9 +16,7 @@
 package nl.knaw.dans.validatedansbag.core.config;
 
 import javax.validation.Valid;
-import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
-import java.util.Set;
 
 @SuppressWarnings("unused")
 public class DataverseConfig {
@@ -28,26 +26,25 @@ public class DataverseConfig {
     @Valid
     @NotNull
     private String apiToken;
-    @Valid
-    @NotEmpty
-    private Set<String> allowedDepositorRoles;
+    @NotNull
+    private SwordDepositorRoles swordDepositorRoles;
 
     public DataverseConfig() {
 
     }
 
-    public DataverseConfig(String baseUrl, String apiToken, Set<String> allowedDepositorRoles) {
+    public DataverseConfig(String baseUrl, String apiToken, SwordDepositorRoles swordDepositorRoles) {
         this.baseUrl = baseUrl;
         this.apiToken = apiToken;
-        this.allowedDepositorRoles = allowedDepositorRoles;
+        this.swordDepositorRoles = swordDepositorRoles;
     }
 
-    public Set<String> getAllowedDepositorRoles() {
-        return allowedDepositorRoles;
+    public SwordDepositorRoles getSwordDepositorRoles() {
+        return swordDepositorRoles;
     }
 
-    public void setAllowedDepositorRoles(Set<String> allowedDepositorRoles) {
-        this.allowedDepositorRoles = allowedDepositorRoles;
+    public void setSwordDepositorRoles(SwordDepositorRoles swordDepositorRoles) {
+        this.swordDepositorRoles = swordDepositorRoles;
     }
 
     public String getApiToken() {

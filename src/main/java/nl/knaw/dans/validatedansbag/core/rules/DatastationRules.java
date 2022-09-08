@@ -17,10 +17,11 @@ package nl.knaw.dans.validatedansbag.core.rules;
 
 public interface DatastationRules {
 
-    BagValidatorRule organizationalIdentifierIsValid();
+    BagValidatorRule userIsAuthorizedToCreateDataset();
 
-    BagValidatorRule isVersionOfIsAValidSwordToken();
+    BagValidatorRule bagExistsInDatastation();
 
-    BagValidatorRule dataStationUserAccountIsAuthorized();
+    BagValidatorRule organizationalIdentifierExistsInDataset();
 
+    BagValidatorRule userIsAuthorizedToUpdateDataset();
 }

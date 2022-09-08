@@ -30,7 +30,6 @@ import nl.knaw.dans.validatedansbag.core.config.DataverseConfig;
 import java.io.IOException;
 import java.net.URI;
 import java.util.List;
-import java.util.Set;
 
 public class DataverseServiceImpl implements DataverseService {
     private final DataverseConfig dataverseConfig;
@@ -66,10 +65,9 @@ public class DataverseServiceImpl implements DataverseService {
     }
 
     @Override
-    public DataverseHttpResponse<List<RoleAssignmentReadOnly>> getRoleAssignments(String identifier) throws IOException, DataverseException {
+    public DataverseResponse<List<RoleAssignmentReadOnly>> getDatasetRoleAssignments(String identifier) throws IOException, DataverseException {
         var client = this.getDataverseClient();
         return client.dataset(identifier).listRoleAssignments();
-
     }
 
     @Override
@@ -80,7 +78,18 @@ public class DataverseServiceImpl implements DataverseService {
     }
 
     @Override
-    public Set<String> getAllowedDepositorRoles() {
-        return dataverseConfig.getAllowedDepositorRoles();
+    public String getAllowedEditorRole() {
+        return dataverseConfig.getSwordDepositorRoles().getDatasetEditor();
+    }
+
+    @Override
+    public String getAllowedCreatorRole() {
+        return dataverseConfig.getSwordDepositorRoles().getDatasetCreator();
+    }
+
+    @Override
+    public DataverseResponse<List<RoleAssignmentReadOnly>> getDataverseRoleAssignments(String itemId) throws IOException, DataverseException {
+        var client = this.getDataverseClient();
+        return client.dataverse("root").listRoleAssignments();
     }
 }
