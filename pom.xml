@@ -102,9 +102,8 @@
         <!-- Add project-specific dependencies here -->
 
         <dependency>
-            <groupId>gov.loc</groupId>
+            <groupId>nl.knaw.dans</groupId>
             <artifactId>bagit</artifactId>
-            <version>5.2.0</version>
             <exclusions>
                 <exclusion>
                     <groupId>log4j</groupId>

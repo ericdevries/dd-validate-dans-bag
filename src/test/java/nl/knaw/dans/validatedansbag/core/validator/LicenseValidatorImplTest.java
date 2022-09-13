@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class LicenseValidatorImplTest {
 
-    LicenseConfig config = new LicenseConfig();
+    final LicenseConfig config = new LicenseConfig();
 
     @Test
     void isValidLicense() {

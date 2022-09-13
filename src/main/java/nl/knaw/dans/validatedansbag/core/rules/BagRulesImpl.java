@@ -23,8 +23,8 @@ import gov.loc.repository.bagit.exceptions.MissingPayloadDirectoryException;
 import gov.loc.repository.bagit.exceptions.MissingPayloadManifestException;
 import gov.loc.repository.bagit.exceptions.VerificationException;
 import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms;
-import nl.knaw.dans.validatedansbag.core.engine.RuleSkipDependenciesException;
-import nl.knaw.dans.validatedansbag.core.engine.RuleViolationDetailsException;
+import nl.knaw.dans.validatedansbag.core.BagNotFoundException;
+import nl.knaw.dans.validatedansbag.core.engine.RuleResult;
 import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReader;
 import nl.knaw.dans.validatedansbag.core.service.FileService;
 import nl.knaw.dans.validatedansbag.core.service.OriginalFilepathsService;
@@ -46,6 +46,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -93,11 +94,15 @@ public class BagRulesImpl implements BagRules {
         return (path) -> {
             try {
                 bagItMetadataReader.verifyBag(path);
+                return RuleResult.ok();
             }
             // only catch exceptions that have to do with the bag verification; other exceptions such as IOException should be propagated to the rule engine
             catch (InvalidBagitFileFormatException | MissingPayloadManifestException | MissingPayloadDirectoryException | FileNotInPayloadDirectoryException | MissingBagitFileException |
-                   CorruptChecksumException | VerificationException e) {
-                throw new RuleViolationDetailsException(e.getLocalizedMessage(), e);
+                   CorruptChecksumException | VerificationException | NoSuchFileException e) {
+
+                return RuleResult.error(String.format(
+                    "Bag is not valid: %s", e.getMessage()
+                ), e);
             }
         };
     }
@@ -108,10 +113,10 @@ public class BagRulesImpl implements BagRules {
             var target = path.resolve(dir);
 
             if (!fileService.isDirectory(target)) {
-                throw new RuleViolationDetailsException(
-                    String.format("Path '%s' is not a directory", dir)
-                );
+                return RuleResult.error(String.format("Path '%s' is not a directory", dir));
             }
+
+            return RuleResult.ok();
         });
     }
 
@@ -121,10 +126,10 @@ public class BagRulesImpl implements BagRules {
             var target = path.resolve(file);
 
             if (!fileService.isFile(target)) {
-                throw new RuleViolationDetailsException(
-                    String.format("Path '%s' is not a directory", file)
-                );
+                return RuleResult.error(String.format("Path '%s' is not a file", file));
             }
+
+            return RuleResult.ok();
         });
     }
 
@@ -132,14 +137,15 @@ public class BagRulesImpl implements BagRules {
     public BagValidatorRule bagInfoExistsAndIsWellFormed() {
         return path -> {
             if (!fileService.isFile(path.resolve(Path.of("bag-info.txt")))) {
-                throw new RuleViolationDetailsException("bag-info.txt does not exist");
+                return RuleResult.error("bag-info.txt does not exist");
             }
 
             try {
                 bagItMetadataReader.getBag(path).orElseThrow();
+                return RuleResult.ok();
             }
             catch (Exception e) {
-                throw new RuleViolationDetailsException(String.format(
+                return RuleResult.error(String.format(
                     "bag-info.txt exists but is malformed: %s", e.getMessage()
                 ), e);
             }
@@ -153,9 +159,10 @@ public class BagRulesImpl implements BagRules {
 
             try {
                 DateTime.parse(created, ISODateTimeFormat.dateTime());
+                return RuleResult.ok();
             }
             catch (Throwable e) {
-                throw new RuleViolationDetailsException(String.format(
+                return RuleResult.error(String.format(
                     "Date '%s' is not valid", created
                 ), e);
             }
@@ -168,10 +175,12 @@ public class BagRulesImpl implements BagRules {
             var items = bagItMetadataReader.getField(path, key);
 
             if (items.size() != 1) {
-                throw new RuleViolationDetailsException(
+                return RuleResult.error(
                     String.format("bag-info.txt must contain exactly one '%s' element; number found: %s", key, items.size())
                 );
             }
+
+            return RuleResult.ok();
         };
     }
 
@@ -180,10 +189,16 @@ public class BagRulesImpl implements BagRules {
         return path -> {
             var items = bagItMetadataReader.getField(path, key);
 
-            if (items.size() > 1) {
-                throw new RuleViolationDetailsException(
-                    String.format("bag-info.txt may contain at most one element: '%s'", key)
-                );
+            switch (items.size()) {
+                case 0:
+                    return RuleResult.skipDependencies();
+                case 1:
+                    return RuleResult.ok();
+                default:
+                    return RuleResult.error(
+                        String.format("bag-info.txt may contain at most one element: '%s'", key)
+                    );
+
             }
         };
     }
@@ -217,39 +232,12 @@ public class BagRulesImpl implements BagRules {
                 .collect(Collectors.toList());
 
             if (!invalidUrns.isEmpty()) {
-                throw new RuleViolationDetailsException(
+                return RuleResult.error(
                     String.format("bag-info.txt Is-Version-Of value must be a valid URN: Invalid items {%s}", String.join(", ", invalidUrns))
                 );
             }
-        };
-    }
 
-    RuleViolationDetailsException bagNotFoundException(Path path) {
-        var message = String.format("Could not open bag on location '%s'", path);
-        return new RuleViolationDetailsException(message);
-    }
-
-    @Override
-    public BagValidatorRule bagShaPayloadManifestContainsAllPayloadFiles() {
-        return (path) -> {
-            var bag = bagItMetadataReader.getBag(path)
-                .orElseThrow(() -> bagNotFoundException(path));
-
-            var manifest = bagItMetadataReader.getBagManifest(bag, StandardSupportedAlgorithms.SHA1)
-                .orElseThrow(() -> new RuleViolationDetailsException("No manifest file found"));
-
-            var filesInManifest = manifest.getFileToChecksumMap().keySet()
-                .stream().map(path::relativize).collect(Collectors.toSet());
-
-            var filesInPayload = fileService.getAllFiles(path.resolve("data"))
-                .stream().map(path::relativize).collect(Collectors.toSet());
-
-            if (!filesInManifest.equals(filesInPayload)) {
-                filesInPayload.removeAll(filesInManifest);
-
-                var filenames = filesInPayload.stream().map(Path::toString).collect(Collectors.joining(", "));
-                throw new RuleViolationDetailsException(String.format("All payload files must have an SHA-1 checksum. Files missing from SHA-1 manifest: %s", filenames));
-            }
+            return RuleResult.ok();
         };
     }
 
@@ -267,11 +255,13 @@ public class BagRulesImpl implements BagRules {
             if (allItems.size() > 0) {
                 var filenames = allItems.stream().map(Path::toString).collect(Collectors.joining(", "));
 
-                throw new RuleViolationDetailsException(String.format(
+                return RuleResult.error(String.format(
                     "Directory %s contains files or directories that are not allowed: %s",
                     dir, filenames
                 ));
             }
+
+            return RuleResult.ok();
         };
     }
 
@@ -295,8 +285,10 @@ public class BagRulesImpl implements BagRules {
                 .collect(Collectors.joining(", "));
 
             if (files.length() > 0) {
-                throw new RuleViolationDetailsException(String.format("Payload files must have valid characters. Invalid ones: %s", files));
+                return RuleResult.error(String.format("Payload files must have valid characters. Invalid ones: %s", files));
             }
+
+            return RuleResult.ok();
         };
     }
 
@@ -308,36 +300,15 @@ public class BagRulesImpl implements BagRules {
 
                 if (fileService.exists(target)) {
                     fileService.readFileContents(target, StandardCharsets.UTF_8);
+                    return RuleResult.ok();
                 }
                 else {
-                    throw new RuleSkipDependenciesException();
+                    return RuleResult.skipDependencies();
                 }
+
             }
             catch (CharacterCodingException e) {
-                throw new RuleViolationDetailsException("Input not valid UTF-8: " + e.getMessage());
-            }
-        };
-    }
-
-    @Override
-    public BagValidatorRule originalFilePathsDoNotContainSpaces() {
-        return (path) -> {
-            var mapping = originalFilepathsService.getMapping(path);
-
-            // the file is organized in a <physical-name><whitespace><original-name> fashion
-            // so if there is whitespace in the physical name, it will be considered part of the original name
-            // meaning this rule will never fail
-            var invalidFilenames = mapping.stream()
-                .map(p -> p.getRenamedFilename().toString())
-                .filter(p -> p.matches(".*\\s+.*"))
-                .collect(Collectors.toList());
-
-            if (!invalidFilenames.isEmpty()) {
-                var errors = String.join(", ", invalidFilenames);
-
-                throw new RuleViolationDetailsException(String.format(
-                    "original-filepaths.txt: physical relative path should not contain whitespace; culprits: %s", errors
-                ));
+                return RuleResult.error("Input not valid UTF-8: " + e.getMessage());
             }
         };
     }
@@ -346,7 +317,7 @@ public class BagRulesImpl implements BagRules {
     public BagValidatorRule isOriginalFilepathsFileComplete() {
         return (path) -> {
             if (!originalFilepathsService.exists(path)) {
-                throw new RuleSkipDependenciesException();
+                return RuleResult.skipDependencies();
             }
 
             var mapping = originalFilepathsService.getMapping(path);
@@ -414,10 +385,12 @@ public class BagRulesImpl implements BagRules {
                     message.append("\n");
                 }
 
-                throw new RuleViolationDetailsException(String.format(
+                return RuleResult.error(String.format(
                     "original-filepaths.txt errors: \n%s", message
                 ));
             }
+
+            return RuleResult.ok();
         };
     }
 
@@ -430,7 +403,7 @@ public class BagRulesImpl implements BagRules {
             var nodes = xmlReader.xpathToStream(document, expr).collect(Collectors.toList());
 
             if (nodes.size() == 0) {
-                throw new RuleViolationDetailsException("No licenses found");
+                return RuleResult.error("No licenses found");
             }
 
             var node = nodes.get(0);
@@ -441,14 +414,16 @@ public class BagRulesImpl implements BagRules {
             var prefix = document.lookupPrefix(XmlReader.NAMESPACE_DCTERMS);
 
             if (!attr.equals(String.format("%s:URI", prefix))) {
-                throw new RuleViolationDetailsException("No license with xsi:type=\"dcterms:URI\"");
+                return RuleResult.error("No license with xsi:type=\"dcterms:URI\"");
             }
 
             if (!licenseValidator.isValidLicense(license)) {
-                throw new RuleViolationDetailsException(String.format(
+                return RuleResult.error(String.format(
                     "Found unknown or unsupported license: %s", license
                 ));
             }
+
+            return RuleResult.ok();
         };
     }
 
@@ -467,8 +442,12 @@ public class BagRulesImpl implements BagRules {
                 .collect(Collectors.joining(", "));
 
             if (match.length() > 0) {
-                throw new RuleViolationDetailsException("Invalid DOIs: " + match);
+                return RuleResult.error(String.format(
+                    "Invalid DOIs: %s", match
+                ));
             }
+
+            return RuleResult.ok();
         };
     }
 
@@ -484,8 +463,10 @@ public class BagRulesImpl implements BagRules {
 
             if (!match.isEmpty()) {
                 var message = String.join(", ", match);
-                throw new RuleViolationDetailsException("Invalid DAIs: " + message);
+                return RuleResult.error("Invalid DAIs: " + message);
             }
+
+            return RuleResult.ok();
         };
     }
 
@@ -501,8 +482,10 @@ public class BagRulesImpl implements BagRules {
 
             if (!match.isEmpty()) {
                 var message = String.join(", ", match);
-                throw new RuleViolationDetailsException("Invalid ISNI(s): " + message);
+                return RuleResult.error("Invalid ISNI(s): " + message);
             }
+
+            return RuleResult.ok();
         };
     }
 
@@ -518,8 +501,10 @@ public class BagRulesImpl implements BagRules {
 
             if (!match.isEmpty()) {
                 var message = String.join(", ", match);
-                throw new RuleViolationDetailsException("Invalid ORCID(s): " + message);
+                return RuleResult.error("Invalid ORCID(s): " + message);
             }
+
+            return RuleResult.ok();
         };
     }
 
@@ -537,19 +522,20 @@ public class BagRulesImpl implements BagRules {
                         polygonListValidator.validatePolygonList(posList);
                     }
                     catch (PolygonListValidator.PolygonValidationException e) {
-                        return new RuleViolationDetailsException(e.getLocalizedMessage(), e);
+                        return e.getLocalizedMessage();
                     }
 
                     return null;
                 })
                 .filter(Objects::nonNull)
-                .map(Throwable::getLocalizedMessage)
                 .collect(Collectors.toList());
 
             if (!match.isEmpty()) {
                 var message = String.join("\n", match);
-                throw new RuleViolationDetailsException("Invalid posList: " + message);
+                return RuleResult.error("Invalid posList: " + message);
             }
+
+            return RuleResult.ok();
         };
     }
 
@@ -581,8 +567,10 @@ public class BagRulesImpl implements BagRules {
                 .collect(Collectors.toList());
 
             if (!match.isEmpty()) {
-                throw new RuleViolationDetailsException("Found MultiSurface element containing polygons with different srsNames");
+                return RuleResult.error("Found MultiSurface element containing polygons with different srsNames");
             }
+
+            return RuleResult.ok();
         };
     }
 
@@ -595,7 +583,7 @@ public class BagRulesImpl implements BagRules {
             var expr = "//gml:Point | //gml:lowerCorner | //gml:upperCorner";
             var match = xmlReader.xpathToStream(document, expr).collect(Collectors.toList());
 
-            var errors = new ArrayList<RuleViolationDetailsException>();
+            var errors = new ArrayList<String>();
 
             for (var value : match) {
                 var attr = value.getParentNode().getAttributes().getNamedItem("srsName");
@@ -608,9 +596,9 @@ public class BagRulesImpl implements BagRules {
                         .collect(Collectors.toList());
 
                     if (parts.size() < 2) {
-                        errors.add(new RuleViolationDetailsException(String.format(
+                        errors.add(String.format(
                             "Point has less than two coordinates: %s", text
-                        )));
+                        ));
                     }
 
                     else if (isRD) {
@@ -620,22 +608,24 @@ public class BagRulesImpl implements BagRules {
                         var valid = x >= -7000 && x <= 300000 && y >= 289000 && y <= 629000;
 
                         if (!valid) {
-                            errors.add(new RuleViolationDetailsException(String.format(
+                            errors.add(String.format(
                                 "Point is outside RD bounds: %s", text
-                            )));
+                            ));
                         }
                     }
                 }
                 catch (NumberFormatException e) {
-                    errors.add(new RuleViolationDetailsException(String.format(
+                    errors.add(String.format(
                         "Point has non numeric coordinates: %s", text
-                    )));
+                    ));
                 }
             }
 
             if (errors.size() > 0) {
-                throw new RuleViolationDetailsException(errors);
+                return RuleResult.error(errors);
             }
+
+            return RuleResult.ok();
         };
     }
 
@@ -653,12 +643,14 @@ public class BagRulesImpl implements BagRules {
                 .collect(Collectors.toList());
 
             if (match.size() > 0) {
-                var exceptions = match.stream().map(e -> new RuleViolationDetailsException(String.format(
+                var errors = match.stream().map(e -> String.format(
                     "Archis identifier must be 10 or fewer characters long: %s", e
-                ))).collect(Collectors.toList());
+                )).collect(Collectors.toList());
 
-                throw new RuleViolationDetailsException(exceptions);
+                return RuleResult.error(errors);
             }
+
+            return RuleResult.ok();
         };
     }
 
@@ -693,15 +685,13 @@ public class BagRulesImpl implements BagRules {
                         var uri = new URI(value);
 
                         if (!List.of("http", "https").contains(uri.getScheme().toLowerCase(Locale.ROOT))) {
-                            return new RuleViolationDetailsException(String.format(
+                            return String.format(
                                 "protocol '%s' in uri '%s' is not one of the accepted protocols [http, https]", uri.getScheme(), uri
-                            ));
+                            );
                         }
                     }
                     catch (URISyntaxException e) {
-                        return new RuleViolationDetailsException(String.format(
-                            "'%s' is not a valid uri", value
-                        ));
+                        return String.format("'%s' is not a valid uri", value);
                     }
 
                     return null;
@@ -710,8 +700,10 @@ public class BagRulesImpl implements BagRules {
                 .collect(Collectors.toCollection(ArrayList::new));
 
             if (errors.size() > 0) {
-                throw new RuleViolationDetailsException(errors);
+                return RuleResult.error(errors);
             }
+
+            return RuleResult.ok();
         };
     }
 
@@ -723,8 +715,10 @@ public class BagRulesImpl implements BagRules {
             var rightsHolder= getRightsHolderInElement(document);
 
             if (rightsHolder.isEmpty()) {
-                throw new RuleViolationDetailsException("No rightsholder found in <dcterms:rightsHolder> element");
+                return RuleResult.error("No rightsholder found in <dcterms:rightsHolder> element");
             }
+
+            return RuleResult.ok();
         };
     }
 
@@ -741,6 +735,8 @@ public class BagRulesImpl implements BagRules {
             if (inRole.isEmpty() && rightsHolder.isEmpty()) {
                 throw new RuleViolationDetailsException("No RightsHolder found in <dcx-dai:role> element nor in <dcterms:rightsHolder> element");
             }
+
+            return RuleResult.ok();
         };
     }
 
@@ -759,17 +755,19 @@ public class BagRulesImpl implements BagRules {
             var hasOrganizationalIdentifier = bagItMetadataReader.getField(path, "Has-Organizational-Identifier");
 
             if (hasOrganizationalIdentifier.isEmpty()) {
-                throw new RuleSkipDependenciesException();
+                return RuleResult.skipDependencies();
             }
 
-            bagInfoContainsAtMostOneOf("Has-Organizational-Identifier-Version").validate(path);
+            return bagInfoContainsAtMostOneOf("Has-Organizational-Identifier-Version").validate(path);
         };
     }
 
     @Override
     public BagValidatorRule containsNotJustMD5Manifest() {
         return path -> {
-            var bag = bagItMetadataReader.getBag(path).orElseThrow();
+            var bag = bagItMetadataReader.getBag(path).orElseThrow(
+                () -> new BagNotFoundException(String.format("Bag on path %s could not be opened", path)));
+
             var manifests = bagItMetadataReader.getBagManifests(bag);
 
             var hasOtherManifests = false;
@@ -777,12 +775,15 @@ public class BagRulesImpl implements BagRules {
             for (var manifest : manifests) {
                 if (!StandardSupportedAlgorithms.MD5.equals(manifest.getAlgorithm())) {
                     hasOtherManifests = true;
+                    break;
                 }
             }
 
             if (!hasOtherManifests) {
-                throw new RuleViolationDetailsException("The bag contains no manifests or only a MD5 manifest");
+                return RuleResult.error("The bag contains no manifests or only a MD5 manifest");
             }
+
+            return RuleResult.ok();
         };
     }
 }
