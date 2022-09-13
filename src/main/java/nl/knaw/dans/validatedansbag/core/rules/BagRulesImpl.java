@@ -733,7 +733,7 @@ public class BagRulesImpl implements BagRules {
             var rightsHolder= getRightsHolderInElement(document);
 
             if (inRole.isEmpty() && rightsHolder.isEmpty()) {
-                throw new RuleViolationDetailsException("No RightsHolder found in <dcx-dai:role> element nor in <dcterms:rightsHolder> element");
+                return RuleResult.error("No RightsHolder found in <dcx-dai:role> element nor in <dcterms:rightsHolder> element");
             }
 
             return RuleResult.ok();
