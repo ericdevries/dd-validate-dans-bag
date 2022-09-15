@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import nl.knaw.dans.lib.dataverse.DataverseClient;
 import nl.knaw.dans.lib.dataverse.DataverseClientConfig;
 import nl.knaw.dans.validatedansbag.core.config.DataverseConfig;
+import nl.knaw.dans.validatedansbag.core.config.SwordDepositorRoles;
 import nl.knaw.dans.validatedansbag.core.engine.RuleResult;
 import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReader;
 import nl.knaw.dans.validatedansbag.core.service.DataverseService;
@@ -36,8 +37,6 @@ import org.mockito.Mockito;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.nio.file.Path;
-import java.util.List;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -45,7 +44,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class DatastationRulesImplTest {
 
     final BagItMetadataReader bagItMetadataReader = Mockito.mock(BagItMetadataReader.class);
-    final DataverseServiceImpl dataverseService = new DataverseServiceImpl(new DataverseConfig("", "", Set.of("contributor", "contributorplus")));
+    final DataverseServiceImpl dataverseService = new DataverseServiceImpl(new DataverseConfig("", "", new SwordDepositorRoles("datasetcreator", "dataseteditor")));
     final HttpClient httpClient = Mockito.mock(HttpClient.class);
 
     @AfterEach
@@ -73,379 +72,138 @@ class DatastationRulesImplTest {
     }
 
     @Test
-    void testOrganizationIdentifierIsValid() throws Exception {
+    void bagExistsInDatastation() throws Exception {
         var dv = createDataverseServiceSpy();
         var checker = new DatastationRulesImpl(bagItMetadataReader, dv);
 
-        Mockito.doReturn(List.of("org-identifier"))
-            .when(bagItMetadataReader).getField(Mockito.any(), Mockito.anyString());
-
-        Mockito.doReturn("urn:uuid:2cd3745a-8b42-44a7-b1ca-5c93aa6f4e32")
+        Mockito.doReturn("is-version-of-id")
             .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
 
-        // trimmed down versions of what dataverse would actually spit out
-        var fakeSearchResults = "{\n"
-            + "  \"status\": \"OK\",\n"
-            + "  \"data\": {\n"
-            + "    \"q\": \"NBN:urn:nbn:nl:ui:13-025de6e2-bdcf-4622-b134-282b4c590f42\",\n"
-            + "    \"total_count\": 1,\n"
-            + "    \"start\": 0,\n"
-            + "    \"spelling_alternatives\": {},\n"
-            + "    \"items\": [\n"
-            + "      {\n"
-            + "        \"name\": \"Manual Test\",\n"
-            + "        \"type\": \"dataset\",\n"
-            + "        \"url\": \"https://doi.org/10.5072/FK2/QZZSST\",\n"
-            + "        \"global_id\": \"doi:10.5072/FK2/QZZSST\"\n"
-            + "      }\n"
-            + "    ],\n"
-            + "    \"count_in_response\": 1\n"
-            + "  }\n"
-            + "}";
-
-        var latestVersionResult = "{\n"
-            + "  \"status\": \"OK\",\n"
-            + "  \"data\": {\n"
-            + "    \"id\": 2,\n"
-            + "    \"identifier\": \"FK2/QZZSST\",\n"
-            + "    \"persistentUrl\": \"https://doi.org/10.5072/FK2/QZZSST\",\n"
-            + "    \"latestVersion\": {\n"
-            + "      \"id\": 2,\n"
-            + "      \"datasetId\": 2,\n"
-            + "      \"datasetPersistentId\": \"doi:10.5072/FK2/QZZSST\",\n"
-            + "      \"storageIdentifier\": \"file://10.5072/FK2/QZZSST\",\n"
-            + "      \"fileAccessRequest\": false,\n"
-            + "      \"metadataBlocks\": {\n"
-            + "        \"dansDataVaultMetadata\": {\n"
-            + "          \"displayName\": \"Data Vault Metadata\",\n"
-            + "          \"name\": \"dansDataVaultMetadata\",\n"
-            + "          \"fields\": [\n"
-            + "            {\n"
-            + "              \"typeName\": \"dansSwordToken\",\n"
-            + "              \"multiple\": false,\n"
-            + "              \"typeClass\": \"primitive\",\n"
-            + "              \"value\": \"urn:uuid:2cd3745a-8b42-44a7-b1ca-5c93aa6f4e32\"\n"
-            + "            },\n"
-            + "            {\n"
-            + "              \"typeName\": \"dansNbn\",\n"
-            + "              \"multiple\": false,\n"
-            + "              \"typeClass\": \"primitive\",\n"
-            + "              \"value\": \"urn:nbn:nl:ui:13-025de6e2-bdcf-4622-b134-282b4c590f42\"\n"
-            + "            }\n"
-            + "          ]\n"
-            + "        }\n"
-            + "      }\n"
-            + "    }\n"
-            + "  }\n"
-            + "}";
+        var doi = "doi:10.5072/FK2/QZZSST";
+        var searchResult = getSearchResult(doi);
+        var latestVersionResult = getLatestVersion(doi, null);
 
         Mockito.when(httpClient.execute(Mockito.any()))
-            .thenReturn(createStringResponse(fakeSearchResults))
+            .thenReturn(createStringResponse(searchResult))
             .thenReturn(createStringResponse(latestVersionResult));
 
-        var result = checker.organizationalIdentifierIsValid().validate(Path.of("bagdir"));
+        var result = checker.bagExistsInDatastation().validate(Path.of("bagdir"));
         assertEquals(RuleResult.Status.SUCCESS, result.getStatus());
-
     }
 
     @Test
-    void testOrganizationIdentifierHasMoreThanOneEntry() throws Exception {
+    void bagNotExistsInDatastation() throws Exception {
         var dv = createDataverseServiceSpy();
         var checker = new DatastationRulesImpl(bagItMetadataReader, dv);
 
-        Mockito.doReturn(List.of("org-identifier", "org-identifier2"))
-            .when(bagItMetadataReader).getField(Mockito.any(), Mockito.anyString());
-
-        Mockito.doReturn("urn:uuid:2cd3745a-8b42-44a7-b1ca-5c93aa6f4e32")
+        Mockito.doReturn("is-version-of-id")
             .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
 
-        var result = checker.organizationalIdentifierIsValid().validate(Path.of("bagdir"));
+        var searchResult = getEmptySearchResult();
+
+        Mockito.when(httpClient.execute(Mockito.any()))
+            .thenReturn(createStringResponse(searchResult));
+
+        var result = checker.bagExistsInDatastation().validate(Path.of("bagdir"));
         assertEquals(RuleResult.Status.ERROR, result.getStatus());
     }
 
     @Test
-    void testOrganizationIdentifierButIsVersionOfIsNotSet() throws Exception {
+    void organizationalIdentifierExistsInDataset() throws Exception {
+
         var dv = createDataverseServiceSpy();
         var checker = new DatastationRulesImpl(bagItMetadataReader, dv);
 
-        Mockito.doReturn(List.of("org-identifier"))
-            .when(bagItMetadataReader).getField(Mockito.any(), Mockito.anyString());
+        Mockito.doReturn("dans-other-id")
+            .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
+
+        var doi = "doi:10.5072/FK2/QZZSST";
+        var dansOtherId = "dans-other-id";
+        var searchResult = getSearchResult(doi);
+        var latestVersionResult = getLatestVersion(doi, dansOtherId);
+
+        Mockito.when(httpClient.execute(Mockito.any()))
+            .thenReturn(createStringResponse(searchResult))
+            .thenReturn(createStringResponse(latestVersionResult));
+
+        var result = checker.organizationalIdentifierExistsInDataset().validate(Path.of("bagdir"));
+        assertEquals(RuleResult.Status.SUCCESS, result.getStatus());
+    }
+
+    @Test
+    void organizationalIdentifierExistsInDatasetBothAreNull() throws Exception {
+
+        var dv = createDataverseServiceSpy();
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dv);
 
         Mockito.doReturn(null)
             .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
 
-        // trimmed down versions of what dataverse would actually spit out
-        var fakeSearchResults = "{\n"
-            + "  \"status\": \"OK\",\n"
-            + "  \"data\": {\n"
-            + "    \"q\": \"NBN:urn:nbn:nl:ui:13-025de6e2-bdcf-4622-b134-282b4c590f42\",\n"
-            + "    \"total_count\": 1,\n"
-            + "    \"start\": 0,\n"
-            + "    \"spelling_alternatives\": {},\n"
-            + "    \"items\": [\n"
-            + "      {\n"
-            + "        \"name\": \"Manual Test\",\n"
-            + "        \"type\": \"dataset\",\n"
-            + "        \"url\": \"https://doi.org/10.5072/FK2/QZZSST\",\n"
-            + "        \"global_id\": \"doi:10.5072/FK2/QZZSST\"\n"
-            + "      }\n"
-            + "    ],\n"
-            + "    \"count_in_response\": 1\n"
-            + "  }\n"
-            + "}";
-
-        var latestVersionResult = "{\n"
-            + "  \"status\": \"OK\",\n"
-            + "  \"data\": {\n"
-            + "    \"id\": 2,\n"
-            + "    \"identifier\": \"FK2/QZZSST\",\n"
-            + "    \"persistentUrl\": \"https://doi.org/10.5072/FK2/QZZSST\",\n"
-            + "    \"latestVersion\": {\n"
-            + "      \"id\": 2,\n"
-            + "      \"datasetId\": 2,\n"
-            + "      \"datasetPersistentId\": \"doi:10.5072/FK2/QZZSST\",\n"
-            + "      \"storageIdentifier\": \"file://10.5072/FK2/QZZSST\",\n"
-            + "      \"fileAccessRequest\": false,\n"
-            + "      \"metadataBlocks\": {\n"
-            + "        \"dansDataVaultMetadata\": {\n"
-            + "          \"displayName\": \"Data Vault Metadata\",\n"
-            + "          \"name\": \"dansDataVaultMetadata\",\n"
-            + "          \"fields\": [\n"
-            + "            {\n"
-            + "              \"typeName\": \"dansBagId\",\n"
-            + "              \"multiple\": false,\n"
-            + "              \"typeClass\": \"primitive\",\n"
-            + "              \"value\": \"urn:uuid:2cd3745a-8b42-44a7-b1ca-5c93aa6f4e32\"\n"
-            + "            },\n"
-            + "            {\n"
-            + "              \"typeName\": \"dansNbn\",\n"
-            + "              \"multiple\": false,\n"
-            + "              \"typeClass\": \"primitive\",\n"
-            + "              \"value\": \"urn:nbn:nl:ui:13-025de6e2-bdcf-4622-b134-282b4c590f42\"\n"
-            + "            }\n"
-            + "          ]\n"
-            + "        }\n"
-            + "      }\n"
-            + "    }\n"
-            + "  }\n"
-            + "}";
+        var doi = "doi:10.5072/FK2/QZZSST";
+        var searchResult = getSearchResult(doi);
+        var latestVersionResult = getLatestVersion(doi, null);
 
         Mockito.when(httpClient.execute(Mockito.any()))
-            .thenReturn(createStringResponse(fakeSearchResults))
+            .thenReturn(createStringResponse(searchResult))
             .thenReturn(createStringResponse(latestVersionResult));
 
-        var result = checker.organizationalIdentifierIsValid().validate(Path.of("bagdir"));
-        assertEquals(RuleResult.Status.ERROR, result.getStatus());
-
-    }
-
-    @Test
-    void testOrganizationIdentifierAndNoMatchingBags() throws Exception {
-        var dv = createDataverseServiceSpy();
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dv);
-
-        Mockito.doReturn(List.of("org-identifier"))
-            .when(bagItMetadataReader).getField(Mockito.any(), Mockito.anyString());
-
-        Mockito.doReturn("bag")
-            .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
-
-        // trimmed down versions of what dataverse would actually spit out
-        var fakeSearchResults = "{\n"
-            + "  \"status\": \"OK\",\n"
-            + "  \"data\": {\n"
-            + "    \"q\": \"NBN:urn:nbn:nl:ui:13-025de6e2-bdcf-4622-b134-282b4c590f42\",\n"
-            + "    \"total_count\": 1,\n"
-            + "    \"start\": 0,\n"
-            + "    \"spelling_alternatives\": {},\n"
-            + "    \"items\": [\n"
-            + "    ],\n"
-            + "    \"count_in_response\": 0\n"
-            + "  }\n"
-            + "}";
-
-        Mockito.when(httpClient.execute(Mockito.any()))
-            .thenReturn(createStringResponse(fakeSearchResults));
-
-        var result = checker.organizationalIdentifierIsValid().validate(Path.of("bagdir"));
+        var result = checker.organizationalIdentifierExistsInDataset().validate(Path.of("bagdir"));
         assertEquals(RuleResult.Status.SUCCESS, result.getStatus());
     }
 
     @Test
-    void testOrganizationIdentifierIsValidButTheDepositIsDifferent() throws Exception {
+    void organizationalIdentifierExistsInDatasetActualIsNull() throws Exception {
+
         var dv = createDataverseServiceSpy();
         var checker = new DatastationRulesImpl(bagItMetadataReader, dv);
 
-        Mockito.doReturn(List.of("org-identifier"))
-            .when(bagItMetadataReader).getField(Mockito.any(), Mockito.anyString());
+        Mockito.when(bagItMetadataReader.getSingleField(Mockito.any(), Mockito.anyString()))
+            .thenReturn("is_version_of")
+            .thenReturn("has_organizational_identifier");
 
-        Mockito.doReturn("urn:uuid:a-different-uuid")
-            .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
-
-        // trimmed down versions of what dataverse would actually spit out
-        var fakeSearchResults = "{\n"
-            + "  \"status\": \"OK\",\n"
-            + "  \"data\": {\n"
-            + "    \"q\": \"NBN:urn:nbn:nl:ui:13-025de6e2-bdcf-4622-b134-282b4c590f42\",\n"
-            + "    \"total_count\": 1,\n"
-            + "    \"start\": 0,\n"
-            + "    \"spelling_alternatives\": {},\n"
-            + "    \"items\": [\n"
-            + "      {\n"
-            + "        \"name\": \"Manual Test\",\n"
-            + "        \"type\": \"dataset\",\n"
-            + "        \"url\": \"https://doi.org/10.5072/FK2/QZZSST\",\n"
-            + "        \"global_id\": \"doi:10.5072/FK2/QZZSST\"\n"
-            + "      }\n"
-            + "    ],\n"
-            + "    \"count_in_response\": 1\n"
-            + "  }\n"
-            + "}";
-
-        var latestVersionResult = "{\n"
-            + "  \"status\": \"OK\",\n"
-            + "  \"data\": {\n"
-            + "    \"id\": 2,\n"
-            + "    \"identifier\": \"FK2/QZZSST\",\n"
-            + "    \"persistentUrl\": \"https://doi.org/10.5072/FK2/QZZSST\",\n"
-            + "    \"latestVersion\": {\n"
-            + "      \"id\": 2,\n"
-            + "      \"datasetId\": 2,\n"
-            + "      \"datasetPersistentId\": \"doi:10.5072/FK2/QZZSST\",\n"
-            + "      \"storageIdentifier\": \"file://10.5072/FK2/QZZSST\",\n"
-            + "      \"fileAccessRequest\": false,\n"
-            + "      \"metadataBlocks\": {\n"
-            + "        \"dansDataVaultMetadata\": {\n"
-            + "          \"displayName\": \"Data Vault Metadata\",\n"
-            + "          \"name\": \"dansDataVaultMetadata\",\n"
-            + "          \"fields\": [\n"
-            + "            {\n"
-            + "              \"typeName\": \"dansBagId\",\n"
-            + "              \"multiple\": false,\n"
-            + "              \"typeClass\": \"primitive\",\n"
-            + "              \"value\": \"urn:uuid:2cd3745a-8b42-44a7-b1ca-5c93aa6f4e32\"\n"
-            + "            },\n"
-            + "            {\n"
-            + "              \"typeName\": \"dansNbn\",\n"
-            + "              \"multiple\": false,\n"
-            + "              \"typeClass\": \"primitive\",\n"
-            + "              \"value\": \"urn:nbn:nl:ui:13-025de6e2-bdcf-4622-b134-282b4c590f42\"\n"
-            + "            }\n"
-            + "          ]\n"
-            + "        }\n"
-            + "      }\n"
-            + "    }\n"
-            + "  }\n"
-            + "}";
+        var doi = "doi:10.5072/FK2/QZZSST";
+        var searchResult = getSearchResult(doi);
+        var latestVersionResult = getLatestVersion(doi, null);
 
         Mockito.when(httpClient.execute(Mockito.any()))
-            .thenReturn(createStringResponse(fakeSearchResults))
+            .thenReturn(createStringResponse(searchResult))
             .thenReturn(createStringResponse(latestVersionResult));
 
-        var result = checker.organizationalIdentifierIsValid().validate(Path.of("bagdir"));
+        var result = checker.organizationalIdentifierExistsInDataset().validate(Path.of("bagdir"));
         assertEquals(RuleResult.Status.ERROR, result.getStatus());
-
     }
 
     @Test
-    void testOrganizationIdentifierIsValidButTheBagIdIsMissing() throws Exception {
+    void organizationalIdentifierExistsInDatasetMismatch() throws Exception {
+
         var dv = createDataverseServiceSpy();
         var checker = new DatastationRulesImpl(bagItMetadataReader, dv);
 
-        Mockito.doReturn(List.of("org-identifier"))
-            .when(bagItMetadataReader).getField(Mockito.any(), Mockito.anyString());
+        Mockito.when(bagItMetadataReader.getSingleField(Mockito.any(), Mockito.anyString()))
+            .thenReturn("is_version_of")
+            .thenReturn("has_organizational_identifier");
 
-        Mockito.doReturn("urn:uuid:a-different-uuid")
-            .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
-
-        // trimmed down versions of what dataverse would actually spit out
-        var fakeSearchResults = "{\n"
-            + "  \"status\": \"OK\",\n"
-            + "  \"data\": {\n"
-            + "    \"q\": \"NBN:urn:nbn:nl:ui:13-025de6e2-bdcf-4622-b134-282b4c590f42\",\n"
-            + "    \"total_count\": 1,\n"
-            + "    \"start\": 0,\n"
-            + "    \"spelling_alternatives\": {},\n"
-            + "    \"items\": [\n"
-            + "      {\n"
-            + "        \"name\": \"Manual Test\",\n"
-            + "        \"type\": \"dataset\",\n"
-            + "        \"url\": \"https://doi.org/10.5072/FK2/QZZSST\",\n"
-            + "        \"global_id\": \"doi:10.5072/FK2/QZZSST\"\n"
-            + "      }\n"
-            + "    ],\n"
-            + "    \"count_in_response\": 1\n"
-            + "  }\n"
-            + "}";
-
-        var latestVersionResult = "{\n"
-            + "  \"status\": \"OK\",\n"
-            + "  \"data\": {\n"
-            + "    \"id\": 2,\n"
-            + "    \"identifier\": \"FK2/QZZSST\",\n"
-            + "    \"persistentUrl\": \"https://doi.org/10.5072/FK2/QZZSST\",\n"
-            + "    \"latestVersion\": {\n"
-            + "      \"id\": 2,\n"
-            + "      \"datasetId\": 2,\n"
-            + "      \"datasetPersistentId\": \"doi:10.5072/FK2/QZZSST\",\n"
-            + "      \"storageIdentifier\": \"file://10.5072/FK2/QZZSST\",\n"
-            + "      \"fileAccessRequest\": false,\n"
-            + "      \"metadataBlocks\": {\n"
-            + "        \"dansDataVaultMetadata\": {\n"
-            + "          \"displayName\": \"Data Vault Metadata\",\n"
-            + "          \"name\": \"dansDataVaultMetadata\",\n"
-            + "          \"fields\": [\n"
-            + "            {\n"
-            + "              \"typeName\": \"dansNbn\",\n"
-            + "              \"multiple\": false,\n"
-            + "              \"typeClass\": \"primitive\",\n"
-            + "              \"value\": \"urn:nbn:nl:ui:13-025de6e2-bdcf-4622-b134-282b4c590f42\"\n"
-            + "            }\n"
-            + "          ]\n"
-            + "        }\n"
-            + "      }\n"
-            + "    }\n"
-            + "  }\n"
-            + "}";
+        var doi = "doi:10.5072/FK2/QZZSST";
+        var searchResult = getSearchResult(doi);
+        var latestVersionResult = getLatestVersion(doi, "some_other_organizational_identifier");
 
         Mockito.when(httpClient.execute(Mockito.any()))
-            .thenReturn(createStringResponse(fakeSearchResults))
+            .thenReturn(createStringResponse(searchResult))
             .thenReturn(createStringResponse(latestVersionResult));
 
-        var result = checker.organizationalIdentifierIsValid().validate(Path.of("bagdir"));
+        var result = checker.organizationalIdentifierExistsInDataset().validate(Path.of("bagdir"));
         assertEquals(RuleResult.Status.ERROR, result.getStatus());
-
     }
 
+    // CREATE tests
     @Test
-    void dataStationUserAccountIsAuthorized() throws Exception {
+    void dataStationUserAccountIsAuthorizedToCreate() throws Exception {
         var dv = createDataverseServiceSpy();
         var checker = new DatastationRulesImpl(bagItMetadataReader, dv);
 
         Mockito
             .doReturn("user-account-name")
-            .doReturn("urn:uuid:the_id")
             .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
-
-        // trimmed down versions of what dataverse would actually spit out
-        var fakeSearchResults = "{\n"
-            + "  \"status\": \"OK\",\n"
-            + "  \"data\": {\n"
-            + "    \"q\": \"NBN:urn:nbn:nl:ui:13-025de6e2-bdcf-4622-b134-282b4c590f42\",\n"
-            + "    \"total_count\": 1,\n"
-            + "    \"start\": 0,\n"
-            + "    \"spelling_alternatives\": {},\n"
-            + "    \"items\": [\n"
-            + "      {\n"
-            + "        \"name\": \"Manual Test\",\n"
-            + "        \"type\": \"dataset\",\n"
-            + "        \"url\": \"https://doi.org/10.5072/FK2/QZZSST\",\n"
-            + "        \"global_id\": \"doi:10.5072/FK2/QZZSST\"\n"
-            + "      }\n"
-            + "    ],\n"
-            + "    \"count_in_response\": 1\n"
-            + "  }\n"
-            + "}";
 
         var assignmentResult = "{\n"
             + "  \"status\": \"OK\",\n"
@@ -454,7 +212,7 @@ class DatastationRulesImplTest {
             + "      \"id\": 6,\n"
             + "      \"assignee\": \"@user-account-name\",\n"
             + "      \"roleId\": 11,\n"
-            + "      \"_roleAlias\": \"contributorplus\",\n"
+            + "      \"_roleAlias\": \"datasetcreator\",\n"
             + "      \"definitionPointId\": 2\n"
             + "    },\n"
             + "    {\n"
@@ -468,44 +226,23 @@ class DatastationRulesImplTest {
             + "}";
 
         Mockito.when(httpClient.execute(Mockito.any()))
-            .thenReturn(createStringResponse(fakeSearchResults))
             .thenReturn(createStringResponse(assignmentResult));
 
-        var result = checker.dataStationUserAccountIsAuthorized().validate(Path.of("bagdir"));
+        var result = checker.userIsAuthorizedToCreateDataset().validate(Path.of("bagdir"));
 
         assertEquals(RuleResult.Status.SUCCESS, result.getStatus());
     }
 
     @Test
-    void dataStationUserAccountIsNotAuthorized() throws Exception {
+    void dataStationUserAccountIsNotAuthorizedToCreate() throws Exception {
         var dv = createDataverseServiceSpy();
         var checker = new DatastationRulesImpl(bagItMetadataReader, dv);
 
         Mockito
             .doReturn("user-account-name")
-            .doReturn("urn:uuid:the_id")
             .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
 
         // trimmed down versions of what dataverse would actually spit out
-        var fakeSearchResults = "{\n"
-            + "  \"status\": \"OK\",\n"
-            + "  \"data\": {\n"
-            + "    \"q\": \"NBN:urn:nbn:nl:ui:13-025de6e2-bdcf-4622-b134-282b4c590f42\",\n"
-            + "    \"total_count\": 1,\n"
-            + "    \"start\": 0,\n"
-            + "    \"spelling_alternatives\": {},\n"
-            + "    \"items\": [\n"
-            + "      {\n"
-            + "        \"name\": \"Manual Test\",\n"
-            + "        \"type\": \"dataset\",\n"
-            + "        \"url\": \"https://doi.org/10.5072/FK2/QZZSST\",\n"
-            + "        \"global_id\": \"doi:10.5072/FK2/QZZSST\"\n"
-            + "      }\n"
-            + "    ],\n"
-            + "    \"count_in_response\": 1\n"
-            + "  }\n"
-            + "}";
-
         var assignmentResult = "{\n"
             + "  \"status\": \"OK\",\n"
             + "  \"data\": [\n"
@@ -513,7 +250,14 @@ class DatastationRulesImplTest {
             + "      \"id\": 6,\n"
             + "      \"assignee\": \"@dataverseAdmin\",\n"
             + "      \"roleId\": 11,\n"
-            + "      \"_roleAlias\": \"contributorplus\",\n"
+            + "      \"_roleAlias\": \"dataseteditor\",\n"
+            + "      \"definitionPointId\": 2\n"
+            + "    },\n"
+            + "    {\n"
+            + "      \"id\": 6,\n"
+            + "      \"assignee\": \"@user-account-name\",\n"
+            + "      \"roleId\": 11,\n"
+            + "      \"_roleAlias\": \"differentrole\",\n"
             + "      \"definitionPointId\": 2\n"
             + "    },\n"
             + "    {\n"
@@ -527,45 +271,21 @@ class DatastationRulesImplTest {
             + "}";
 
         Mockito.when(httpClient.execute(Mockito.any()))
-            .thenReturn(createStringResponse(fakeSearchResults))
             .thenReturn(createStringResponse(assignmentResult));
 
-        var result = checker.dataStationUserAccountIsAuthorized().validate(Path.of("bagdir"));
+        var result = checker.userIsAuthorizedToCreateDataset().validate(Path.of("bagdir"));
 
         assertEquals(RuleResult.Status.ERROR, result.getStatus());
-        assertTrue(result.getErrorMessages().get(0).contains("Data Station account that is authorized to deposit the bag"));
-
     }
 
     @Test
-    void dataStationUserAccountIsNotSet() throws Exception {
+    void dataStationUserAccountIsNotSetCreate() throws Exception {
         var dv = createDataverseServiceSpy();
         var checker = new DatastationRulesImpl(bagItMetadataReader, dv);
 
         Mockito
             .doReturn(null)
-            .doReturn("urn:uuid:the_id")
             .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
-
-        // trimmed down versions of what dataverse would actually spit out
-        var fakeSearchResults = "{\n"
-            + "  \"status\": \"OK\",\n"
-            + "  \"data\": {\n"
-            + "    \"q\": \"NBN:urn:nbn:nl:ui:13-025de6e2-bdcf-4622-b134-282b4c590f42\",\n"
-            + "    \"total_count\": 1,\n"
-            + "    \"start\": 0,\n"
-            + "    \"spelling_alternatives\": {},\n"
-            + "    \"items\": [\n"
-            + "      {\n"
-            + "        \"name\": \"Manual Test\",\n"
-            + "        \"type\": \"dataset\",\n"
-            + "        \"url\": \"https://doi.org/10.5072/FK2/QZZSST\",\n"
-            + "        \"global_id\": \"doi:10.5072/FK2/QZZSST\"\n"
-            + "      }\n"
-            + "    ],\n"
-            + "    \"count_in_response\": 1\n"
-            + "  }\n"
-            + "}";
 
         var assignmentResult = "{\n"
             + "  \"status\": \"OK\",\n"
@@ -588,16 +308,14 @@ class DatastationRulesImplTest {
             + "}";
 
         Mockito.when(httpClient.execute(Mockito.any()))
-            .thenReturn(createStringResponse(fakeSearchResults))
             .thenReturn(createStringResponse(assignmentResult));
 
-        var result = checker.dataStationUserAccountIsAuthorized().validate(Path.of("bagdir"));
+        var result = checker.userIsAuthorizedToCreateDataset().validate(Path.of("bagdir"));
         assertEquals(RuleResult.Status.SKIP_DEPENDENCIES, result.getStatus());
-
     }
 
     @Test
-    void dataStationUserAccountYieldsNoSearchResults() throws Exception {
+    void dataStationUserAccountYieldsNoSearchResultsCreate() throws Exception {
         var dv = createDataverseServiceSpy();
         var checker = new DatastationRulesImpl(bagItMetadataReader, dv);
 
@@ -607,19 +325,6 @@ class DatastationRulesImplTest {
             .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
 
         // trimmed down versions of what dataverse would actually spit out
-        var fakeSearchResults = "{\n"
-            + "  \"status\": \"OK\",\n"
-            + "  \"data\": {\n"
-            + "    \"q\": \"NBN:urn:nbn:nl:ui:13-025de6e2-bdcf-4622-b134-282b4c590f42\",\n"
-            + "    \"total_count\": 1,\n"
-            + "    \"start\": 0,\n"
-            + "    \"spelling_alternatives\": {},\n"
-            + "    \"items\": [\n"
-            + "    ],\n"
-            + "    \"count_in_response\": 0\n"
-            + "  }\n"
-            + "}";
-
         var assignmentResult = "{\n"
             + "  \"status\": \"OK\",\n"
             + "  \"data\": [\n"
@@ -641,17 +346,62 @@ class DatastationRulesImplTest {
             + "}";
 
         Mockito.when(httpClient.execute(Mockito.any()))
-            .thenReturn(createStringResponse(fakeSearchResults))
             .thenReturn(createStringResponse(assignmentResult));
 
-        var result = checker.dataStationUserAccountIsAuthorized().validate(Path.of("bagdir"));
+        var result = checker.userIsAuthorizedToCreateDataset().validate(Path.of("bagdir"));
 
-        assertTrue(result.getErrorMessages().get(0).contains("it must be a valid SWORD token in the data station"));
         assertEquals(RuleResult.Status.ERROR, result.getStatus());
     }
 
+    // EDIT tests
+
     @Test
-    void dataStationUserAccountIsNotAuthorizedButHasADifferentRole() throws Exception {
+    void dataStationUserAccountIsAuthorizedToEdit() throws Exception {
+        var dv = createDataverseServiceSpy();
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dv);
+
+        Mockito
+            .doReturn("user-account-name")
+            .doReturn("urn:uuid:the_id")
+            .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
+
+        var searchResult = getSearchResult("doi");
+        var latestVersionResult = getLatestVersion("doi", "otherid");
+
+        var assignmentResult = "{\n"
+            + "  \"status\": \"OK\",\n"
+            + "  \"data\": [\n"
+            + "    {\n"
+            + "      \"id\": 6,\n"
+            + "      \"assignee\": \"@user-account-name\",\n"
+            + "      \"roleId\": 11,\n"
+            + "      \"_roleAlias\": \"dataseteditor\",\n"
+            + "      \"definitionPointId\": 2\n"
+            + "    },\n"
+            + "    {\n"
+            + "      \"id\": 5,\n"
+            + "      \"assignee\": \"@datamanager001\",\n"
+            + "      \"roleId\": 9,\n"
+            + "      \"_roleAlias\": \"datamanager\",\n"
+            + "      \"definitionPointId\": 1\n"
+            + "    }\n"
+            + "  ]\n"
+            + "}";
+
+        Mockito.when(httpClient.execute(Mockito.any()))
+            .thenReturn(createStringResponse(searchResult))
+            .thenReturn(createStringResponse(latestVersionResult))
+            .thenReturn(createStringResponse(assignmentResult));
+
+        var result = checker.userIsAuthorizedToUpdateDataset().validate(Path.of("bagdir"));
+
+        assertEquals(RuleResult.Status.SUCCESS, result.getStatus());
+
+        Mockito.verify(dv).getDataset(Mockito.eq("doi"));
+    }
+
+    @Test
+    void dataStationUserAccountIsNotAuthorizedToEdit() throws Exception {
         var dv = createDataverseServiceSpy();
         var checker = new DatastationRulesImpl(bagItMetadataReader, dv);
 
@@ -661,25 +411,51 @@ class DatastationRulesImplTest {
             .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
 
         // trimmed down versions of what dataverse would actually spit out
-        var fakeSearchResults = "{\n"
+        var searchResult = getSearchResult("doi");
+        var latestVersionResult = getLatestVersion("doi", "otherid");
+        var assignmentResult = "{\n"
             + "  \"status\": \"OK\",\n"
-            + "  \"data\": {\n"
-            + "    \"q\": \"NBN:urn:nbn:nl:ui:13-025de6e2-bdcf-4622-b134-282b4c590f42\",\n"
-            + "    \"total_count\": 1,\n"
-            + "    \"start\": 0,\n"
-            + "    \"spelling_alternatives\": {},\n"
-            + "    \"items\": [\n"
-            + "      {\n"
-            + "        \"name\": \"Manual Test\",\n"
-            + "        \"type\": \"dataset\",\n"
-            + "        \"url\": \"https://doi.org/10.5072/FK2/QZZSST\",\n"
-            + "        \"global_id\": \"doi:10.5072/FK2/QZZSST\"\n"
-            + "      }\n"
-            + "    ],\n"
-            + "    \"count_in_response\": 1\n"
-            + "  }\n"
+            + "  \"data\": [\n"
+            + "    {\n"
+            + "      \"id\": 6,\n"
+            + "      \"assignee\": \"@dataverseAdmin\",\n"
+            + "      \"roleId\": 11,\n"
+            + "      \"_roleAlias\": \"dataseteditor\",\n"
+            + "      \"definitionPointId\": 2\n"
+            + "    },\n"
+            + "    {\n"
+            + "      \"id\": 5,\n"
+            + "      \"assignee\": \"@datamanager001\",\n"
+            + "      \"roleId\": 9,\n"
+            + "      \"_roleAlias\": \"datamanager\",\n"
+            + "      \"definitionPointId\": 1\n"
+            + "    }\n"
+            + "  ]\n"
             + "}";
 
+        Mockito.when(httpClient.execute(Mockito.any()))
+            .thenReturn(createStringResponse(searchResult))
+            .thenReturn(createStringResponse(latestVersionResult))
+            .thenReturn(createStringResponse(assignmentResult));
+
+        var result = checker.userIsAuthorizedToUpdateDataset().validate(Path.of("bagdir"));
+
+        assertEquals(RuleResult.Status.ERROR, result.getStatus());
+        Mockito.verify(dv).getDataset(Mockito.eq("doi"));
+    }
+
+    @Test
+    void dataStationUserAccountIsNotAuthorizedToEditButHasADifferentRole() throws Exception {
+        var dv = createDataverseServiceSpy();
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dv);
+
+        Mockito
+            .doReturn("user-account-name")
+            .doReturn("urn:uuid:the_id")
+            .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
+
+        var searchResult = getSearchResult("doi");
+        var latestVersionResult = getLatestVersion("doi", "otherid");
         var assignmentResult = "{\n"
             + "  \"status\": \"OK\",\n"
             + "  \"data\": [\n"
@@ -701,13 +477,185 @@ class DatastationRulesImplTest {
             + "}";
 
         Mockito.when(httpClient.execute(Mockito.any()))
-            .thenReturn(createStringResponse(fakeSearchResults))
+            .thenReturn(createStringResponse(searchResult))
+            .thenReturn(createStringResponse(latestVersionResult))
             .thenReturn(createStringResponse(assignmentResult));
 
-        var result = checker.dataStationUserAccountIsAuthorized().validate(Path.of("bagdir"));
+        var result = checker.userIsAuthorizedToUpdateDataset().validate(Path.of("bagdir"));
 
         assertEquals(RuleResult.Status.ERROR, result.getStatus());
-        assertTrue(result.getErrorMessages().get(0).contains("Data Station account that is authorized to deposit the bag"));
+        assertTrue(result.getErrorMessages().get(0).contains("user-account-name"));
+        assertTrue(result.getErrorMessages().get(0).contains("expected: dataseteditor"));
+        assertTrue(result.getErrorMessages().get(0).contains("readonly"));
 
+    }
+
+    @Test
+    void dataStationUserAccountIsNotSetEdit() throws Exception {
+        var dv = createDataverseServiceSpy();
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dv);
+
+        Mockito
+            .doReturn(null)
+            .doReturn("urn:uuid:the_id")
+            .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
+
+        var searchResult = getSearchResult("doi");
+        var assignmentResult = "{\n"
+            + "  \"status\": \"OK\",\n"
+            + "  \"data\": [\n"
+            + "    {\n"
+            + "      \"id\": 6,\n"
+            + "      \"assignee\": \"@dataverseAdmin\",\n"
+            + "      \"roleId\": 11,\n"
+            + "      \"_roleAlias\": \"contributorplus\",\n"
+            + "      \"definitionPointId\": 2\n"
+            + "    },\n"
+            + "    {\n"
+            + "      \"id\": 5,\n"
+            + "      \"assignee\": \"@datamanager001\",\n"
+            + "      \"roleId\": 9,\n"
+            + "      \"_roleAlias\": \"datamanager\",\n"
+            + "      \"definitionPointId\": 1\n"
+            + "    }\n"
+            + "  ]\n"
+            + "}";
+
+        Mockito.when(httpClient.execute(Mockito.any()))
+            .thenReturn(createStringResponse(searchResult))
+            .thenReturn(createStringResponse(assignmentResult));
+
+        var result = checker.userIsAuthorizedToUpdateDataset().validate(Path.of("bagdir"));
+        assertEquals(RuleResult.Status.SKIP_DEPENDENCIES, result.getStatus());
+
+    }
+
+    @Test
+    void dataStationUserAccountYieldsNoSearchResultsEdit() throws Exception {
+        var dv = createDataverseServiceSpy();
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dv);
+
+        Mockito
+            .doReturn("user-name")
+            .doReturn("urn:uuid:the_id")
+            .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
+
+        // trimmed down versions of what dataverse would actually spit out
+        var searchResult = getEmptySearchResult();
+
+        var assignmentResult = "{\n"
+            + "  \"status\": \"OK\",\n"
+            + "  \"data\": [\n"
+            + "    {\n"
+            + "      \"id\": 6,\n"
+            + "      \"assignee\": \"@dataverseAdmin\",\n"
+            + "      \"roleId\": 11,\n"
+            + "      \"_roleAlias\": \"contributorplus\",\n"
+            + "      \"definitionPointId\": 2\n"
+            + "    },\n"
+            + "    {\n"
+            + "      \"id\": 5,\n"
+            + "      \"assignee\": \"@datamanager001\",\n"
+            + "      \"roleId\": 9,\n"
+            + "      \"_roleAlias\": \"datamanager\",\n"
+            + "      \"definitionPointId\": 1\n"
+            + "    }\n"
+            + "  ]\n"
+            + "}";
+
+        Mockito.when(httpClient.execute(Mockito.any()))
+            .thenReturn(createStringResponse(searchResult))
+            .thenReturn(createStringResponse(assignmentResult));
+
+        var result = checker.userIsAuthorizedToUpdateDataset().validate(Path.of("bagdir"));
+
+        assertTrue(result.getErrorMessages().get(0).contains("it must be a valid SWORD token in the data station"));
+        assertEquals(RuleResult.Status.ERROR, result.getStatus());
+    }
+
+    String getSearchResult(String globalId) {
+        return String.format("{\n"
+            + "  \"status\": \"OK\",\n"
+            + "  \"data\": {\n"
+            + "    \"q\": \"NBN:urn:nbn:nl:ui:13-025de6e2-bdcf-4622-b134-282b4c590f42\",\n"
+            + "    \"total_count\": 1,\n"
+            + "    \"start\": 0,\n"
+            + "    \"spelling_alternatives\": {},\n"
+            + "    \"items\": [\n"
+            + "      {\n"
+            + "        \"name\": \"Manual Test\",\n"
+            + "        \"type\": \"dataset\",\n"
+            + "        \"url\": \"https://doi.org/10.5072/FK2/QZZSST\",\n"
+            + "        \"global_id\": \"%s\"\n"
+            + "      }\n"
+            + "    ],\n"
+            + "    \"count_in_response\": 1\n"
+            + "  }\n"
+            + "}", globalId);
+
+    }
+
+    String getEmptySearchResult() {
+        return "{\n"
+            + "  \"status\": \"OK\",\n"
+            + "  \"data\": {\n"
+            + "    \"q\": \"NBN:urn:nbn:nl:ui:13-025de6e2-bdcf-4622-b134-282b4c590f42\",\n"
+            + "    \"total_count\": 1,\n"
+            + "    \"start\": 0,\n"
+            + "    \"spelling_alternatives\": {},\n"
+            + "    \"items\": [\n"
+            + "    ],\n"
+            + "    \"count_in_response\": 0\n"
+            + "  }\n"
+            + "}";
+    }
+
+    String getLatestVersion(String persistentId, String dansOtherId) {
+
+        if (persistentId == null) {
+            persistentId = "persistent_id";
+        }
+        if (dansOtherId == null) {
+            dansOtherId = "null";
+        }
+        else {
+            dansOtherId = "\"" + dansOtherId + "\"";
+        }
+
+        return String.format("{\n"
+            + "  \"status\": \"OK\",\n"
+            + "  \"data\": {\n"
+            + "    \"id\": 2,\n"
+            + "    \"identifier\": \"FK2/QZZSST\",\n"
+            + "    \"persistentUrl\": \"https://doi.org/10.5072/FK2/QZZSST\",\n"
+            + "    \"latestVersion\": {\n"
+            + "      \"id\": 2,\n"
+            + "      \"datasetId\": 2,\n"
+            + "      \"datasetPersistentId\": \"%s\",\n"
+            + "      \"storageIdentifier\": \"file://10.5072/FK2/QZZSST\",\n"
+            + "      \"fileAccessRequest\": false,\n"
+            + "      \"metadataBlocks\": {\n"
+            + "        \"dansDataVaultMetadata\": {\n"
+            + "          \"displayName\": \"Data Vault Metadata\",\n"
+            + "          \"name\": \"dansDataVaultMetadata\",\n"
+            + "          \"fields\": [\n"
+            + "            {\n"
+            + "              \"typeName\": \"dansSwordToken\",\n"
+            + "              \"multiple\": false,\n"
+            + "              \"typeClass\": \"primitive\",\n"
+            + "              \"value\": \"urn:uuid:2cd3745a-8b42-44a7-b1ca-5c93aa6f4e32\"\n"
+            + "            },\n"
+            + "            {\n"
+            + "              \"typeName\": \"dansOtherId\",\n"
+            + "              \"multiple\": false,\n"
+            + "              \"typeClass\": \"primitive\",\n"
+            + "              \"value\": %s\n"
+            + "            }\n"
+            + "          ]\n"
+            + "        }\n"
+            + "      }\n"
+            + "    }\n"
+            + "  }\n"
+            + "}", persistentId, dansOtherId);
     }
 }

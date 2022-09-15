@@ -15,16 +15,25 @@
  */
 package nl.knaw.dans.validatedansbag.core.rules;
 
+import nl.knaw.dans.lib.dataverse.DataverseException;
+import nl.knaw.dans.lib.dataverse.model.RoleAssignmentReadOnly;
+import nl.knaw.dans.lib.dataverse.model.dataset.DatasetLatestVersion;
 import nl.knaw.dans.lib.dataverse.model.dataset.PrimitiveSingleValueField;
 import nl.knaw.dans.lib.dataverse.model.search.DatasetResultItem;
 import nl.knaw.dans.validatedansbag.core.engine.RuleResult;
 import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReader;
 import nl.knaw.dans.validatedansbag.core.service.DataverseService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class DatastationRulesImpl implements DatastationRules {
+    private static final Logger log = LoggerFactory.getLogger(DatastationRulesImpl.class);
     private final BagItMetadataReader bagItMetadataReader;
     private final DataverseService dataverseService;
 
@@ -34,82 +43,16 @@ public class DatastationRulesImpl implements DatastationRules {
     }
 
     @Override
-    public BagValidatorRule organizationalIdentifierIsValid() {
+    public BagValidatorRule bagExistsInDatastation() {
 
-        // TODO do not check with dataverse for is-version-of,
-        // just check if Is-Version-Of is set if Has-Org... is defined and a
-        // dataset exists in dataverse
-        // TODO wait for Jan's thoughts
-        return path -> {
-            var hasOrganizationalIdentifier = bagItMetadataReader.getField(path, "Has-Organizational-Identifier");
-
-            if (hasOrganizationalIdentifier.isEmpty()) {
-                return RuleResult.skipDependencies();
-            }
-
-            else if (hasOrganizationalIdentifier.size() > 1) {
-                return RuleResult.error("More than one 'Has-Organizational-Identifier' field found in bag, only one allowed");
-            }
-
-            var identifier = hasOrganizationalIdentifier.get(0);
-            // get isVersionOf or null if it doesn't exist
-            // note that the limitation of 'there can only be one' is checked in another rule
-            var isVersionOf = bagItMetadataReader.getSingleField(path, "Is-Version-Of");
-
-            // check if dataset exists in the datastation
-            var searchResult = dataverseService.searchDatasetsByOrganizationalIdentifier(identifier);
-            var searchResultItems = searchResult.getData().getItems().stream()
-                .filter(s -> s instanceof DatasetResultItem)
-                .map(s -> (DatasetResultItem) s)
-                .collect(Collectors.toList());
-
-            // the rule only applies if there is a matching document
-            if (!searchResultItems.isEmpty()) {
-                var deposit = searchResultItems.get(0);
-
-                // when the dataset is found in dataverse, is-version-of is mandatory
-                if (isVersionOf == null) {
-                    return RuleResult.error("'Is-Version-Of' is required when 'Has-Organizational-Identifier' is set and there is a matching dataset in Dataverse");
-                }
-
-                var dataset = dataverseService.getDataset(deposit.getGlobalId());
-
-                // get the dansBagId value from the metadata blocks using the optional and streaming capabilities
-                var dansBagId = Optional.ofNullable(dataset.getData().getLatestVersion().getMetadataBlocks())
-                    .map(m -> m.get("dansDataVaultMetadata"))
-                    .map(m -> m.getFields().stream()
-                        .filter(f -> f.getTypeName().equals("dansSwordToken"))
-                        .filter(f -> f instanceof PrimitiveSingleValueField)
-                        .map(f -> (PrimitiveSingleValueField) f)
-                        .map(PrimitiveSingleValueField::getValue)
-                        .findFirst()
-                    )
-                    .flatMap(f -> f)
-                    .orElse(null);
-
-                if (!isVersionOf.equals(dansBagId)) {
-                    return RuleResult.error(String.format(
-                        "'Is-Version-Of' (%s) does not refer to the same bag as the 'Has-Organizational-Identifier' (%s) would expect, but instead refers to bag with ID %s",
-                        isVersionOf, identifier, dansBagId
-                    ));
-                }
-            }
-
-            return RuleResult.ok();
-        };
-    }
-
-    @Override
-    public BagValidatorRule isVersionOfIsAValidSwordToken() {
-        return path -> {
+        return (path) -> {
             var isVersionOf = bagItMetadataReader.getSingleField(path, "Is-Version-Of");
 
             if (isVersionOf != null) {
-                var result = dataverseService.searchBySwordToken(isVersionOf);
-                var data = result.getData().getItems();
+                var dataset = getDatasetBySwordToken(isVersionOf);
 
-                // no result means it does not exist
-                if (data.isEmpty()) {
+                if (dataset.isEmpty()) {
+                    // no result means it does not exist
                     return RuleResult.error(String.format(
                         "If 'Is-Version-Of' is specified, it must be a valid SWORD token in the data station; no tokens were found: %s", isVersionOf
                     ));
@@ -124,38 +67,82 @@ public class DatastationRulesImpl implements DatastationRules {
     }
 
     @Override
-    public BagValidatorRule dataStationUserAccountIsAuthorized() {
+    public BagValidatorRule organizationalIdentifierExistsInDataset() {
+        return path -> {
+            var isVersionOf = bagItMetadataReader.getSingleField(path, "Is-Version-Of");
+            var dataset = getDatasetBySwordToken(isVersionOf);
+
+            if (dataset.isEmpty()) {
+                return RuleResult.error("Expected a dataset, but got nothing");
+            }
+
+            // (b) dansOtherId must match Has-Organizational-Identifier (or both are null)
+            var orgIdentifier = bagItMetadataReader.getSingleField(path, "Has-Organizational-Identifier");
+
+            var otherId = Optional.ofNullable(dataset.get().getLatestVersion().getMetadataBlocks())
+                .map(m -> m.get("dansDataVaultMetadata"))
+                .map(m -> m.getFields().stream()
+                    .filter(f -> f.getTypeName().equals("dansOtherId"))
+                    .filter(f -> f instanceof PrimitiveSingleValueField)
+                    .map(f -> (PrimitiveSingleValueField) f)
+                    .map(PrimitiveSingleValueField::getValue)
+                    .findFirst()
+                )
+                .flatMap(f -> f)
+                .orElse(null);
+
+            if ("".equals(otherId) || "null".equals(otherId)) {
+                otherId = null;
+            }
+
+            if (otherId == null && orgIdentifier == null) {
+                log.trace("Dataset does not have 'dansOtherId' set, nor is 'Has-Organizational-Identifier' set in the bag information, so this is a valid match");
+                return RuleResult.ok();
+            }
+            else if (Objects.equals(otherId, orgIdentifier)) {
+                // this is also valid
+                log.trace("Dataset with dansOtherId {} and 'Has-Organizational-Identifier' {} match", otherId, orgIdentifier);
+                return RuleResult.ok();
+            }
+            else {
+                // this is not valid
+                log.trace("Dataset with dansOtherId {} and 'Has-Organizational-Identifier' {} do not match", otherId, orgIdentifier);
+                return RuleResult.error(String.format(
+                    "Mismatch between 'dansOtherId' in dataverse and 'Has-Organizational-Identifier' in dataset: '%s' vs '%s'. They must either both be the same or both be absent",
+                    orgIdentifier, otherId
+                ));
+            }
+        };
+    }
+
+    @Override
+    public BagValidatorRule userIsAuthorizedToCreateDataset() {
         return path -> {
             var userAccount = bagItMetadataReader.getSingleField(path, "Data-Station-User-Account");
-            var isVersionOf = bagItMetadataReader.getSingleField(path, "Is-Version-Of");
 
-            if (userAccount != null && isVersionOf != null) {
-                var result = dataverseService.searchBySwordToken(isVersionOf);
-                var data = result.getData().getItems();
+            if (userAccount != null) {
+                var result = Optional.ofNullable(dataverseService.getDataverseRoleAssignments("root"))
+                    .map(d -> {
+                        try {
+                            return d.getData();
+                        }
+                        catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    })
+                    .orElse(List.of());
 
-                // no result means it does not exist
-                if (data.isEmpty()) {
-                    return RuleResult.error(String.format(
-                        "If 'Is-Version-Of' is specified, it must be a valid SWORD token in the data station; no tokens were found: %s", isVersionOf
-                    ));
-                }
-
-                var item = (DatasetResultItem) data.get(0);
-                var itemId = item.getGlobalId();
-
-                var assignments = dataverseService.getRoleAssignments(itemId);
-
-                // when the user has one of these valid roles, the check succeeds
-                var validRoles = dataverseService.getAllowedDepositorRoles();
-                var matchingAssignments = assignments.getData().stream()
+                var userRoles = result.stream()
                     .filter(a -> a.getAssignee().replaceFirst("@", "").equals(userAccount))
-                    .filter(a -> validRoles.contains(a.get_roleAlias()))
+                    .map(RoleAssignmentReadOnly::get_roleAlias)
                     .collect(Collectors.toList());
 
-                if (matchingAssignments.isEmpty()) {
+                var validRole = dataverseService.getAllowedCreatorRole();
+
+                if (!userRoles.contains(validRole)) {
                     return RuleResult.error(String.format(
-                        "If 'Data-Station-User-Account' is set, it must contain the user name of the Data Station account that is authorized to deposit the bag with ID %s; user name is %s",
-                        isVersionOf, userAccount
+                        "User '%s' does not have the correct role for creating datasets (expected: %s, found: %s)",
+                        userAccount, validRole, userRoles
                     ));
                 }
 
@@ -164,5 +151,75 @@ public class DatastationRulesImpl implements DatastationRules {
 
             return RuleResult.skipDependencies();
         };
+
+    }
+
+    @Override
+    public BagValidatorRule userIsAuthorizedToUpdateDataset() {
+        return path -> {
+            var userAccount = bagItMetadataReader.getSingleField(path, "Data-Station-User-Account");
+            var isVersionOf = bagItMetadataReader.getSingleField(path, "Is-Version-Of");
+
+            // both userAccount and isVersionOf are required fields at this point, but they are checked in other steps
+            // so to keep this rule oblivious of other requirements, just check if we have values
+            if (userAccount != null && isVersionOf != null) {
+                var dataset = getDatasetBySwordToken(isVersionOf);
+
+                // no result means it does not exist
+                if (dataset.isEmpty()) {
+                    return RuleResult.error(String.format(
+                        "If 'Is-Version-Of' is specified, it must be a valid SWORD token in the data station; no tokens were found: %s", isVersionOf
+                    ));
+                }
+
+                var itemId = dataset.get().getLatestVersion().getDatasetPersistentId();
+                var assignments = Optional.ofNullable(dataverseService.getDatasetRoleAssignments(itemId))
+                    .map(d -> {
+                        try {
+                            return d.getData();
+                        }
+                        catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    })
+                    .orElse(List.of());
+
+                // when the user has one of these valid roles, the check succeeds
+                var validRole = dataverseService.getAllowedEditorRole();
+
+                // get all roles assigned to this user
+                var assignmentsNames = assignments
+                    .stream()
+                    .filter(a -> a.getAssignee().replaceFirst("@", "").equals(userAccount))
+                    .map(RoleAssignmentReadOnly::get_roleAlias)
+                    .collect(Collectors.toList());
+
+                if (!assignmentsNames.contains(validRole)) {
+                    return RuleResult.error(String.format(
+                        "User '%s' does not have the correct role for creating datasets (expected: %s, found: %s)",
+                        userAccount, validRole, assignmentsNames
+                    ));
+                }
+
+                return RuleResult.ok();
+            }
+
+            return RuleResult.skipDependencies();
+        };
+    }
+
+    Optional<DatasetLatestVersion> getDatasetBySwordToken(String swordToken) throws IOException, DataverseException {
+        var result = dataverseService.searchBySwordToken(swordToken)
+            .getData().getItems().stream()
+            .filter(resultItem -> resultItem instanceof DatasetResultItem)
+            .map(resultItem -> (DatasetResultItem) resultItem)
+            .findFirst();
+
+        if (result.isPresent()) {
+            var globalId = result.get().getGlobalId();
+            return Optional.ofNullable(dataverseService.getDataset(globalId).getData());
+        }
+
+        return Optional.empty();
     }
 }

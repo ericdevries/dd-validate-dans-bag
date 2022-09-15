@@ -19,9 +19,9 @@ logging:
 dataverse:
   apiToken: ""
   baseUrl: "http://localhost:8080/"
-  allowedDepositorRoles:
-    - contributor
-    - contributorplus
+  swordDepositorRoles:
+    datasetCreator: datasetcreator
+    datasetEditor: dataseteditor
 
 licenses:
   allowedLicenses:

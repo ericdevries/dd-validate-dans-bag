@@ -17,6 +17,7 @@ package nl.knaw.dans.validatedansbag.resource;
 
 import io.dropwizard.testing.junit5.DropwizardExtensionsSupport;
 import io.dropwizard.testing.junit5.ResourceExtension;
+import nl.knaw.dans.lib.dataverse.model.RoleAssignmentReadOnly;
 import nl.knaw.dans.lib.dataverse.model.dataset.DatasetLatestVersion;
 import nl.knaw.dans.lib.dataverse.model.search.SearchResult;
 import nl.knaw.dans.openapi.api.ValidateCommandDto;
@@ -49,6 +50,7 @@ import org.xml.sax.SAXException;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -319,6 +321,12 @@ class ValidateResourceIntegrationTest {
             + "              \"multiple\": false,\n"
             + "              \"typeClass\": \"primitive\",\n"
             + "              \"value\": \"urn:uuid:34632f71-11f8-48d8-9bf3-79551ad22b5e\"\n"
+            + "            },\n"
+            + "            {\n"
+            + "              \"typeName\": \"dansOtherId\",\n"
+            + "              \"multiple\": false,\n"
+            + "              \"typeClass\": \"primitive\",\n"
+            + "              \"value\": \"organizational-identifier\"\n"
             + "            }\n"
             + "          ]\n"
             + "        }\n"
@@ -326,10 +334,46 @@ class ValidateResourceIntegrationTest {
             + "    }\n"
             + "  }\n"
             + "}";
+
+        var dataverseRoleAssignmentsJson = "{\n"
+            + "  \"status\": \"OK\",\n"
+            + "  \"data\": [\n"
+            + "    {\n"
+            + "      \"id\": 6,\n"
+            + "      \"assignee\": \"@eric\",\n"
+            + "      \"roleId\": 11,\n"
+            + "      \"_roleAlias\": \"datasetcreator\",\n"
+            + "      \"definitionPointId\": 2\n"
+            + "    }\n"
+            + "  ]\n"
+            + "}";
+
+        var datasetRoleAssignmentsJson = "{\n"
+            + "  \"status\": \"OK\",\n"
+            + "  \"data\": [\n"
+            + "    {\n"
+            + "      \"id\": 6,\n"
+            + "      \"assignee\": \"@eric\",\n"
+            + "      \"roleId\": 11,\n"
+            + "      \"_roleAlias\": \"dataseteditor\",\n"
+            + "      \"definitionPointId\": 2\n"
+            + "    }\n"
+            + "  ]\n"
+            + "}";
         var searchResult = new MockedDataverseResponse<SearchResult>(searchResultsJson, SearchResult.class);
         var latestVersionResult = new MockedDataverseResponse<DatasetLatestVersion>(latestVersionJson, DatasetLatestVersion.class);
         var swordTokenResult = new MockedDataverseResponse<SearchResult>(searchResultsJson, SearchResult.class);
+        var dataverseRoleAssignmentsResult = new MockedDataverseResponse<List<RoleAssignmentReadOnly>>(dataverseRoleAssignmentsJson, List.class, RoleAssignmentReadOnly.class);
+        var datasetRoleAssignmentsResult = new MockedDataverseResponse<List<RoleAssignmentReadOnly>>(datasetRoleAssignmentsJson, List.class, RoleAssignmentReadOnly.class);
 
+        Mockito.when(dataverseService.getDataverseRoleAssignments(Mockito.anyString()))
+            .thenReturn(dataverseRoleAssignmentsResult);
+
+        Mockito.when(dataverseService.getDatasetRoleAssignments(Mockito.anyString()))
+            .thenReturn(datasetRoleAssignmentsResult);
+
+        Mockito.when(dataverseService.getAllowedCreatorRole()).thenReturn("datasetcreator");
+        Mockito.when(dataverseService.getAllowedEditorRole()).thenReturn("dataseteditor");
         Mockito.when(dataverseService.searchDatasetsByOrganizationalIdentifier(Mockito.anyString()))
             .thenReturn(searchResult);
 
@@ -396,7 +440,7 @@ class ValidateResourceIntegrationTest {
             + "          \"name\": \"dansDataVaultMetadata\",\n"
             + "          \"fields\": [\n"
             + "            {\n"
-            + "              \"typeName\": \"dansBagId\",\n"
+            + "              \"typeName\": \"dansOtherId\",\n"
             + "              \"multiple\": false,\n"
             + "              \"typeClass\": \"primitive\",\n"
             + "              \"value\": \"urn:uuid:wrong-uuid\"\n"
@@ -407,9 +451,41 @@ class ValidateResourceIntegrationTest {
             + "    }\n"
             + "  }\n"
             + "}";
+
+        var dataverseRoleAssignmentsJson = "{\n"
+            + "  \"status\": \"OK\",\n"
+            + "  \"data\": [\n"
+            + "    {\n"
+            + "      \"id\": 6,\n"
+            + "      \"assignee\": \"@eric\",\n"
+            + "      \"roleId\": 11,\n"
+            + "      \"_roleAlias\": \"datasetcreator\",\n"
+            + "      \"definitionPointId\": 2\n"
+            + "    }\n"
+            + "  ]\n"
+            + "}";
+
+        var datasetRoleAssignmentsJson = "{\n"
+            + "  \"status\": \"OK\",\n"
+            + "  \"data\": [\n"
+            + "    {\n"
+            + "      \"id\": 6,\n"
+            + "      \"assignee\": \"@eric\",\n"
+            + "      \"roleId\": 11,\n"
+            + "      \"_roleAlias\": \"dataseteditor\",\n"
+            + "      \"definitionPointId\": 2\n"
+            + "    }\n"
+            + "  ]\n"
+            + "}";
+
         var searchResult = new MockedDataverseResponse<SearchResult>(searchResultsJson, SearchResult.class);
         var latestVersionResult = new MockedDataverseResponse<DatasetLatestVersion>(latestVersionJson, DatasetLatestVersion.class);
         var swordTokenResult = new MockedDataverseResponse<SearchResult>(searchResultsJson, SearchResult.class);
+        var dataverseRoleAssignmentsResult = new MockedDataverseResponse<List<RoleAssignmentReadOnly>>(dataverseRoleAssignmentsJson, List.class, RoleAssignmentReadOnly.class);
+        var datasetRoleAssignmentsResult = new MockedDataverseResponse<List<RoleAssignmentReadOnly>>(datasetRoleAssignmentsJson, List.class, RoleAssignmentReadOnly.class);
+
+        Mockito.when(dataverseService.getAllowedCreatorRole()).thenReturn("datasetcreator");
+        Mockito.when(dataverseService.getAllowedEditorRole()).thenReturn("dataseteditor");
 
         Mockito.when(dataverseService.searchDatasetsByOrganizationalIdentifier(Mockito.anyString()))
             .thenReturn(searchResult);
@@ -420,6 +496,12 @@ class ValidateResourceIntegrationTest {
         Mockito.when(dataverseService.searchBySwordToken(Mockito.anyString()))
             .thenReturn(swordTokenResult);
 
+        Mockito.when(dataverseService.getDataverseRoleAssignments(Mockito.anyString()))
+            .thenReturn(dataverseRoleAssignmentsResult);
+
+        Mockito.when(dataverseService.getDatasetRoleAssignments(Mockito.anyString()))
+            .thenReturn(datasetRoleAssignmentsResult);
+
         var response = EXT.target("/validate")
             .register(MultiPartFeature.class)
             .request()
@@ -428,7 +510,7 @@ class ValidateResourceIntegrationTest {
         var failed = response.getRuleViolations().stream()
             .map(ValidateOkRuleViolationsDto::getRule).collect(Collectors.toSet());
 
-        assertEquals(Set.of("1.2.5(a)"), failed);
+        assertEquals(Set.of("4.3(b)"), failed);
         assertFalse(response.getIsCompliant());
         assertEquals("bag-with-is-version-of", response.getName());
     }
@@ -526,7 +608,7 @@ class ValidateResourceIntegrationTest {
         var failed = response.getRuleViolations().stream()
             .map(ValidateOkRuleViolationsDto::getRule).collect(Collectors.toSet());
 
-        assertEquals(Set.of("4.1"), failed);
+        assertEquals(Set.of("4.2", "4.3(a)", "4.3(b)", "4.3(c)"), failed);
         assertFalse(response.getIsCompliant());
         assertEquals("bag-with-is-version-of", response.getName());
     }
