@@ -37,8 +37,11 @@ import org.joda.time.DateTime;
 import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 
+import javax.print.Doc;
+import javax.xml.xpath.XPathExpressionException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.CharacterCodingException;
@@ -50,6 +53,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -708,12 +712,7 @@ public class BagRulesImpl implements BagRules {
         return (path) -> {
             var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
 
-            var rightsHolder = xmlReader.xpathToStream(document, "//ddm:dcmiMetadata//dcterms:rightsHolder")
-                .map(Node::getTextContent)
-                .filter(Objects::nonNull)
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .findFirst();
+            var rightsHolder= getRightsHolderInElement(document);
 
             if (rightsHolder.isEmpty()) {
                 return RuleResult.error("No rightsholder found in <dcterms:rightsHolder> element");
@@ -731,13 +730,23 @@ public class BagRulesImpl implements BagRules {
             var inRole = xmlReader.xpathToStream(document, "//dcx-dai:author/dcx-dai:role")
                 .filter(node -> node.getTextContent().equals("RightsHolder"))
                 .findFirst();
+            var rightsHolder= getRightsHolderInElement(document);
 
-            if (inRole.isEmpty()) {
-                return RuleResult.error("No RightsHolder found in <dcx-dai:role> element");
+            if (inRole.isEmpty() && rightsHolder.isEmpty()) {
+                return RuleResult.error("No RightsHolder found in <dcx-dai:role> element nor in <dcterms:rightsHolder> element");
             }
 
             return RuleResult.ok();
         };
+    }
+
+    private Optional<String> getRightsHolderInElement(Document document) throws XPathExpressionException {
+        return xmlReader.xpathToStream(document, "//ddm:dcmiMetadata//dcterms:rightsHolder")
+            .map(Node::getTextContent)
+            .filter(Objects::nonNull)
+            .map(String::trim)
+            .filter(s -> !s.isEmpty())
+            .findFirst();
     }
 
     @Override
