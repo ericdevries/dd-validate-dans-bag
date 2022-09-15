@@ -59,6 +59,19 @@ public class XmlSchemaValidatorImpl implements XmlSchemaValidator {
 
     public XmlSchemaValidatorImpl() {
         this.schemaFactory = SchemaFactory.newInstance("http://www.w3.org/2001/XMLSchema");
+
+        for (var filename : filenameToSchemaMap.keySet()) {
+            try {
+                getValidatorForFilename(filename);
+            }
+            catch (MalformedURLException | SAXException e) {
+                log.error("Unable to load validator for filename {}", filename, e);
+                // throw a runtime exception because
+                var name = filenameToSchemaMap.get(filename);
+                var url = schemaUrls.get(name);
+                throw new RuntimeException(String.format("Unable to load XSD '%s'", url), e);
+            }
+        }
     }
 
     Schema getValidatorForFilename(String filename) throws MalformedURLException, SAXException {
