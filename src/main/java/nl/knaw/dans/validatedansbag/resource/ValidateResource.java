@@ -29,7 +29,9 @@ import org.slf4j.LoggerFactory;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
+import javax.ws.rs.BadRequestException;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.InternalServerErrorException;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -56,7 +58,7 @@ public class ValidateResource {
     @POST
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response validateFormData(
+    public ValidateOkDto validateFormData(
         @Valid @NotNull @FormDataParam(value = "command") ValidateCommandDto command,
         @FormDataParam(value = "zip") InputStream zipInputStream
     ) {
@@ -77,33 +79,32 @@ public class ValidateResource {
             // this information is lost during the validation, so set it again here
             validateResult.setBagLocation(location);
 
-            return Response.ok(validateResult).build();
+            return validateResult;
         }
         catch (BagNotFoundException e) {
             log.error("Bag not found", e);
-            return Response.status(Response.Status.BAD_REQUEST).build();
+            throw new BadRequestException("Request could not be processed: " + e.getMessage(), e);
         }
         catch (Exception e) {
             log.error("Internal server error", e);
-            return Response.serverError().build();
+            throw new InternalServerErrorException("Internal server error", e);
         }
     }
 
     @POST
     @Consumes({ "application/zip" })
     @Produces({ MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN })
-    public Response validateZip(InputStream inputStream) {
+    public ValidateOkDto validateZip(InputStream inputStream) {
         try {
-            var validateResult = validateInputStream(inputStream, DepositType.DEPOSIT);
-            return Response.ok(validateResult).build();
+            return validateInputStream(inputStream, DepositType.DEPOSIT);
         }
         catch (BagNotFoundException e) {
             log.error("Bag not found", e);
-            return Response.status(Response.Status.BAD_REQUEST).build();
+            throw new BadRequestException("Request could not be processed: " + e.getMessage(), e);
         }
         catch (Exception e) {
             log.error("Internal server error", e);
-            return Response.serverError().build();
+            throw new InternalServerErrorException("Internal server error", e);
         }
     }
 
