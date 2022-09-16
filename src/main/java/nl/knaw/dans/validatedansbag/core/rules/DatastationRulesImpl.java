@@ -48,16 +48,20 @@ public class DatastationRulesImpl implements DatastationRules {
         return (path) -> {
             var isVersionOf = bagItMetadataReader.getSingleField(path, "Is-Version-Of");
 
+            log.trace("Using Is-Version-Of value '{}' to find a matching dataset", isVersionOf);
+
             if (isVersionOf != null) {
                 var dataset = getDatasetBySwordToken(isVersionOf);
 
                 if (dataset.isEmpty()) {
+                    log.debug("Dataset with sword token '{}' not found", isVersionOf);
                     // no result means it does not exist
                     return RuleResult.error(String.format(
                         "If 'Is-Version-Of' is specified, it must be a valid SWORD token in the data station; no tokens were found: %s", isVersionOf
                     ));
                 }
                 else {
+                    log.debug("Dataset with sword token '{}': {}", isVersionOf, dataset.get());
                     return RuleResult.ok();
                 }
             }
@@ -132,11 +136,14 @@ public class DatastationRulesImpl implements DatastationRules {
                     })
                     .orElse(List.of());
 
+                log.debug("Role assignments found in dataverse: {}", result);
+
                 var userRoles = result.stream()
                     .filter(a -> a.getAssignee().replaceFirst("@", "").equals(userAccount))
                     .map(RoleAssignmentReadOnly::get_roleAlias)
                     .collect(Collectors.toList());
 
+                log.debug("User roles for user {}: {}", userAccount, result);
                 var validRole = dataverseService.getAllowedCreatorRole();
 
                 if (!userRoles.contains(validRole)) {
@@ -160,6 +167,7 @@ public class DatastationRulesImpl implements DatastationRules {
             var userAccount = bagItMetadataReader.getSingleField(path, "Data-Station-User-Account");
             var isVersionOf = bagItMetadataReader.getSingleField(path, "Is-Version-Of");
 
+            log.debug("Checking if user '{}' is authorized on dataset '{}'", userAccount, isVersionOf);
             // both userAccount and isVersionOf are required fields at this point, but they are checked in other steps
             // so to keep this rule oblivious of other requirements, just check if we have values
             if (userAccount != null && isVersionOf != null) {
@@ -184,6 +192,8 @@ public class DatastationRulesImpl implements DatastationRules {
                     })
                     .orElse(List.of());
 
+                log.debug("Role assignments on dataset: {}", assignments);
+
                 // when the user has one of these valid roles, the check succeeds
                 var validRole = dataverseService.getAllowedEditorRole();
 
@@ -193,6 +203,8 @@ public class DatastationRulesImpl implements DatastationRules {
                     .filter(a -> a.getAssignee().replaceFirst("@", "").equals(userAccount))
                     .map(RoleAssignmentReadOnly::get_roleAlias)
                     .collect(Collectors.toList());
+
+                log.debug("Role assignments for user '{}': {}", userAccount, assignmentsNames);
 
                 if (!assignmentsNames.contains(validRole)) {
                     return RuleResult.error(String.format(

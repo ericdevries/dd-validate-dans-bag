@@ -36,7 +36,6 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.stream.Collectors;
@@ -64,6 +63,8 @@ public class ValidateResource {
     ) {
         var location = command.getBagLocation();
         var depositType = toDepositType(command.getPackageType());
+
+        log.info("Received request to validate bag: {}", command);
 
         try {
             ValidateOkDto validateResult;
@@ -96,6 +97,7 @@ public class ValidateResource {
     @Produces({ MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN })
     public ValidateOkDto validateZip(InputStream inputStream) {
         try {
+            log.info("Received request to validate zip file");
             return validateInputStream(inputStream, DepositType.DEPOSIT);
         }
         catch (BagNotFoundException e) {
@@ -154,6 +156,8 @@ public class ValidateResource {
                 return ret;
             })
             .collect(Collectors.toList()));
+
+        log.debug("Validation result: {}", result);
 
         return result;
     }
