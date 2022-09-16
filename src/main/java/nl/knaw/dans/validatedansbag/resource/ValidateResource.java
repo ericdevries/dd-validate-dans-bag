@@ -21,6 +21,7 @@ import nl.knaw.dans.openapi.api.ValidateOkRuleViolationsDto;
 import nl.knaw.dans.validatedansbag.core.BagNotFoundException;
 import nl.knaw.dans.validatedansbag.core.engine.DepositType;
 import nl.knaw.dans.validatedansbag.core.engine.RuleValidationResult;
+import nl.knaw.dans.validatedansbag.core.engine.ValidationLevel;
 import nl.knaw.dans.validatedansbag.core.service.FileService;
 import nl.knaw.dans.validatedansbag.core.service.RuleEngineService;
 import org.glassfish.jersey.media.multipart.FormDataParam;
@@ -62,16 +63,17 @@ public class ValidateResource {
     ) {
         var location = command.getBagLocation();
         var depositType = toDepositType(command.getPackageType());
+        var validationLevel = toValidationLevel(command.getLevel());
 
         try {
             ValidateOkDto validateResult;
 
             if (location == null) {
-                validateResult = validateInputStream(zipInputStream, depositType);
+                validateResult = validateInputStream(zipInputStream, depositType, validationLevel);
             }
             else {
                 var locationPath = java.nio.file.Path.of(location);
-                validateResult = validatePath(locationPath, depositType);
+                validateResult = validatePath(locationPath, depositType, validationLevel);
             }
 
             // this information is lost during the validation, so set it again here
@@ -94,7 +96,7 @@ public class ValidateResource {
     @Produces({ MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN })
     public Response validateZip(InputStream inputStream) {
         try {
-            var validateResult = validateInputStream(inputStream, DepositType.DEPOSIT);
+            var validateResult = validateInputStream(inputStream, DepositType.DEPOSIT, ValidationLevel.STAND_ALONE);
             return Response.ok(validateResult).build();
         }
         catch (BagNotFoundException e) {
@@ -107,14 +109,14 @@ public class ValidateResource {
         }
     }
 
-    ValidateOkDto validateInputStream(InputStream inputStream, DepositType depositType) throws Exception {
+    ValidateOkDto validateInputStream(InputStream inputStream, DepositType depositType, ValidationLevel validationLevel) throws Exception {
         var tempPath = fileService.extractZipFile(inputStream);
 
         try {
             var bagDir = fileService.getFirstDirectory(tempPath)
                 .orElseThrow(() -> new BagNotFoundException("Extracted zip does not contain a directory"));
 
-            return validatePath(bagDir, depositType);
+            return validatePath(bagDir, depositType, validationLevel);
         }
         finally {
             try {
@@ -127,8 +129,8 @@ public class ValidateResource {
 
     }
 
-    ValidateOkDto validatePath(java.nio.file.Path bagDir, DepositType depositType) throws Exception {
-        var results = ruleEngineService.validateBag(bagDir, depositType);
+    ValidateOkDto validatePath(java.nio.file.Path bagDir, DepositType depositType, ValidationLevel validationLevel) throws Exception {
+        var results = ruleEngineService.validateBag(bagDir, depositType, validationLevel);
         var isValid = results.stream().noneMatch(r -> r.getStatus().equals(RuleValidationResult.RuleValidationResultStatus.FAILURE));
 
         var result = new ValidateOkDto();
@@ -137,6 +139,7 @@ public class ValidateResource {
         result.setName(bagDir.getFileName().toString());
         result.setProfileVersion("1.0.0");
         result.setInformationPackageType(toInfoPackageType(depositType));
+        result.setLevel(toLevel(validationLevel));
         result.setRuleViolations(results.stream()
             .filter(r -> r.getStatus().equals(RuleValidationResult.RuleValidationResultStatus.FAILURE))
             .map(rule -> {
@@ -164,10 +167,24 @@ public class ValidateResource {
         return DepositType.DEPOSIT;
     }
 
+    ValidationLevel toValidationLevel(ValidateCommandDto.LevelEnum value) {
+        if (value == ValidateCommandDto.LevelEnum.WITH_DATA_STATION_CONTEXT) {
+            return ValidationLevel.WITH_DATA_STATION_CONTEXT;
+        }
+        return ValidationLevel.STAND_ALONE;
+    }
+
     ValidateOkDto.InformationPackageTypeEnum toInfoPackageType(DepositType value) {
         if (value == DepositType.MIGRATION) {
             return ValidateOkDto.InformationPackageTypeEnum.MIGRATION;
         }
         return ValidateOkDto.InformationPackageTypeEnum.DEPOSIT;
+    }
+
+    ValidateOkDto.LevelEnum toLevel(ValidationLevel value) {
+        if (value == ValidationLevel.WITH_DATA_STATION_CONTEXT) {
+            return ValidateOkDto.LevelEnum.WITH_DATA_STATION_CONTEXT;
+        }
+        return ValidateOkDto.LevelEnum.STAND_ALONE;
     }
 }

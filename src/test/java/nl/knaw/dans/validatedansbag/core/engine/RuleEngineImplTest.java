@@ -40,7 +40,7 @@ class RuleEngineImplTest {
         };
 
         var engine = new RuleEngineImpl();
-        assertDoesNotThrow(() -> engine.validateRules(Path.of("somedir"), rules, DepositType.DEPOSIT));
+        assertDoesNotThrow(() -> engine.validateRules(Path.of("somedir"), rules, DepositType.DEPOSIT, ValidationLevel.STAND_ALONE));
 
         Mockito.verify(fakeRule, Mockito.times(4)).validate(Mockito.any());
     }
@@ -62,7 +62,7 @@ class RuleEngineImplTest {
         Mockito.when(fakeRuleSkipped.validate(Mockito.any())).thenReturn(failedResult);
 
         var engine = new RuleEngineImpl();
-        assertDoesNotThrow(() -> engine.validateRules(Path.of("somedir"), rules, DepositType.DEPOSIT));
+        assertDoesNotThrow(() -> engine.validateRules(Path.of("somedir"), rules, DepositType.DEPOSIT, ValidationLevel.STAND_ALONE));
 
         Mockito.verify(fakeRule, Mockito.times(2)).validate(Mockito.any());
         Mockito.verify(fakeRuleSkipped).validate(Mockito.any());
@@ -85,7 +85,7 @@ class RuleEngineImplTest {
         Mockito.doReturn(failedResult).when(fakeRuleFailed).validate(Mockito.any());
 
         var engine = new RuleEngineImpl();
-        assertDoesNotThrow(() -> engine.validateRules(Path.of("somedir"), rules, DepositType.DEPOSIT));
+        assertDoesNotThrow(() -> engine.validateRules(Path.of("somedir"), rules, DepositType.DEPOSIT, ValidationLevel.STAND_ALONE));
 
         Mockito.verify(fakeRule, Mockito.times(2)).validate(Mockito.any());
         Mockito.verify(fakeRuleFailed).validate(Mockito.any());
@@ -106,7 +106,7 @@ class RuleEngineImplTest {
         };
 
         var engine = new RuleEngineImpl();
-        assertDoesNotThrow(() -> engine.validateRules(Path.of("somedir"), rules, DepositType.DEPOSIT));
+        assertDoesNotThrow(() -> engine.validateRules(Path.of("somedir"), rules, DepositType.DEPOSIT, ValidationLevel.STAND_ALONE));
 
         Mockito.verify(fakeRule, Mockito.times(4)).validate(Mockito.any());
     }
@@ -127,7 +127,7 @@ class RuleEngineImplTest {
         var engine = new RuleEngineImpl();
 
         assertThrows(RuleEngineConfigurationException.class,
-            () -> engine.validateRules(Path.of("somedir"), rules, DepositType.DEPOSIT));
+            () -> engine.validateRules(Path.of("somedir"), rules, DepositType.DEPOSIT, ValidationLevel.STAND_ALONE));
 
     }
 
@@ -145,7 +145,7 @@ class RuleEngineImplTest {
         var engine = new RuleEngineImpl();
 
         assertThrows(RuleEngineConfigurationException.class,
-            () -> engine.validateRules(Path.of("somedir"), rules, DepositType.DEPOSIT));
+            () -> engine.validateRules(Path.of("somedir"), rules, DepositType.DEPOSIT, ValidationLevel.STAND_ALONE));
 
     }
 
@@ -164,7 +164,7 @@ class RuleEngineImplTest {
         var engine = new RuleEngineImpl();
 
         assertThrows(RuleEngineConfigurationException.class,
-            () -> engine.validateRules(Path.of("somedir"), rules, DepositType.DEPOSIT));
+            () -> engine.validateRules(Path.of("somedir"), rules, DepositType.DEPOSIT, ValidationLevel.STAND_ALONE));
 
     }
 
@@ -184,7 +184,7 @@ class RuleEngineImplTest {
         var engine = new RuleEngineImpl();
 
         assertThrows(RuleEngineConfigurationException.class,
-            () -> engine.validateRules(Path.of("somedir"), rules, DepositType.DEPOSIT));
+            () -> engine.validateRules(Path.of("somedir"), rules, DepositType.DEPOSIT, ValidationLevel.STAND_ALONE));
 
     }
 
@@ -204,7 +204,7 @@ class RuleEngineImplTest {
         var engine = new RuleEngineImpl();
 
         assertDoesNotThrow(
-            () -> engine.validateRules(Path.of("somedir"), rules, DepositType.DEPOSIT));
+            () -> engine.validateRules(Path.of("somedir"), rules, DepositType.DEPOSIT, ValidationLevel.STAND_ALONE));
 
     }
 
@@ -226,7 +226,7 @@ class RuleEngineImplTest {
         var engine = new RuleEngineImpl();
 
         assertDoesNotThrow(
-            () -> engine.validateRules(Path.of("somedir"), rules, DepositType.DEPOSIT));
+            () -> engine.validateRules(Path.of("somedir"), rules, DepositType.DEPOSIT, ValidationLevel.STAND_ALONE));
 
     }
 }

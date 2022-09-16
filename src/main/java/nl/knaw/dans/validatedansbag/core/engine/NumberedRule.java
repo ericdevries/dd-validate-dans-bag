@@ -24,33 +24,42 @@ public class NumberedRule {
     private final BagValidatorRule rule;
     private final List<String> dependencies;
     private final DepositType depositType;
+    private final ValidationContext validationContext;
 
-    public NumberedRule(String number, BagValidatorRule rule) {
+    public NumberedRule(String number, BagValidatorRule rule, List<String> dependencies, DepositType depositType, ValidationContext validationContext) {
         this.number = number;
         this.rule = rule;
-        this.dependencies = null;
-        this.depositType = DepositType.ALL;
+        this.dependencies = dependencies;
+        this.depositType = depositType;
+        this.validationContext = validationContext;
+    }
+
+    public NumberedRule(String number, BagValidatorRule rule) {
+        this(number, rule, null, DepositType.ALL, ValidationContext.ALWAYS);
     }
 
     public NumberedRule(String number, BagValidatorRule rule, List<String> dependencies) {
-        this.number = number;
-        this.rule = rule;
-        this.dependencies = dependencies;
-        this.depositType = DepositType.ALL;
+        this(number, rule, dependencies, DepositType.ALL, ValidationContext.ALWAYS);
     }
 
     public NumberedRule(String number, BagValidatorRule rule, DepositType depositType, List<String> dependencies) {
-        this.number = number;
-        this.rule = rule;
-        this.dependencies = dependencies;
-        this.depositType = depositType;
+        this(number, rule, dependencies, depositType, ValidationContext.ALWAYS);
     }
 
     public NumberedRule(String number, BagValidatorRule rule, DepositType depositType) {
-        this.number = number;
-        this.rule = rule;
-        this.dependencies = null;
-        this.depositType = depositType;
+        this(number, rule, null, depositType, ValidationContext.ALWAYS);
+    }
+
+    public NumberedRule(String number, BagValidatorRule rule, ValidationContext validationContext) {
+        this(number, rule, null, DepositType.ALL, validationContext);
+    }
+
+    public NumberedRule(String number, BagValidatorRule rule, ValidationContext validationContext, List<String> dependencies) {
+        this(number, rule, dependencies, DepositType.ALL, validationContext);
+    }
+
+    public ValidationContext getValidationContext() {
+        return validationContext;
     }
 
     public DepositType getDepositType() {
@@ -78,6 +87,5 @@ public class NumberedRule {
             ", depositType=" + depositType +
             '}';
     }
-
 
 }
