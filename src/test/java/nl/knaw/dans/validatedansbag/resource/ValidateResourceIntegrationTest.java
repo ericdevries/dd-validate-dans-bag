@@ -522,7 +522,7 @@ class ValidateResourceIntegrationTest {
         var failed = response.getRuleViolations().stream()
             .map(ValidateOkRuleViolationsDto::getRule).collect(Collectors.toSet());
 
-        assertEquals(Set.of("4.3(b)"), failed);
+        assertEquals(Set.of("4.4(b)"), failed);
         assertFalse(response.getIsCompliant());
         assertEquals("bag-with-is-version-of", response.getName());
     }
@@ -621,7 +621,7 @@ class ValidateResourceIntegrationTest {
         var failed = response.getRuleViolations().stream()
             .map(ValidateOkRuleViolationsDto::getRule).collect(Collectors.toSet());
 
-        assertEquals(Set.of("4.2", "4.3(a)", "4.3(b)", "4.3(c)"), failed);
+        assertEquals(Set.of("4.2", "4.4(a)", "4.4(b)", "4.4(c)"), failed);
         assertFalse(response.getIsCompliant());
         assertEquals("bag-with-is-version-of", response.getName());
     }
