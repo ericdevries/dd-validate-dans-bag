@@ -31,6 +31,7 @@ import nl.knaw.dans.validatedansbag.core.service.OriginalFilepathsService;
 import nl.knaw.dans.validatedansbag.core.service.XmlReader;
 import nl.knaw.dans.validatedansbag.core.validator.IdentifierValidator;
 import nl.knaw.dans.validatedansbag.core.validator.LicenseValidator;
+import nl.knaw.dans.validatedansbag.core.validator.OrganizationIdentifierPrefixValidator;
 import nl.knaw.dans.validatedansbag.core.validator.PolygonListValidator;
 import org.apache.commons.collections4.CollectionUtils;
 import org.joda.time.DateTime;
@@ -40,7 +41,6 @@ import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 
-import javax.print.Doc;
 import javax.xml.xpath.XPathExpressionException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -77,9 +77,11 @@ public class BagRulesImpl implements BagRules {
 
     private final LicenseValidator licenseValidator;
 
+    private final OrganizationIdentifierPrefixValidator organizationIdentifierPrefixValidator;
+
     public BagRulesImpl(FileService fileService, BagItMetadataReader bagItMetadataReader, XmlReader xmlReader, OriginalFilepathsService originalFilepathsService,
         IdentifierValidator identifierValidator,
-        PolygonListValidator polygonListValidator, LicenseValidator licenseValidator) {
+        PolygonListValidator polygonListValidator, LicenseValidator licenseValidator, OrganizationIdentifierPrefixValidator organizationIdentifierPrefixValidator) {
         this.fileService = fileService;
         this.bagItMetadataReader = bagItMetadataReader;
         this.xmlReader = xmlReader;
@@ -87,6 +89,7 @@ public class BagRulesImpl implements BagRules {
         this.identifierValidator = identifierValidator;
         this.polygonListValidator = polygonListValidator;
         this.licenseValidator = licenseValidator;
+        this.organizationIdentifierPrefixValidator = organizationIdentifierPrefixValidator;
     }
 
     @Override
@@ -712,7 +715,7 @@ public class BagRulesImpl implements BagRules {
         return (path) -> {
             var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
 
-            var rightsHolder= getRightsHolderInElement(document);
+            var rightsHolder = getRightsHolderInElement(document);
 
             if (rightsHolder.isEmpty()) {
                 return RuleResult.error("No rightsholder found in <dcterms:rightsHolder> element");
@@ -730,7 +733,7 @@ public class BagRulesImpl implements BagRules {
             var inRole = xmlReader.xpathToStream(document, "//dcx-dai:author/dcx-dai:role")
                 .filter(node -> node.getTextContent().equals("RightsHolder"))
                 .findFirst();
-            var rightsHolder= getRightsHolderInElement(document);
+            var rightsHolder = getRightsHolderInElement(document);
 
             if (inRole.isEmpty() && rightsHolder.isEmpty()) {
                 return RuleResult.error("No RightsHolder found in <dcx-dai:role> element nor in <dcterms:rightsHolder> element");
@@ -747,19 +750,6 @@ public class BagRulesImpl implements BagRules {
             .map(String::trim)
             .filter(s -> !s.isEmpty())
             .findFirst();
-    }
-
-    @Override
-    public BagValidatorRule organizationalIdentifierVersionIsValid() {
-        return path -> {
-            var hasOrganizationalIdentifier = bagItMetadataReader.getField(path, "Has-Organizational-Identifier");
-
-            if (hasOrganizationalIdentifier.isEmpty()) {
-                return RuleResult.skipDependencies();
-            }
-
-            return bagInfoContainsAtMostOneOf("Has-Organizational-Identifier-Version").validate(path);
-        };
     }
 
     @Override
@@ -781,6 +771,28 @@ public class BagRulesImpl implements BagRules {
 
             if (!hasOtherManifests) {
                 return RuleResult.error("The bag contains no manifests or only a MD5 manifest");
+            }
+
+            return RuleResult.ok();
+        };
+    }
+
+    @Override
+    public BagValidatorRule organizationalIdentifierPrefixIsValid() {
+        return path -> {
+            var hasOrganizationalIdentifier = bagItMetadataReader.getSingleField(path, "Has-Organizational-Identifier");
+            var userAccount = bagItMetadataReader.getSingleField(path, "Data-Station-User-Account");
+
+            log.debug("Checking prefix on organizational identifier '{}'", hasOrganizationalIdentifier);
+
+            if (hasOrganizationalIdentifier == null || userAccount == null) {
+                return RuleResult.skipDependencies();
+            }
+
+            var isValid = organizationIdentifierPrefixValidator.hasValidPrefix(userAccount, hasOrganizationalIdentifier);
+
+            if (!isValid) {
+                return RuleResult.error(String.format("No valid prefix given for value of 'Has-Organizational-Identifier': %s", hasOrganizationalIdentifier));
             }
 
             return RuleResult.ok();

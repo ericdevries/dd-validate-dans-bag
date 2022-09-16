@@ -44,7 +44,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class DatastationRulesImplTest {
 
     final BagItMetadataReader bagItMetadataReader = Mockito.mock(BagItMetadataReader.class);
-    final DataverseServiceImpl dataverseService = new DataverseServiceImpl(new DataverseConfig("", "", new SwordDepositorRoles("datasetcreator", "dataseteditor")));
+    final DataverseServiceImpl dataverseService = new DataverseServiceImpl(new DataverseConfig("", ""));
+    final SwordDepositorRoles swordDepositorRoles = new SwordDepositorRoles("datasetcreator", "dataseteditor");
     final HttpClient httpClient = Mockito.mock(HttpClient.class);
 
     @AfterEach
@@ -74,7 +75,7 @@ class DatastationRulesImplTest {
     @Test
     void bagExistsInDatastation() throws Exception {
         var dv = createDataverseServiceSpy();
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dv);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dv, swordDepositorRoles);
 
         Mockito.doReturn("is-version-of-id")
             .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
@@ -94,7 +95,7 @@ class DatastationRulesImplTest {
     @Test
     void bagNotExistsInDatastation() throws Exception {
         var dv = createDataverseServiceSpy();
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dv);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dv, swordDepositorRoles);
 
         Mockito.doReturn("is-version-of-id")
             .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
@@ -112,7 +113,7 @@ class DatastationRulesImplTest {
     void organizationalIdentifierExistsInDataset() throws Exception {
 
         var dv = createDataverseServiceSpy();
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dv);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dv, swordDepositorRoles);
 
         Mockito.doReturn("dans-other-id")
             .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
@@ -134,7 +135,7 @@ class DatastationRulesImplTest {
     void organizationalIdentifierExistsInDatasetBothAreNull() throws Exception {
 
         var dv = createDataverseServiceSpy();
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dv);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dv, swordDepositorRoles);
 
         Mockito.doReturn(null)
             .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
@@ -155,7 +156,7 @@ class DatastationRulesImplTest {
     void organizationalIdentifierExistsInDatasetActualIsNull() throws Exception {
 
         var dv = createDataverseServiceSpy();
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dv);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dv, swordDepositorRoles);
 
         Mockito.when(bagItMetadataReader.getSingleField(Mockito.any(), Mockito.anyString()))
             .thenReturn("is_version_of")
@@ -177,7 +178,7 @@ class DatastationRulesImplTest {
     void organizationalIdentifierExistsInDatasetMismatch() throws Exception {
 
         var dv = createDataverseServiceSpy();
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dv);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dv, swordDepositorRoles);
 
         Mockito.when(bagItMetadataReader.getSingleField(Mockito.any(), Mockito.anyString()))
             .thenReturn("is_version_of")
@@ -199,7 +200,7 @@ class DatastationRulesImplTest {
     @Test
     void dataStationUserAccountIsAuthorizedToCreate() throws Exception {
         var dv = createDataverseServiceSpy();
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dv);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dv, swordDepositorRoles);
 
         Mockito
             .doReturn("user-account-name")
@@ -236,7 +237,7 @@ class DatastationRulesImplTest {
     @Test
     void dataStationUserAccountIsNotAuthorizedToCreate() throws Exception {
         var dv = createDataverseServiceSpy();
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dv);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dv, swordDepositorRoles);
 
         Mockito
             .doReturn("user-account-name")
@@ -281,7 +282,7 @@ class DatastationRulesImplTest {
     @Test
     void dataStationUserAccountIsNotSetCreate() throws Exception {
         var dv = createDataverseServiceSpy();
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dv);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dv, swordDepositorRoles);
 
         Mockito
             .doReturn(null)
@@ -317,7 +318,7 @@ class DatastationRulesImplTest {
     @Test
     void dataStationUserAccountYieldsNoSearchResultsCreate() throws Exception {
         var dv = createDataverseServiceSpy();
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dv);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dv, swordDepositorRoles);
 
         Mockito
             .doReturn("user-name")
@@ -358,7 +359,7 @@ class DatastationRulesImplTest {
     @Test
     void dataStationUserAccountIsAuthorizedToEdit() throws Exception {
         var dv = createDataverseServiceSpy();
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dv);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dv, swordDepositorRoles);
 
         Mockito
             .doReturn("user-account-name")
@@ -403,7 +404,7 @@ class DatastationRulesImplTest {
     @Test
     void dataStationUserAccountIsNotAuthorizedToEdit() throws Exception {
         var dv = createDataverseServiceSpy();
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dv);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dv, swordDepositorRoles);
 
         Mockito
             .doReturn("user-account-name")
@@ -447,7 +448,7 @@ class DatastationRulesImplTest {
     @Test
     void dataStationUserAccountIsNotAuthorizedToEditButHasADifferentRole() throws Exception {
         var dv = createDataverseServiceSpy();
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dv);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dv, swordDepositorRoles);
 
         Mockito
             .doReturn("user-account-name")
@@ -493,7 +494,7 @@ class DatastationRulesImplTest {
     @Test
     void dataStationUserAccountIsNotSetEdit() throws Exception {
         var dv = createDataverseServiceSpy();
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dv);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dv, swordDepositorRoles);
 
         Mockito
             .doReturn(null)
@@ -533,7 +534,7 @@ class DatastationRulesImplTest {
     @Test
     void dataStationUserAccountYieldsNoSearchResultsEdit() throws Exception {
         var dv = createDataverseServiceSpy();
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dv);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dv, swordDepositorRoles);
 
         Mockito
             .doReturn("user-name")

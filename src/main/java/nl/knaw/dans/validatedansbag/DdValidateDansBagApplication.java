@@ -34,6 +34,7 @@ import nl.knaw.dans.validatedansbag.core.service.XmlReaderImpl;
 import nl.knaw.dans.validatedansbag.core.service.XmlSchemaValidatorImpl;
 import nl.knaw.dans.validatedansbag.core.validator.IdentifierValidatorImpl;
 import nl.knaw.dans.validatedansbag.core.validator.LicenseValidatorImpl;
+import nl.knaw.dans.validatedansbag.core.validator.OrganizationIdentifierPrefixValidatorImpl;
 import nl.knaw.dans.validatedansbag.core.validator.PolygonListValidatorImpl;
 import nl.knaw.dans.validatedansbag.resource.ValidateOkDtoYamlMessageBodyWriter;
 import nl.knaw.dans.validatedansbag.resource.ValidateResource;
@@ -63,17 +64,20 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
         var daiDigestCalculator = new IdentifierValidatorImpl();
         var polygonListValidator = new PolygonListValidatorImpl();
         var originalFilepathsService = new OriginalFilepathsServiceImpl(fileService);
-        var licenseValidator = new LicenseValidatorImpl(configuration.getLicenses());
+        var licenseValidator = new LicenseValidatorImpl(configuration.getValidationConfig().getLicenseConfig());
 
         var xmlSchemaValidator = new XmlSchemaValidatorImpl();
 
-        var dataverseService = new DataverseServiceImpl(configuration.getDataverse());
+        var dataverseService = new DataverseServiceImpl(configuration.getDataverseConfig());
+
+        var organizationIdentifierPrefixValidator = new OrganizationIdentifierPrefixValidatorImpl(configuration.getValidationConfig().getOtherIdPrefixes());
 
         // set up the different rule implementations
-        var bagRules = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, licenseValidator);
+        var bagRules = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, licenseValidator,
+            organizationIdentifierPrefixValidator);
         var filesXmlRules = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
         var xmlRules = new XmlRulesImpl(xmlReader, xmlSchemaValidator, fileService);
-        var datastationRules = new DatastationRulesImpl(bagItMetadataReader, dataverseService);
+        var datastationRules = new DatastationRulesImpl(bagItMetadataReader, dataverseService, configuration.getValidationConfig().getSwordDepositorRoles());
 
         // set up the engine and the service that has a default set of rules
         var ruleEngine = new RuleEngineImpl();

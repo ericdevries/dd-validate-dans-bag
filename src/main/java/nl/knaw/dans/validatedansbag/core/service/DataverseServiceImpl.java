@@ -18,7 +18,6 @@ package nl.knaw.dans.validatedansbag.core.service;
 import nl.knaw.dans.lib.dataverse.DataverseClient;
 import nl.knaw.dans.lib.dataverse.DataverseClientConfig;
 import nl.knaw.dans.lib.dataverse.DataverseException;
-import nl.knaw.dans.lib.dataverse.DataverseHttpResponse;
 import nl.knaw.dans.lib.dataverse.DataverseResponse;
 import nl.knaw.dans.lib.dataverse.SearchOptions;
 import nl.knaw.dans.lib.dataverse.model.RoleAssignmentReadOnly;
@@ -75,16 +74,6 @@ public class DataverseServiceImpl implements DataverseService {
         var client = this.getDataverseClient();
 
         return client.dataset(globalId).getLatestVersion();
-    }
-
-    @Override
-    public String getAllowedEditorRole() {
-        return dataverseConfig.getSwordDepositorRoles().getDatasetEditor();
-    }
-
-    @Override
-    public String getAllowedCreatorRole() {
-        return dataverseConfig.getSwordDepositorRoles().getDatasetCreator();
     }
 
     @Override

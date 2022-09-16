@@ -15,40 +15,44 @@
  */
 package nl.knaw.dans.validatedansbag.core.config;
 
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
+import javax.validation.constraints.NotEmpty;
 
-@SuppressWarnings("unused")
-public class DataverseConfig {
-    @Valid
-    @NotNull
-    private String baseUrl;
-    @Valid
-    @NotNull
-    private String apiToken;
+public class OtherIdPrefix {
+    @NotEmpty
+    private String user;
+    @NotEmpty
+    private String prefix;
 
-    public DataverseConfig() {
+    public OtherIdPrefix(String user, String prefix) {
+        this.user = user;
+        this.prefix = prefix;
+    }
+
+    public OtherIdPrefix() {
 
     }
 
-    public DataverseConfig(String baseUrl, String apiToken) {
-        this.baseUrl = baseUrl;
-        this.apiToken = apiToken;
+    public String getUser() {
+        return user;
     }
 
-    public String getApiToken() {
-        return apiToken;
+    public void setUser(String user) {
+        this.user = user;
     }
 
-    public void setApiToken(String apiToken) {
-        this.apiToken = apiToken;
+    public String getPrefix() {
+        return prefix;
     }
 
-    public String getBaseUrl() {
-        return baseUrl;
+    public void setPrefix(String prefix) {
+        this.prefix = prefix;
     }
 
-    public void setBaseUrl(String baseUrl) {
-        this.baseUrl = baseUrl;
+    @Override
+    public String toString() {
+        return "OtherIdPrefix{" +
+            "user='" + user + '\'' +
+            ", prefix='" + prefix + '\'' +
+            '}';
     }
 }

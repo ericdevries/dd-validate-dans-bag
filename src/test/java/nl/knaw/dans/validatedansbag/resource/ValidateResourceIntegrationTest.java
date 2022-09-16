@@ -23,6 +23,8 @@ import nl.knaw.dans.lib.dataverse.model.search.SearchResult;
 import nl.knaw.dans.openapi.api.ValidateCommandDto;
 import nl.knaw.dans.openapi.api.ValidateOkDto;
 import nl.knaw.dans.openapi.api.ValidateOkRuleViolationsDto;
+import nl.knaw.dans.validatedansbag.core.config.OtherIdPrefix;
+import nl.knaw.dans.validatedansbag.core.config.SwordDepositorRoles;
 import nl.knaw.dans.validatedansbag.core.engine.RuleEngineImpl;
 import nl.knaw.dans.validatedansbag.core.rules.BagRulesImpl;
 import nl.knaw.dans.validatedansbag.core.rules.DatastationRulesImpl;
@@ -38,6 +40,7 @@ import nl.knaw.dans.validatedansbag.core.service.XmlReaderImpl;
 import nl.knaw.dans.validatedansbag.core.service.XmlSchemaValidator;
 import nl.knaw.dans.validatedansbag.core.validator.IdentifierValidatorImpl;
 import nl.knaw.dans.validatedansbag.core.validator.LicenseValidatorImpl;
+import nl.knaw.dans.validatedansbag.core.validator.OrganizationIdentifierPrefixValidatorImpl;
 import nl.knaw.dans.validatedansbag.core.validator.PolygonListValidatorImpl;
 import org.glassfish.jersey.media.multipart.FormDataMultiPart;
 import org.glassfish.jersey.media.multipart.MultiPartFeature;
@@ -84,12 +87,16 @@ class ValidateResourceIntegrationTest {
         var polygonListValidator = new PolygonListValidatorImpl();
         var originalFilepathsService = new OriginalFilepathsServiceImpl(fileService);
         var licenseValidator = new LicenseValidatorImpl(new TestLicenseConfig());
+        var organizationIdentifierPrefixValidator = new OrganizationIdentifierPrefixValidatorImpl(
+            List.of(new OtherIdPrefix("user001", "u1:"), new OtherIdPrefix("user002", "u2:"))
+        );
 
         // set up the different rule implementations
-        var bagRules = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, licenseValidator);
+        var bagRules = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, licenseValidator,
+            organizationIdentifierPrefixValidator);
         var filesXmlRules = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
         var xmlRules = new XmlRulesImpl(xmlReader, xmlSchemaValidator, fileService);
-        var datastationRules = new DatastationRulesImpl(bagItMetadataReader, dataverseService);
+        var datastationRules = new DatastationRulesImpl(bagItMetadataReader, dataverseService, new SwordDepositorRoles("datasetcreator", "dataseteditor"));
 
         // set up the engine and the service that has a default set of rules
         var ruleEngine = new RuleEngineImpl();
@@ -326,7 +333,7 @@ class ValidateResourceIntegrationTest {
             + "              \"typeName\": \"dansOtherId\",\n"
             + "              \"multiple\": false,\n"
             + "              \"typeClass\": \"primitive\",\n"
-            + "              \"value\": \"organizational-identifier\"\n"
+            + "              \"value\": \"u1:organizational-identifier\"\n"
             + "            }\n"
             + "          ]\n"
             + "        }\n"
@@ -340,7 +347,7 @@ class ValidateResourceIntegrationTest {
             + "  \"data\": [\n"
             + "    {\n"
             + "      \"id\": 6,\n"
-            + "      \"assignee\": \"@eric\",\n"
+            + "      \"assignee\": \"@user001\",\n"
             + "      \"roleId\": 11,\n"
             + "      \"_roleAlias\": \"datasetcreator\",\n"
             + "      \"definitionPointId\": 2\n"
@@ -353,7 +360,7 @@ class ValidateResourceIntegrationTest {
             + "  \"data\": [\n"
             + "    {\n"
             + "      \"id\": 6,\n"
-            + "      \"assignee\": \"@eric\",\n"
+            + "      \"assignee\": \"@user001\",\n"
             + "      \"roleId\": 11,\n"
             + "      \"_roleAlias\": \"dataseteditor\",\n"
             + "      \"definitionPointId\": 2\n"
@@ -372,8 +379,6 @@ class ValidateResourceIntegrationTest {
         Mockito.when(dataverseService.getDatasetRoleAssignments(Mockito.anyString()))
             .thenReturn(datasetRoleAssignmentsResult);
 
-        Mockito.when(dataverseService.getAllowedCreatorRole()).thenReturn("datasetcreator");
-        Mockito.when(dataverseService.getAllowedEditorRole()).thenReturn("dataseteditor");
         Mockito.when(dataverseService.searchDatasetsByOrganizationalIdentifier(Mockito.anyString()))
             .thenReturn(searchResult);
 
@@ -457,7 +462,7 @@ class ValidateResourceIntegrationTest {
             + "  \"data\": [\n"
             + "    {\n"
             + "      \"id\": 6,\n"
-            + "      \"assignee\": \"@eric\",\n"
+            + "      \"assignee\": \"@user001\",\n"
             + "      \"roleId\": 11,\n"
             + "      \"_roleAlias\": \"datasetcreator\",\n"
             + "      \"definitionPointId\": 2\n"
@@ -470,7 +475,7 @@ class ValidateResourceIntegrationTest {
             + "  \"data\": [\n"
             + "    {\n"
             + "      \"id\": 6,\n"
-            + "      \"assignee\": \"@eric\",\n"
+            + "      \"assignee\": \"@user001\",\n"
             + "      \"roleId\": 11,\n"
             + "      \"_roleAlias\": \"dataseteditor\",\n"
             + "      \"definitionPointId\": 2\n"
@@ -483,9 +488,6 @@ class ValidateResourceIntegrationTest {
         var swordTokenResult = new MockedDataverseResponse<SearchResult>(searchResultsJson, SearchResult.class);
         var dataverseRoleAssignmentsResult = new MockedDataverseResponse<List<RoleAssignmentReadOnly>>(dataverseRoleAssignmentsJson, List.class, RoleAssignmentReadOnly.class);
         var datasetRoleAssignmentsResult = new MockedDataverseResponse<List<RoleAssignmentReadOnly>>(datasetRoleAssignmentsJson, List.class, RoleAssignmentReadOnly.class);
-
-        Mockito.when(dataverseService.getAllowedCreatorRole()).thenReturn("datasetcreator");
-        Mockito.when(dataverseService.getAllowedEditorRole()).thenReturn("dataseteditor");
 
         Mockito.when(dataverseService.searchDatasetsByOrganizationalIdentifier(Mockito.anyString()))
             .thenReturn(searchResult);
