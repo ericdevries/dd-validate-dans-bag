@@ -19,6 +19,8 @@ import nl.knaw.dans.validatedansbag.core.engine.RuleResult;
 import nl.knaw.dans.validatedansbag.core.service.FileService;
 import nl.knaw.dans.validatedansbag.core.service.XmlReader;
 import nl.knaw.dans.validatedansbag.core.service.XmlSchemaValidator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
 
 import javax.xml.parsers.ParserConfigurationException;
@@ -29,6 +31,7 @@ import java.util.stream.Collectors;
 
 public class XmlRulesImpl implements XmlRules {
 
+    private static final Logger log = LoggerFactory.getLogger(XmlRulesImpl.class);
     private final XmlReader xmlReader;
     private final XmlSchemaValidator xmlSchemaValidator;
     private final FileService fileService;
@@ -53,6 +56,7 @@ public class XmlRulesImpl implements XmlRules {
     public BagValidatorRule xmlFileConfirmsToSchema(Path file, String schema) {
         return (path) -> {
             var fileName = path.resolve(file);
+            log.debug("Validating {} against schema {}", fileName, schema);
             var errors = validateXmlFile(fileName, schema);
 
             if (errors.size() > 0) {
@@ -72,6 +76,7 @@ public class XmlRulesImpl implements XmlRules {
             var fileName = path.resolve(file);
 
             if (fileService.exists(fileName)) {
+                log.debug("Validating {} against schema {}", fileName, schema);
                 return xmlFileConfirmsToSchema(file, schema).validate(path);
             }
             else {

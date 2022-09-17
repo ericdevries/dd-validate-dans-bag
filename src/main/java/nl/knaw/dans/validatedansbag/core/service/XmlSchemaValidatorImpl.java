@@ -64,7 +64,7 @@ public class XmlSchemaValidatorImpl implements XmlSchemaValidator {
             try {
                 log.info("Loading validator for {}...", filename);
                 getValidatorForFilename(filename);
-                log.info("Validator for for {} loaded.", filename);
+                log.info("Validator for {} loaded.", filename);
             }
             catch (MalformedURLException | SAXException e) {
                 log.error("Unable to load validator for filename {}", filename, e);
