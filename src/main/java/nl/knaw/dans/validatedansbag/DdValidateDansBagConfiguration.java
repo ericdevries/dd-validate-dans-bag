@@ -16,9 +16,10 @@
 
 package nl.knaw.dans.validatedansbag;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.dropwizard.Configuration;
 import nl.knaw.dans.validatedansbag.core.config.DataverseConfig;
-import nl.knaw.dans.validatedansbag.core.config.LicenseConfig;
+import nl.knaw.dans.validatedansbag.core.config.ValidationConfig;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
@@ -28,16 +29,18 @@ public class DdValidateDansBagConfiguration extends Configuration {
 
     @Valid
     @NotNull
-    private DataverseConfig dataverse;
+    @JsonProperty("dataverse")
+    private DataverseConfig dataverseConfig;
     @Valid
     @NotNull
-    private LicenseConfig licenses;
+    @JsonProperty("validation")
+    private ValidationConfig validationConfig;
 
-    public LicenseConfig getLicenses() {
-        return licenses;
+    public DataverseConfig getDataverseConfig() {
+        return dataverseConfig;
     }
 
-    public DataverseConfig getDataverse() {
-        return dataverse;
+    public ValidationConfig getValidationConfig() {
+        return validationConfig;
     }
 }

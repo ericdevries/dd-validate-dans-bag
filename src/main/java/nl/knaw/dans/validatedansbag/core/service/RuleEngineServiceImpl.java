@@ -55,7 +55,7 @@ public class RuleEngineServiceImpl implements RuleEngineService {
             new NumberedRule("1.2.4(a)", bagRules.bagInfoContainsAtMostOneOf("Is-Version-Of"), List.of("1.2.1")),
             new NumberedRule("1.2.4(b)", bagRules.bagInfoIsVersionOfIsValidUrnUuid(), List.of("1.2.4(a)")),
             new NumberedRule("1.2.5(a)", bagRules.bagInfoContainsAtMostOneOf("Has-Organizational-Identifier"), List.of("1.2.1")),
-            new NumberedRule("1.2.5(b)", bagRules.organizationalIdentifierVersionIsValid(), List.of("1.2.1", "1.2.5(a)")),
+            new NumberedRule("1.2.5(b)", bagRules.organizationalIdentifierPrefixIsValid(), List.of("1.2.1", "1.2.5(a)")),
             new NumberedRule("1.2.5(c)", bagRules.bagInfoContainsAtMostOneOf("Has-Organizational-Identifier-Version"), List.of("1.2.5(a)")),
 
             // manifests

@@ -20,6 +20,7 @@ import nl.knaw.dans.lib.dataverse.model.RoleAssignmentReadOnly;
 import nl.knaw.dans.lib.dataverse.model.dataset.DatasetLatestVersion;
 import nl.knaw.dans.lib.dataverse.model.dataset.PrimitiveSingleValueField;
 import nl.knaw.dans.lib.dataverse.model.search.DatasetResultItem;
+import nl.knaw.dans.validatedansbag.core.config.SwordDepositorRoles;
 import nl.knaw.dans.validatedansbag.core.engine.RuleResult;
 import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReader;
 import nl.knaw.dans.validatedansbag.core.service.DataverseService;
@@ -36,10 +37,12 @@ public class DatastationRulesImpl implements DatastationRules {
     private static final Logger log = LoggerFactory.getLogger(DatastationRulesImpl.class);
     private final BagItMetadataReader bagItMetadataReader;
     private final DataverseService dataverseService;
+    private final SwordDepositorRoles swordDepositorRoles;
 
-    public DatastationRulesImpl(BagItMetadataReader bagItMetadataReader, DataverseService dataverseService) {
+    public DatastationRulesImpl(BagItMetadataReader bagItMetadataReader, DataverseService dataverseService, SwordDepositorRoles swordDepositorRoles) {
         this.bagItMetadataReader = bagItMetadataReader;
         this.dataverseService = dataverseService;
+        this.swordDepositorRoles = swordDepositorRoles;
     }
 
     @Override
@@ -143,8 +146,7 @@ public class DatastationRulesImpl implements DatastationRules {
                     .map(RoleAssignmentReadOnly::get_roleAlias)
                     .collect(Collectors.toList());
 
-                log.debug("User roles for user {}: {}", userAccount, result);
-                var validRole = dataverseService.getAllowedCreatorRole();
+                var validRole = swordDepositorRoles.getDatasetCreator();
 
                 if (!userRoles.contains(validRole)) {
                     return RuleResult.error(String.format(
@@ -195,7 +197,7 @@ public class DatastationRulesImpl implements DatastationRules {
                 log.debug("Role assignments on dataset: {}", assignments);
 
                 // when the user has one of these valid roles, the check succeeds
-                var validRole = dataverseService.getAllowedEditorRole();
+                var validRole = swordDepositorRoles.getDatasetEditor();
 
                 // get all roles assigned to this user
                 var assignmentsNames = assignments

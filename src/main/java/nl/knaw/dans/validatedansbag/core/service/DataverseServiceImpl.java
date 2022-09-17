@@ -89,16 +89,6 @@ public class DataverseServiceImpl implements DataverseService {
     }
 
     @Override
-    public String getAllowedEditorRole() {
-        return dataverseConfig.getSwordDepositorRoles().getDatasetEditor();
-    }
-
-    @Override
-    public String getAllowedCreatorRole() {
-        return dataverseConfig.getSwordDepositorRoles().getDatasetCreator();
-    }
-
-    @Override
     public DataverseResponse<List<RoleAssignmentReadOnly>> getDataverseRoleAssignments(String itemId) throws IOException, DataverseException {
         var client = this.getDataverseClient();
         log.trace("Getting dataset role assignments from dataverse for dataset with id {}", itemId);
