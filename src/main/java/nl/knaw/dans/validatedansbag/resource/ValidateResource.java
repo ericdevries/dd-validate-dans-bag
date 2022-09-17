@@ -100,8 +100,7 @@ public class ValidateResource {
     public ValidateOkDto validateZip(InputStream inputStream) {
         try {
             log.info("Received request to validate zip file");
-            var validateResult = validateInputStream(inputStream, DepositType.DEPOSIT, ValidationLevel.STAND_ALONE);
-            return Response.ok(validateResult).build();
+            return validateInputStream(inputStream, DepositType.DEPOSIT, ValidationLevel.STAND_ALONE);
         }
         catch (BagNotFoundException e) {
             log.error("Bag not found", e);
