@@ -121,7 +121,7 @@ class ValidateResourceTest {
             .field("command", data, MediaType.APPLICATION_JSON_TYPE);
 
         Mockito.doThrow(BagNotFoundException.class)
-            .when(ruleEngineService).validateBag(Mockito.any(), Mockito.any());
+            .when(ruleEngineService).validateBag(Mockito.any(), Mockito.any(), Mockito.any());
 
         try (var response = EXT.target("/validate")
             .register(MultiPartFeature.class)

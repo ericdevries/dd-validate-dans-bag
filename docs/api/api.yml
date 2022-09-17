@@ -39,7 +39,7 @@ paths:
           multipart/form-data:
             schema:
               type: object
-              required: [command]
+              required: [ command ]
               properties:
                 command:
                   $ref: '#/components/schemas/validateCommand'
@@ -101,7 +101,13 @@ components:
             - DEPOSIT
             - MIGRATION
           default: DEPOSIT
-
+        level:
+          type: string
+          enum:
+            - STAND-ALONE
+            - WITH-DATA-STATION-CONTEXT
+          default:
+            STAND-ALONE
 
     validateOk:
       type: object
@@ -122,6 +128,7 @@ components:
         - informationPackageType
         - isCompliant
         - ruleViolations
+        - level
       properties:
         Bag location:
           description: the local path to the bag; if not provided, the bag was sent as ZIP file in the
@@ -141,6 +148,12 @@ components:
           enum:
             - DEPOSIT
             - MIGRATION
+        Level:
+          description: whether the bag was validated in a data station context, or stand alone
+          type: string
+          enum:
+            - STAND-ALONE
+            - WITH-DATA-STATION-CONTEXT
         Is compliant:
           description: true if the bag was compliant, false otherwise
           type: boolean

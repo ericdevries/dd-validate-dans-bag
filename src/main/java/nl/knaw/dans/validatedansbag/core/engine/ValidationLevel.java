@@ -15,13 +15,11 @@
  */
 package nl.knaw.dans.validatedansbag.core.engine;
 
-import java.nio.file.Path;
-import java.util.List;
-
-public interface RuleEngine {
-
-    void validateRuleConfiguration(NumberedRule[] rules) throws RuleEngineConfigurationException;
-
-    List<RuleValidationResult> validateRules(Path bag, NumberedRule[] rules, DepositType depositType, ValidationLevel validationLevel) throws Exception;
-
+/**
+ * Whether the validator should perform a standalone check or also
+ * execute datastation-aware rules
+ */
+public enum ValidationLevel {
+    WITH_DATA_STATION_CONTEXT,
+    STAND_ALONE,
 }

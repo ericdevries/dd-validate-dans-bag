@@ -19,7 +19,10 @@ import nl.knaw.dans.validatedansbag.core.BagNotFoundException;
 import nl.knaw.dans.validatedansbag.core.engine.DepositType;
 import nl.knaw.dans.validatedansbag.core.engine.NumberedRule;
 import nl.knaw.dans.validatedansbag.core.engine.RuleEngine;
+import nl.knaw.dans.validatedansbag.core.engine.RuleEngineConfigurationException;
 import nl.knaw.dans.validatedansbag.core.engine.RuleValidationResult;
+import nl.knaw.dans.validatedansbag.core.engine.ValidationContext;
+import nl.knaw.dans.validatedansbag.core.engine.ValidationLevel;
 import nl.knaw.dans.validatedansbag.core.rules.BagRules;
 import nl.knaw.dans.validatedansbag.core.rules.DatastationRules;
 import nl.knaw.dans.validatedansbag.core.rules.FilesXmlRules;
@@ -55,8 +58,7 @@ public class RuleEngineServiceImpl implements RuleEngineService {
             new NumberedRule("1.2.4(a)", bagRules.bagInfoContainsAtMostOneOf("Is-Version-Of"), List.of("1.2.1")),
             new NumberedRule("1.2.4(b)", bagRules.bagInfoIsVersionOfIsValidUrnUuid(), List.of("1.2.4(a)")),
             new NumberedRule("1.2.5(a)", bagRules.bagInfoContainsAtMostOneOf("Has-Organizational-Identifier"), List.of("1.2.1")),
-            new NumberedRule("1.2.5(b)", bagRules.organizationalIdentifierPrefixIsValid(), List.of("1.2.1", "1.2.5(a)")),
-            new NumberedRule("1.2.5(c)", bagRules.bagInfoContainsAtMostOneOf("Has-Organizational-Identifier-Version"), List.of("1.2.5(a)")),
+            new NumberedRule("1.2.5(b)", bagRules.bagInfoContainsAtMostOneOf("Has-Organizational-Identifier-Version"), List.of("1.2.5(a)")),
 
             // manifests
             new NumberedRule("1.3.1", bagRules.containsNotJustMD5Manifest(), List.of("1.1.1")),
@@ -124,24 +126,35 @@ public class RuleEngineServiceImpl implements RuleEngineService {
             // provenance.xml
             new NumberedRule("3.3.4", xmlRules.xmlFileIfExistsConformsToSchema(Path.of("metadata/provenance.xml"), "provenance.xml"), DepositType.MIGRATION),
 
-            // technically identical to 1.2.3, but this allows us to skip 4.2 and 4.3 if this rule does not apply
-            new NumberedRule("4.1", bagRules.bagInfoContainsAtMostOneOf("Data-Station-User-Account"), List.of("1.2.1")),
-            new NumberedRule("4.2", datastationRules.userIsAuthorizedToCreateDataset(), List.of("4.1")),
-            new NumberedRule("4.3(a)", datastationRules.bagExistsInDatastation(), List.of("4.1")),
-            new NumberedRule("4.3(b)", datastationRules.organizationalIdentifierExistsInDataset(), List.of("4.1")),
-            new NumberedRule("4.3(c)", datastationRules.userIsAuthorizedToUpdateDataset(), List.of("4.1")),
+            new NumberedRule("4.1", bagRules.bagInfoContainsAtMostOneOf("Data-Station-User-Account"), ValidationContext.WITH_DATA_STATION_CONTEXT, List.of("1.2.1")),
+            new NumberedRule("4.2", datastationRules.userIsAuthorizedToCreateDataset(), ValidationContext.WITH_DATA_STATION_CONTEXT, List.of("4.1")),
+            new NumberedRule("4.3", bagRules.organizationalIdentifierPrefixIsValid(), ValidationContext.WITH_DATA_STATION_CONTEXT, List.of("4.1", "1.2.5(a)")),
+            new NumberedRule("4.4(a)", datastationRules.bagExistsInDatastation(), ValidationContext.WITH_DATA_STATION_CONTEXT, List.of("4.1")),
+            new NumberedRule("4.4(b)", datastationRules.organizationalIdentifierExistsInDataset(), ValidationContext.WITH_DATA_STATION_CONTEXT, List.of("4.1")),
+            new NumberedRule("4.4(c)", datastationRules.userIsAuthorizedToUpdateDataset(), ValidationContext.WITH_DATA_STATION_CONTEXT, List.of("4.1")),
         };
+
+        this.validateRuleConfiguration();
     }
 
     @Override
-    public List<RuleValidationResult> validateBag(Path path, DepositType depositType) throws Exception {
-        log.info("Validating bag on path '{}' and deposit type {}", path, depositType);
+
+    public List<RuleValidationResult> validateBag(Path path, DepositType depositType, ValidationLevel validationLevel) throws Exception {
 
         if (!fileService.isReadable(path)) {
             log.warn("Path {} could not not be found or is not readable", path);
             throw new BagNotFoundException(String.format("Bag on path '%s' could not be found or read", path));
         }
 
-        return ruleEngine.validateRules(path, this.defaultRules, depositType);
+        return ruleEngine.validateRules(path, this.defaultRules, depositType, validationLevel);
+    }
+
+    public void validateRuleConfiguration() {
+        try {
+            this.ruleEngine.validateRuleConfiguration(this.defaultRules);
+        }
+        catch (RuleEngineConfigurationException e) {
+            throw new RuntimeException("Rule configuration is not valid", e);
+        }
     }
 }

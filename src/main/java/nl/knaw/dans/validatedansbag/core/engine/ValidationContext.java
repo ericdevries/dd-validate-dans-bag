@@ -15,13 +15,11 @@
  */
 package nl.knaw.dans.validatedansbag.core.engine;
 
-import java.nio.file.Path;
-import java.util.List;
-
-public interface RuleEngine {
-
-    void validateRuleConfiguration(NumberedRule[] rules) throws RuleEngineConfigurationException;
-
-    List<RuleValidationResult> validateRules(Path bag, NumberedRule[] rules, DepositType depositType, ValidationLevel validationLevel) throws Exception;
-
+/**
+ * Indicates whether a rule should be evaluated always, or only when the validator
+ * is executed in datastation context mode
+ */
+public enum ValidationContext {
+    WITH_DATA_STATION_CONTEXT,
+    ALWAYS,
 }

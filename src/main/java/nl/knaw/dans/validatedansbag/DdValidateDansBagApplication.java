@@ -20,6 +20,7 @@ import io.dropwizard.Application;
 import io.dropwizard.forms.MultiPartBundle;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
+import nl.knaw.dans.validatedansbag.core.engine.RuleEngineConfigurationException;
 import nl.knaw.dans.validatedansbag.core.engine.RuleEngineImpl;
 import nl.knaw.dans.validatedansbag.core.rules.BagRulesImpl;
 import nl.knaw.dans.validatedansbag.core.rules.DatastationRulesImpl;
@@ -39,9 +40,12 @@ import nl.knaw.dans.validatedansbag.core.validator.PolygonListValidatorImpl;
 import nl.knaw.dans.validatedansbag.resource.IllegalArgumentExceptionMapper;
 import nl.knaw.dans.validatedansbag.resource.ValidateOkDtoYamlMessageBodyWriter;
 import nl.knaw.dans.validatedansbag.resource.ValidateResource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DdValidateDansBagApplication extends Application<DdValidateDansBagConfiguration> {
 
+    private static final Logger log = LoggerFactory.getLogger(DdValidateDansBagApplication.class);
     public static void main(final String[] args) throws Exception {
         new DdValidateDansBagApplication().run(args);
     }

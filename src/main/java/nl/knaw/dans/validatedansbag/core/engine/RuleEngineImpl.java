@@ -32,44 +32,8 @@ import java.util.stream.Stream;
 public class RuleEngineImpl implements RuleEngine {
     private static final Logger log = LoggerFactory.getLogger(RuleEngineImpl.class);
 
-    // returns true if all dependencies are marked as SUCCESS
-    private boolean canBeExecuted(NumberedRule rule, Map<String, RuleValidationResult> results) {
-        if (rule.getDependencies() != null && rule.getDependencies().size() > 0) {
-            for (var dependency : rule.getDependencies()) {
-                var result = results.get(dependency);
-
-                // if the parent was skipped or failed, return true
-                if (result == null || RuleValidationResult.RuleValidationResultStatus.SKIPPED.equals(result.getStatus()) || RuleValidationResult.RuleValidationResultStatus.FAILURE.equals(
-                    result.getStatus())) {
-                    return false;
-                }
-            }
-        }
-
-        return true;
-    }
-
-    // return true if one of its dependencies was skipped, or it has failed
-    private boolean shouldBeSkipped(NumberedRule rule, Map<String, RuleValidationResult> results) {
-        if (rule.getDependencies() != null && rule.getDependencies().size() > 0) {
-            for (var dependency : rule.getDependencies()) {
-                var result = results.get(dependency);
-
-                if (result != null) {
-                    // if the parent was skipped or failed, return true
-                    if (RuleValidationResult.RuleValidationResultStatus.SKIPPED.equals(result.getStatus()) || RuleValidationResult.RuleValidationResultStatus.FAILURE.equals(result.getStatus())
-                        || result.isShouldSkipDependencies()) {
-                        return true;
-                    }
-                }
-            }
-        }
-
-        return false;
-    }
-
     @Override
-    public List<RuleValidationResult> validateRules(Path bag, NumberedRule[] rules, DepositType depositType) throws Exception {
+    public void validateRuleConfiguration(NumberedRule[] rules) throws RuleEngineConfigurationException {
         // validate each rule number is unique
         var duplicateRules = getDuplicateRules(rules);
 
@@ -87,13 +51,12 @@ public class RuleEngineImpl implements RuleEngine {
                 "Some rules depend on other rules that do not exist: %s", String.join(", ", unresolvedDependencies)
             ));
         }
-
-        return doValidateRules(bag, rules, depositType);
     }
 
-    public List<RuleValidationResult> doValidateRules(Path bag, NumberedRule[] rules, DepositType depositType) throws Exception {
+    @Override
+    public List<RuleValidationResult> validateRules(Path bag, NumberedRule[] rules, DepositType depositType, ValidationLevel validationLevel) throws Exception {
         var ruleResults = new HashMap<String, RuleValidationResult>();
-        var remainingRules = filterRulesOnDepositType(rules, depositType);
+        var remainingRules = filterRulesOnDepositTypeAndValidationLevel(rules, depositType, validationLevel);
 
         while (remainingRules.size() > 0) {
             var toRemove = new HashSet<NumberedRule>();
@@ -166,6 +129,42 @@ public class RuleEngineImpl implements RuleEngine {
             .collect(Collectors.toList());
     }
 
+    // returns true if all dependencies are marked as SUCCESS
+    private boolean canBeExecuted(NumberedRule rule, Map<String, RuleValidationResult> results) {
+        if (rule.getDependencies() != null && rule.getDependencies().size() > 0) {
+            for (var dependency : rule.getDependencies()) {
+                var result = results.get(dependency);
+
+                // if the parent was skipped or failed, return true
+                if (result == null || RuleValidationResult.RuleValidationResultStatus.SKIPPED.equals(result.getStatus()) || RuleValidationResult.RuleValidationResultStatus.FAILURE.equals(
+                    result.getStatus())) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    // return true if one of its dependencies was skipped, or it has failed
+    private boolean shouldBeSkipped(NumberedRule rule, Map<String, RuleValidationResult> results) {
+        if (rule.getDependencies() != null && rule.getDependencies().size() > 0) {
+            for (var dependency : rule.getDependencies()) {
+                var result = results.get(dependency);
+
+                if (result != null) {
+                    // if the parent was skipped or failed, return true
+                    if (RuleValidationResult.RuleValidationResultStatus.SKIPPED.equals(result.getStatus()) || RuleValidationResult.RuleValidationResultStatus.FAILURE.equals(result.getStatus())
+                        || result.isShouldSkipDependencies()) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
     private String padLeft(String s, int amount) {
         return String.format("%" + amount + "s", s);
     }
@@ -211,16 +210,18 @@ public class RuleEngineImpl implements RuleEngine {
         var unresolved = new ArrayList<String>();
 
         for (var depositType : List.of(DepositType.DEPOSIT, DepositType.MIGRATION)) {
-            var typedRules = filterRulesOnDepositType(rules, depositType);
+            for (var validationLevel : List.of(ValidationLevel.STAND_ALONE, ValidationLevel.WITH_DATA_STATION_CONTEXT)) {
+                var typedRules = filterRulesOnDepositTypeAndValidationLevel(rules, depositType, validationLevel);
 
-            var keys = typedRules.stream()
-                .map(NumberedRule::getNumber)
-                .collect(Collectors.toSet());
+                var keys = typedRules.stream()
+                    .map(NumberedRule::getNumber)
+                    .collect(Collectors.toSet());
 
-            // this does not check for circular dependencies or self-references
-            for (var rule : typedRules) {
-                if (rule.getDependencies() != null && !keys.containsAll(rule.getDependencies())) {
-                    unresolved.add(rule.getNumber());
+                // this does not check for circular dependencies or self-references
+                for (var rule : typedRules) {
+                    if (rule.getDependencies() != null && !keys.containsAll(rule.getDependencies())) {
+                        unresolved.add(rule.getNumber());
+                    }
                 }
             }
         }
@@ -265,10 +266,22 @@ public class RuleEngineImpl implements RuleEngine {
         return !rule.getDepositType().equals(depositType);
     }
 
-    List<NumberedRule> filterRulesOnDepositType(NumberedRule[] rules, DepositType depositType) {
+    private boolean shouldBeIgnoredBecauseOfValidationLevel(NumberedRule rule, ValidationLevel validationLevel) {
+        if (ValidationContext.ALWAYS.equals(rule.getValidationContext())) {
+            return false;
+        }
 
+        if (ValidationContext.WITH_DATA_STATION_CONTEXT.equals(rule.getValidationContext()) && validationLevel.equals(ValidationLevel.WITH_DATA_STATION_CONTEXT)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    List<NumberedRule> filterRulesOnDepositTypeAndValidationLevel(NumberedRule[] rules, DepositType depositType, ValidationLevel validationLevel) {
         return Arrays.stream(rules)
             .filter(rule -> !shouldBeIgnoredBecauseOfDepositType(rule, depositType))
+            .filter(rule -> !shouldBeIgnoredBecauseOfValidationLevel(rule, validationLevel))
             .collect(Collectors.toList());
     }
 }
