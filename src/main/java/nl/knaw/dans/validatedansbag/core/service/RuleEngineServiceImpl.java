@@ -24,11 +24,14 @@ import nl.knaw.dans.validatedansbag.core.rules.BagRules;
 import nl.knaw.dans.validatedansbag.core.rules.DatastationRules;
 import nl.knaw.dans.validatedansbag.core.rules.FilesXmlRules;
 import nl.knaw.dans.validatedansbag.core.rules.XmlRules;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 import java.util.List;
 
 public class RuleEngineServiceImpl implements RuleEngineService {
+    private static final Logger log = LoggerFactory.getLogger(RuleEngineServiceImpl.class);
     private final RuleEngine ruleEngine;
     private final FileService fileService;
     private final NumberedRule[] defaultRules;
@@ -132,7 +135,10 @@ public class RuleEngineServiceImpl implements RuleEngineService {
 
     @Override
     public List<RuleValidationResult> validateBag(Path path, DepositType depositType) throws Exception {
+        log.info("Validating bag on path '{}' and deposit type {}", path, depositType);
+
         if (!fileService.isReadable(path)) {
+            log.warn("Path {} could not not be found or is not readable", path);
             throw new BagNotFoundException(String.format("Bag on path '%s' could not be found or read", path));
         }
 

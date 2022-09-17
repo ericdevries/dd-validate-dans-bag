@@ -36,6 +36,7 @@ import nl.knaw.dans.validatedansbag.core.validator.IdentifierValidatorImpl;
 import nl.knaw.dans.validatedansbag.core.validator.LicenseValidatorImpl;
 import nl.knaw.dans.validatedansbag.core.validator.OrganizationIdentifierPrefixValidatorImpl;
 import nl.knaw.dans.validatedansbag.core.validator.PolygonListValidatorImpl;
+import nl.knaw.dans.validatedansbag.resource.IllegalArgumentExceptionMapper;
 import nl.knaw.dans.validatedansbag.resource.ValidateOkDtoYamlMessageBodyWriter;
 import nl.knaw.dans.validatedansbag.resource.ValidateResource;
 
@@ -83,6 +84,7 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
         var ruleEngine = new RuleEngineImpl();
         var ruleEngineService = new RuleEngineServiceImpl(ruleEngine, bagRules, xmlRules, filesXmlRules, fileService, datastationRules);
 
+        environment.jersey().register(new IllegalArgumentExceptionMapper());
         environment.jersey().register(new ValidateResource(ruleEngineService, fileService));
         environment.jersey().register(new ValidateOkDtoYamlMessageBodyWriter());
     }
