@@ -115,6 +115,8 @@ public class FilesXmlRulesImpl implements FilesXmlRules {
             .map(path::relativize)
             .collect(Collectors.toSet());
 
+        log.trace("Paths that exist on path {}: {}", dataPath, bagPaths);
+
         var bagPathMapping = originalFilepathsService.getMappingsFromOriginalToRenamed(path);
 
         var xmlPaths = filePathNodes.stream()
@@ -124,7 +126,13 @@ public class FilesXmlRulesImpl implements FilesXmlRules {
             .map(p -> Optional.ofNullable(bagPathMapping.get(p)).orElse(p))
             .collect(Collectors.toSet());
 
-        return new HashSet<>(CollectionUtils.subtract(bagPaths, xmlPaths));
+        log.trace("Paths that defined in files.xml: {}", xmlPaths);
+
+        var result = CollectionUtils.subtract(bagPaths, xmlPaths);
+
+        log.debug("Difference between filesystem entries and files.xml content: {}", result);
+
+        return new HashSet<>(result);
     }
 
     Set<Path> filesXmlDescribesOnlyPayloadFiles(Path path) throws ParserConfigurationException, IOException, SAXException, XPathExpressionException {
@@ -144,6 +152,8 @@ public class FilesXmlRulesImpl implements FilesXmlRules {
             .map(path::relativize)
             .collect(Collectors.toSet());
 
+        log.trace("Paths that exist on path {}: {}", dataPath, bagPaths);
+
         var bagPathMapping = originalFilepathsService.getMappingsFromOriginalToRenamed(path);
 
         // transform paths in xml to Path objects
@@ -154,9 +164,12 @@ public class FilesXmlRulesImpl implements FilesXmlRules {
             .map(p -> Optional.ofNullable(bagPathMapping.get(p)).orElse(p))
             .collect(Collectors.toSet());
 
+        log.trace("Paths that defined in files.xml: {}", xmlPaths);
         // compare the 2 sets. If elements exist in files.xml that are not in the bag dir
         // throw an exception
         var onlyInXml = CollectionUtils.subtract(xmlPaths, bagPaths);
+
+        log.debug("Difference between files.xml content and filesystem entries : {}", onlyInXml);
 
         return new HashSet<>(onlyInXml);
     }

@@ -39,8 +39,10 @@ public class OriginalFilepathsServiceImpl implements OriginalFilepathsService {
 
     @Override
     public List<OriginalFilePathItem> getMapping(Path bagDir) {
+        var file = bagDir.resolve(filename);
+
         try {
-            var bytes = fileService.readFileContents(bagDir.resolve(filename));
+            var bytes = fileService.readFileContents(file);
             var content = new String(bytes);
 
             // the mapping between files on disk and what they used to be called
@@ -52,10 +54,10 @@ public class OriginalFilepathsServiceImpl implements OriginalFilepathsService {
                 .collect(Collectors.toList());
         }
         catch (NoSuchFileException e) {
-            log.debug("File {} not found", filename);
+            log.debug("File {} not found", file);
         }
         catch (Exception e) {
-            log.error("Error while reading {}", filename, e);
+            log.error("Error while reading {}", file, e);
         }
 
         return List.of();
@@ -66,7 +68,7 @@ public class OriginalFilepathsServiceImpl implements OriginalFilepathsService {
         var mappings = getMapping(bagDir);
         var result = new HashMap<Path, Path>();
 
-        for (var m: mappings) {
+        for (var m : mappings) {
             result.put(m.getOriginalFilename(), m.getRenamedFilename());
         }
 
