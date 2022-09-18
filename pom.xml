@@ -72,7 +72,7 @@
 
     <groupId>nl.knaw.dans</groupId>
     <artifactId>dd-validate-dans-bag</artifactId>
-    <version>0.1.1-SNAPSHOT</version>
+    <version>0.2.0</version>
 
     <name>DD Validate Dans Bag</name>
     <url>https://github.com/DANS-KNAW/dd-validate-dans-bag</url>
@@ -85,7 +85,7 @@
 
     <scm>
         <developerConnection>scm:git:https://github.com/DANS-KNAW/${project.artifactId}</developerConnection>
-        <tag>HEAD</tag>
+        <tag>v0.2.0</tag>
     </scm>
 
     <dependencies>
