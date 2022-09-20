@@ -166,28 +166,28 @@ public class ValidateResource {
     }
 
     DepositType toDepositType(ValidateCommandDto.PackageTypeEnum value) {
-        if (value == ValidateCommandDto.PackageTypeEnum.MIGRATION) {
+        if (ValidateCommandDto.PackageTypeEnum.MIGRATION.equals(value)) {
             return DepositType.MIGRATION;
         }
         return DepositType.DEPOSIT;
     }
 
     ValidationLevel toValidationLevel(ValidateCommandDto.LevelEnum value) {
-        if (value == ValidateCommandDto.LevelEnum.WITH_DATA_STATION_CONTEXT) {
+        if (ValidateCommandDto.LevelEnum.WITH_DATA_STATION_CONTEXT.equals(value)) {
             return ValidationLevel.WITH_DATA_STATION_CONTEXT;
         }
         return ValidationLevel.STAND_ALONE;
     }
 
     ValidateOkDto.InformationPackageTypeEnum toInfoPackageType(DepositType value) {
-        if (value == DepositType.MIGRATION) {
+        if (DepositType.MIGRATION.equals(value)) {
             return ValidateOkDto.InformationPackageTypeEnum.MIGRATION;
         }
         return ValidateOkDto.InformationPackageTypeEnum.DEPOSIT;
     }
 
     ValidateOkDto.LevelEnum toLevel(ValidationLevel value) {
-        if (value == ValidationLevel.WITH_DATA_STATION_CONTEXT) {
+        if (ValidationLevel.WITH_DATA_STATION_CONTEXT.equals(value)) {
             return ValidateOkDto.LevelEnum.WITH_DATA_STATION_CONTEXT;
         }
         return ValidateOkDto.LevelEnum.STAND_ALONE;

@@ -15,6 +15,10 @@
  */
 package nl.knaw.dans.validatedansbag.core.engine;
 
+/**
+ * This object is used internally by the RuleEngine to keep
+ * track of the status of rules executed
+ */
 public class RuleValidationResult {
 
     private final String number;

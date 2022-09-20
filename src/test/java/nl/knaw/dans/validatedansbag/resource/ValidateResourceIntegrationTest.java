@@ -34,6 +34,8 @@ import nl.knaw.dans.validatedansbag.core.rules.XmlRulesImpl;
 import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReaderImpl;
 import nl.knaw.dans.validatedansbag.core.service.DataverseService;
 import nl.knaw.dans.validatedansbag.core.service.FileServiceImpl;
+import nl.knaw.dans.validatedansbag.core.service.FilesXmlService;
+import nl.knaw.dans.validatedansbag.core.service.FilesXmlServiceImpl;
 import nl.knaw.dans.validatedansbag.core.service.OriginalFilepathsServiceImpl;
 import nl.knaw.dans.validatedansbag.core.service.RuleEngineServiceImpl;
 import nl.knaw.dans.validatedansbag.core.service.XmlReaderImpl;
@@ -87,14 +89,16 @@ class ValidateResourceIntegrationTest {
         var polygonListValidator = new PolygonListValidatorImpl();
         var originalFilepathsService = new OriginalFilepathsServiceImpl(fileService);
         var licenseValidator = new LicenseValidatorImpl(new TestLicenseConfig());
+        var filesXmlService = new FilesXmlServiceImpl(xmlReader);
+
         var organizationIdentifierPrefixValidator = new OrganizationIdentifierPrefixValidatorImpl(
             List.of(new OtherIdPrefix("user001", "u1:"), new OtherIdPrefix("user002", "u2:"))
         );
 
         // set up the different rule implementations
         var bagRules = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, licenseValidator,
-            organizationIdentifierPrefixValidator);
-        var filesXmlRules = new FilesXmlRulesImpl(xmlReader, fileService, originalFilepathsService);
+            organizationIdentifierPrefixValidator, filesXmlService);
+        var filesXmlRules = new FilesXmlRulesImpl(fileService, originalFilepathsService, filesXmlService);
         var xmlRules = new XmlRulesImpl(xmlReader, xmlSchemaValidator, fileService);
         var datastationRules = new DatastationRulesImpl(bagItMetadataReader, dataverseService, new SwordDepositorRoles("datasetcreator", "dataseteditor"));
 

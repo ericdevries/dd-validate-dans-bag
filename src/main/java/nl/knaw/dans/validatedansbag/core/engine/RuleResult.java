@@ -17,6 +17,7 @@ package nl.knaw.dans.validatedansbag.core.engine;
 
 import java.util.List;
 
+// A simple container for the results of the execution of a single rule
 public class RuleResult {
     private final List<String> errorMessages;
     private final Status status;

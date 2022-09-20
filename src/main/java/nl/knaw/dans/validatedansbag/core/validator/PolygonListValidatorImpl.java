@@ -20,13 +20,20 @@ import java.util.stream.Collectors;
 
 public class PolygonListValidatorImpl implements PolygonListValidator {
     @Override
-    public void validatePolygonList(String polygons) throws PolygonValidationException {
+    public PolygonValidationResult validatePolygonList(String polygons) {
         var parts = polygons.split("\\s+");
 
-        // each of these will throw an error if something is wrong
-        validateEvenSize(parts);
-        validateMinLength(parts);
-        validateEndEqualsBegin(parts);
+        try {
+            // each of these will throw an error if something is wrong
+            validateEvenSize(parts);
+            validateMinLength(parts);
+            validateEndEqualsBegin(parts);
+        }
+        catch (PolygonValidationException e) {
+            return PolygonValidationResult.invalid(e.getMessage());
+        }
+
+        return PolygonValidationResult.valid();
     }
 
     void validateEvenSize(String[] parts) throws PolygonValidationException {

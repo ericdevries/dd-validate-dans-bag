@@ -138,8 +138,8 @@ public class RuleEngineServiceImpl implements RuleEngineService {
     }
 
     @Override
-
     public List<RuleValidationResult> validateBag(Path path, DepositType depositType, ValidationLevel validationLevel) throws Exception {
+        log.info("Validating bag on path '{}', deposit type is {} and validation level {}", path, depositType, validationLevel);
 
         if (!fileService.isReadable(path)) {
             log.warn("Path {} could not not be found or is not readable", path);

@@ -18,12 +18,12 @@ package nl.knaw.dans.validatedansbag.core.rules;
 
 import nl.knaw.dans.validatedansbag.core.engine.RuleResult;
 import nl.knaw.dans.validatedansbag.core.service.FileService;
+import nl.knaw.dans.validatedansbag.core.service.FilesXmlService;
 import nl.knaw.dans.validatedansbag.core.service.OriginalFilepathsService;
 import nl.knaw.dans.validatedansbag.core.service.XmlReader;
 import org.apache.commons.collections4.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
 import javax.xml.parsers.ParserConfigurationException;
@@ -32,7 +32,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -42,16 +41,15 @@ public class FilesXmlRulesImpl implements FilesXmlRules {
 
     private static final Logger log = LoggerFactory.getLogger(FilesXmlRulesImpl.class);
 
-    private final XmlReader xmlReader;
-
     private final FileService fileService;
 
     private final OriginalFilepathsService originalFilepathsService;
+    private final FilesXmlService filesXmlService;
 
-    public FilesXmlRulesImpl(XmlReader xmlReader, FileService fileService, OriginalFilepathsService originalFilepathsService) {
-        this.xmlReader = xmlReader;
+    public FilesXmlRulesImpl(FileService fileService, OriginalFilepathsService originalFilepathsService, FilesXmlService filesXmlService) {
         this.fileService = fileService;
         this.originalFilepathsService = originalFilepathsService;
+        this.filesXmlService = filesXmlService;
     }
 
     @Override
@@ -88,7 +86,7 @@ public class FilesXmlRulesImpl implements FilesXmlRules {
             // every payload file MUST be described by a file element.
             if (missingPayloadFiles.size() > 0) {
                 var paths = missingPayloadFiles.stream().map(Path::toString).collect(Collectors.joining(", "));
-                errors.add(String.format("files.xml does not describe all payload files: {%s}", paths));
+                errors.add(String.format("files.xml: does not describe all payload files: {%s}", paths));
             }
 
             if (errors.size() > 0) {
@@ -101,13 +99,6 @@ public class FilesXmlRulesImpl implements FilesXmlRules {
 
     Set<Path> filesXmlDescribesAllPayloadFiles(Path path) throws ParserConfigurationException, IOException, SAXException, XPathExpressionException {
         var dataPath = path.resolve("data");
-        var document = xmlReader.readXmlFile(path.resolve("metadata/files.xml"));
-
-        var searchExpressions = List.of(
-            "/files:files/files:file/@filepath",
-            "/files/file/@filepath");
-
-        var filePathNodes = xmlReader.xpathsToStream(document, searchExpressions).collect(Collectors.toList());
 
         // find all files that exist on disk
         var bagPaths = fileService.getAllFiles(dataPath)
@@ -119,9 +110,7 @@ public class FilesXmlRulesImpl implements FilesXmlRules {
 
         var bagPathMapping = originalFilepathsService.getMappingsFromOriginalToRenamed(path);
 
-        var xmlPaths = filePathNodes.stream()
-            .map(Node::getTextContent)
-            .map(Path::of)
+        var xmlPaths = filesXmlService.readFilepaths(path)
             .map(Path::normalize)
             .map(p -> Optional.ofNullable(bagPathMapping.get(p)).orElse(p))
             .collect(Collectors.toSet());
@@ -137,14 +126,6 @@ public class FilesXmlRulesImpl implements FilesXmlRules {
 
     Set<Path> filesXmlDescribesOnlyPayloadFiles(Path path) throws ParserConfigurationException, IOException, SAXException, XPathExpressionException {
         var dataPath = path.resolve("data");
-        var document = xmlReader.readXmlFile(path.resolve("metadata/files.xml"));
-
-        // elements may be namespaced, or not, so find both versions
-        var searchExpressions = List.of(
-            "/files:files/files:file/@filepath",
-            "/files/file/@filepath");
-
-        var filePathNodes = xmlReader.xpathsToStream(document, searchExpressions).collect(Collectors.toList());
 
         // find all files that exist on disk
         var bagPaths = fileService.getAllFiles(dataPath)
@@ -156,10 +137,7 @@ public class FilesXmlRulesImpl implements FilesXmlRules {
 
         var bagPathMapping = originalFilepathsService.getMappingsFromOriginalToRenamed(path);
 
-        // transform paths in xml to Path objects
-        var xmlPaths = filePathNodes.stream()
-            .map(Node::getTextContent)
-            .map(Path::of)
+        var xmlPaths = filesXmlService.readFilepaths(path)
             .map(Path::normalize)
             .map(p -> Optional.ofNullable(bagPathMapping.get(p)).orElse(p))
             .collect(Collectors.toSet());
@@ -175,19 +153,8 @@ public class FilesXmlRulesImpl implements FilesXmlRules {
     }
 
     Set<Path> filesXmlNoDuplicates(Path path) throws IOException, XPathExpressionException, ParserConfigurationException, SAXException {
-        var document = xmlReader.readXmlFile(path.resolve("metadata/files.xml"));
-
-        var searchExpressions = List.of(
-            "/files:files/files:file/@filepath",
-            "/files/file/@filepath");
-
-        var filePathNodes = xmlReader.xpathsToStream(document, searchExpressions).collect(Collectors.toList());
-
         // list all duplicate entries in files.xml
-
-        return filePathNodes.stream()
-            .map(Node::getTextContent)
-            .map(Path::of)
+        return filesXmlService.readFilepaths(path)
             .collect(Collectors.groupingBy(Path::normalize))
             .entrySet()
             .stream()

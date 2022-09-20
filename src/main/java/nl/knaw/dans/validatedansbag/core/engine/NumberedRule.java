@@ -35,11 +35,11 @@ public class NumberedRule {
     }
 
     public NumberedRule(String number, BagValidatorRule rule) {
-        this(number, rule, null, DepositType.ALL, ValidationContext.ALWAYS);
+        this(number, rule, null, null, ValidationContext.ALWAYS);
     }
 
     public NumberedRule(String number, BagValidatorRule rule, List<String> dependencies) {
-        this(number, rule, dependencies, DepositType.ALL, ValidationContext.ALWAYS);
+        this(number, rule, dependencies, null, ValidationContext.ALWAYS);
     }
 
     public NumberedRule(String number, BagValidatorRule rule, DepositType depositType, List<String> dependencies) {
@@ -51,11 +51,11 @@ public class NumberedRule {
     }
 
     public NumberedRule(String number, BagValidatorRule rule, ValidationContext validationContext) {
-        this(number, rule, null, DepositType.ALL, validationContext);
+        this(number, rule, null, null, validationContext);
     }
 
     public NumberedRule(String number, BagValidatorRule rule, ValidationContext validationContext, List<String> dependencies) {
-        this(number, rule, dependencies, DepositType.ALL, validationContext);
+        this(number, rule, dependencies, null, validationContext);
     }
 
     public ValidationContext getValidationContext() {

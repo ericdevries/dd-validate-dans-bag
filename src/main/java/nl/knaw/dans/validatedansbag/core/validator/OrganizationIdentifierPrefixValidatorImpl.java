@@ -28,7 +28,7 @@ public class OrganizationIdentifierPrefixValidatorImpl implements OrganizationId
 
     @Override
     public boolean hasValidPrefix(String user, String identifier) {
-        for (var prefix: otherIdPrefixes) {
+        for (var prefix : otherIdPrefixes) {
             if (user.equals(prefix.getUser()) && identifier.startsWith(prefix.getPrefix())) {
                 return true;
             }

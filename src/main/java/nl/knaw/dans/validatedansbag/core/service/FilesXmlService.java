@@ -13,12 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.validatedansbag.core.engine;
+package nl.knaw.dans.validatedansbag.core.service;
 
-/**
- * Indicates the type of deposit we have
- */
-public enum DepositType {
-    DEPOSIT,
-    MIGRATION
+import org.xml.sax.SAXException;
+
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.xpath.XPathExpressionException;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.stream.Stream;
+
+public interface FilesXmlService {
+
+    Stream<Path> readFilepaths(Path bagDir) throws ParserConfigurationException, IOException, SAXException, XPathExpressionException;
 }

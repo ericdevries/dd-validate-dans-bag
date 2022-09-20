@@ -27,6 +27,7 @@ import nl.knaw.dans.validatedansbag.core.BagNotFoundException;
 import nl.knaw.dans.validatedansbag.core.engine.RuleResult;
 import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReader;
 import nl.knaw.dans.validatedansbag.core.service.FileService;
+import nl.knaw.dans.validatedansbag.core.service.FilesXmlService;
 import nl.knaw.dans.validatedansbag.core.service.OriginalFilepathsService;
 import nl.knaw.dans.validatedansbag.core.service.XmlReader;
 import nl.knaw.dans.validatedansbag.core.validator.IdentifierValidator;
@@ -79,9 +80,11 @@ public class BagRulesImpl implements BagRules {
 
     private final OrganizationIdentifierPrefixValidator organizationIdentifierPrefixValidator;
 
+    private final FilesXmlService filesXmlService;
+
     public BagRulesImpl(FileService fileService, BagItMetadataReader bagItMetadataReader, XmlReader xmlReader, OriginalFilepathsService originalFilepathsService,
         IdentifierValidator identifierValidator,
-        PolygonListValidator polygonListValidator, LicenseValidator licenseValidator, OrganizationIdentifierPrefixValidator organizationIdentifierPrefixValidator) {
+        PolygonListValidator polygonListValidator, LicenseValidator licenseValidator, OrganizationIdentifierPrefixValidator organizationIdentifierPrefixValidator, FilesXmlService filesXmlService) {
         this.fileService = fileService;
         this.bagItMetadataReader = bagItMetadataReader;
         this.xmlReader = xmlReader;
@@ -90,6 +93,7 @@ public class BagRulesImpl implements BagRules {
         this.polygonListValidator = polygonListValidator;
         this.licenseValidator = licenseValidator;
         this.organizationIdentifierPrefixValidator = organizationIdentifierPrefixValidator;
+        this.filesXmlService = filesXmlService;
     }
 
     @Override
@@ -331,7 +335,6 @@ public class BagRulesImpl implements BagRules {
                 else {
                     return RuleResult.skipDependencies();
                 }
-
             }
             catch (CharacterCodingException e) {
                 return RuleResult.error("Input not valid UTF-8: " + e.getMessage());
@@ -348,15 +351,8 @@ public class BagRulesImpl implements BagRules {
 
             var mapping = originalFilepathsService.getMapping(path);
 
-            var document = xmlReader.readXmlFile(path.resolve("metadata/files.xml"));
-            var searchExpressions = List.of(
-                "/files:files/files:file/@filepath",
-                "/files/file/@filepath");
-
             // the files defined in metadata/files.xml
-            var fileXmlPaths = xmlReader.xpathsToStream(document, searchExpressions)
-                .map(Node::getTextContent)
-                .map(Path::of)
+            var fileXmlPaths = filesXmlService.readFilepaths(path)
                 .collect(Collectors.toSet());
 
             log.trace("Paths in files.xml: {}", fileXmlPaths);
@@ -459,7 +455,7 @@ public class BagRulesImpl implements BagRules {
 
             if (!licenseValidator.isValidLicense(license)) {
                 return RuleResult.error(String.format(
-                    "Found unknown or unsupported license: %s", license
+                    "dataset.xml: Found unknown or unsupported license: %s", license
                 ));
             }
 
@@ -473,23 +469,21 @@ public class BagRulesImpl implements BagRules {
             var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
             var expr = "//dcterms:identifier[@xsi:type=\"id-type:DOI\"]";
 
-            var nodes = xmlReader.xpathToStream(document, expr);
+            var nodes = xmlReader.xpathToStreamOfStrings(document, expr);
             var match = nodes
                 .peek(node -> {
-                    log.trace("Validating if {} matches pattern {}", node.getTextContent(), doiPattern);
+                    log.trace("Validating if {} matches pattern {}", node, doiPattern);
                 })
-                .filter((node) -> {
-                    var text = node.getTextContent();
+                .filter((text) -> {
                     return !doiPattern.matcher(text).matches();
                 })
-                .map(Node::getTextContent)
                 .collect(Collectors.joining(", "));
 
             log.debug("Identifiers (DOI) that do not match the pattern: {}", match);
 
             if (match.length() > 0) {
                 return RuleResult.error(String.format(
-                    "Invalid DOIs: %s", match
+                    "dataset.xml: Invalid DOIs: %s", match
                 ));
             }
 
@@ -502,8 +496,7 @@ public class BagRulesImpl implements BagRules {
         return (path) -> {
             var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
             var expr = "//dcx-dai:DAI";
-            var match = xmlReader.xpathToStream(document, expr)
-                .map(Node::getTextContent)
+            var match = xmlReader.xpathToStreamOfStrings(document, expr)
                 .peek(id -> {
                     log.trace("Validating if {} is a valid DAI", id);
                 })
@@ -514,7 +507,7 @@ public class BagRulesImpl implements BagRules {
 
             if (!match.isEmpty()) {
                 var message = String.join(", ", match);
-                return RuleResult.error("Invalid DAIs: " + message);
+                return RuleResult.error("dataset.xml: Invalid DAIs: " + message);
             }
 
             return RuleResult.ok();
@@ -526,8 +519,7 @@ public class BagRulesImpl implements BagRules {
         return (path) -> {
             var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
             var expr = "//dcx-dai:ISNI";
-            var match = xmlReader.xpathToStream(document, expr)
-                .map(Node::getTextContent)
+            var match = xmlReader.xpathToStreamOfStrings(document, expr)
                 .peek(id -> {
                     log.trace("Validating if {} is a valid ISNI", id);
                 })
@@ -538,7 +530,7 @@ public class BagRulesImpl implements BagRules {
 
             if (!match.isEmpty()) {
                 var message = String.join(", ", match);
-                return RuleResult.error("Invalid ISNI(s): " + message);
+                return RuleResult.error("dataset.xml: Invalid ISNI(s): " + message);
             }
 
             return RuleResult.ok();
@@ -550,8 +542,7 @@ public class BagRulesImpl implements BagRules {
         return (path) -> {
             var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
             var expr = "//dcx-dai:ORCID";
-            var match = xmlReader.xpathToStream(document, expr)
-                .map(Node::getTextContent)
+            var match = xmlReader.xpathToStreamOfStrings(document, expr)
                 .peek(id -> {
                     log.trace("Validating if {} is a valid ISNI", id);
                 })
@@ -562,7 +553,7 @@ public class BagRulesImpl implements BagRules {
 
             if (!match.isEmpty()) {
                 var message = String.join(", ", match);
-                return RuleResult.error("Invalid ORCID(s): " + message);
+                return RuleResult.error("dataset.xml: Invalid ORCID(s): " + message);
             }
 
             return RuleResult.ok();
@@ -574,31 +565,22 @@ public class BagRulesImpl implements BagRules {
         return (path) -> {
             var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
             var expr = "//dcx-gml:spatial//gml:posList";//*[local-name() = 'posList']";
-            var nodes = xmlReader.xpathToStream(document, expr);
+            var nodes = xmlReader.xpathToStreamOfStrings(document, expr);
 
-            var match = nodes.map(Node::getTextContent)
+            var match = nodes
                 .peek(posList -> {
                     log.trace("Validation posList value {}", posList);
                 })
-                .map((posList) -> {
-
-                    try {
-                        polygonListValidator.validatePolygonList(posList);
-                    }
-                    catch (PolygonListValidator.PolygonValidationException e) {
-                        return e.getLocalizedMessage();
-                    }
-
-                    return null;
-                })
-                .filter(Objects::nonNull)
+                .map(polygonListValidator::validatePolygonList)
+                .filter(e -> !e.isValid())
+                .map(PolygonListValidator.PolygonValidationResult::getMessage)
                 .collect(Collectors.toList());
 
             log.debug("Invalid posList elements: {}", match);
 
             if (!match.isEmpty()) {
                 var message = String.join("\n", match);
-                return RuleResult.error("Invalid posList: " + message);
+                return RuleResult.error("dataset.xml: Invalid posList: " + message);
             }
 
             return RuleResult.ok();
@@ -613,10 +595,8 @@ public class BagRulesImpl implements BagRules {
             var nodes = xmlReader.xpathToStream(document, expr);
             var match = nodes.filter(node -> {
                     try {
-                        var srsNames = xmlReader.xpathToStream(node, ".//gml:Polygon")
-                            .map(p -> p.getAttributes().getNamedItem("srsName"))
+                        var srsNames = xmlReader.xpathToStreamOfStrings(node, ".//gml:Polygon/@srsName")
                             .filter(Objects::nonNull)
-                            .map(Node::getTextContent)
                             .collect(Collectors.toSet());
 
                         log.trace("Found unique srsName values: {}", srsNames);
@@ -636,7 +616,7 @@ public class BagRulesImpl implements BagRules {
             log.debug("Invalid MultiSurface elements that contain polygons with different srsNames: {}", match);
 
             if (!match.isEmpty()) {
-                return RuleResult.error("Found MultiSurface element containing polygons with different srsNames");
+                return RuleResult.error("dataset.xml: Found MultiSurface element containing polygons with different srsNames");
             }
 
             return RuleResult.ok();
@@ -711,8 +691,7 @@ public class BagRulesImpl implements BagRules {
 
             // points
             var expr = "//dcterms:identifier[@xsi:type = 'id-type:ARCHIS-ZAAK-IDENTIFICATIE']";
-            var match = xmlReader.xpathToStream(document, expr)
-                .map(Node::getTextContent)
+            var match = xmlReader.xpathToStreamOfStrings(document, expr)
                 .filter(Objects::nonNull)
                 .peek(text -> {
                     log.trace("Validating element text '{}' for maximum length", text);
@@ -724,7 +703,7 @@ public class BagRulesImpl implements BagRules {
 
             if (match.size() > 0) {
                 var errors = match.stream().map(e -> String.format(
-                    "Archis identifier must be 10 or fewer characters long: %s", e
+                    "dataset.xml: Archis identifier must be 10 or fewer characters long: %s", e
                 )).collect(Collectors.toList());
 
                 return RuleResult.error(errors);
@@ -739,9 +718,9 @@ public class BagRulesImpl implements BagRules {
         return (path) -> {
             var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
 
-            var hrefNodes = xmlReader.xpathToStream(document, "*/@href");
-            var schemeURINodes = xmlReader.xpathToStream(document, "//ddm:subject/@schemeURI");
-            var valueURINodes = xmlReader.xpathToStream(document, "//ddm:subject/@valueURI");
+            var hrefNodes = xmlReader.xpathToStreamOfStrings(document, "*/@href");
+            var schemeURINodes = xmlReader.xpathToStreamOfStrings(document, "//ddm:subject/@schemeURI");
+            var valueURINodes = xmlReader.xpathToStreamOfStrings(document, "//ddm:subject/@valueURI");
 
             var expr = List.of(
                 "//*[@xsi:type='dcterms:URI']",
@@ -754,11 +733,10 @@ public class BagRulesImpl implements BagRules {
                 "//*[@scheme='URL']"
             );
 
-            var elementSelectors = xmlReader.xpathsToStream(document, expr);
+            var elementSelectors = xmlReader.xpathsToStreamOfStrings(document, expr);
 
             var errors = Stream.of(hrefNodes, schemeURINodes, valueURINodes, elementSelectors)
                 .flatMap(i -> i)
-                .map(Node::getTextContent)
                 .map(value -> {
                     log.trace("Validating URI '{}'", value);
 
@@ -767,12 +745,12 @@ public class BagRulesImpl implements BagRules {
 
                         if (!List.of("http", "https").contains(uri.getScheme().toLowerCase(Locale.ROOT))) {
                             return String.format(
-                                "protocol '%s' in uri '%s' is not one of the accepted protocols [http, https]", uri.getScheme(), uri
+                                "dataset.xml: protocol '%s' in uri '%s' is not one of the accepted protocols [http, https]", uri.getScheme(), uri
                             );
                         }
                     }
                     catch (URISyntaxException e) {
-                        return String.format("'%s' is not a valid uri", value);
+                        return String.format("dataset.xml: '%s' is not a valid uri", value);
                     }
 
                     return null;
@@ -826,8 +804,7 @@ public class BagRulesImpl implements BagRules {
     }
 
     private Optional<String> getRightsHolderInElement(Document document) throws XPathExpressionException {
-        return xmlReader.xpathToStream(document, "//ddm:dcmiMetadata//dcterms:rightsHolder")
-            .map(Node::getTextContent)
+        return xmlReader.xpathToStreamOfStrings(document, "//ddm:dcmiMetadata//dcterms:rightsHolder")
             .filter(Objects::nonNull)
             .map(String::trim)
             .filter(s -> !s.isEmpty())
@@ -835,8 +812,7 @@ public class BagRulesImpl implements BagRules {
     }
 
     private Optional<String> getRightsHolderInAuthor(Document document) throws XPathExpressionException {
-        return xmlReader.xpathToStream(document, "//dcx-dai:author/dcx-dai:role")
-            .map(Node::getTextContent)
+        return xmlReader.xpathToStreamOfStrings(document, "//dcx-dai:author/dcx-dai:role")
             .filter(Objects::nonNull)
             .map(String::trim)
             .filter(value -> value.equals("RightsHolder"))

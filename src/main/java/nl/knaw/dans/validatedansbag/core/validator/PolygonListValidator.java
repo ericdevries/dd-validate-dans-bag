@@ -16,12 +16,38 @@
 package nl.knaw.dans.validatedansbag.core.validator;
 
 public interface PolygonListValidator {
-    void validatePolygonList(String polygons) throws PolygonValidationException;
+    PolygonValidationResult validatePolygonList(String polygons);
 
     class PolygonValidationException extends Throwable {
 
         public PolygonValidationException(String msg) {
             super(msg);
+        }
+    }
+
+    class PolygonValidationResult {
+        private final String message;
+        private final boolean valid;
+
+        protected PolygonValidationResult(String message, boolean valid) {
+            this.message = message;
+            this.valid = valid;
+        }
+
+        public static PolygonValidationResult valid() {
+            return new PolygonValidationResult(null, true);
+        }
+
+        public static PolygonValidationResult invalid(String message) {
+            return new PolygonValidationResult(message, false);
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public boolean isValid() {
+            return valid;
         }
     }
 }
