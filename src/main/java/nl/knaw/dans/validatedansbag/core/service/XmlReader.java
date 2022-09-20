@@ -44,4 +44,7 @@ public interface XmlReader {
 
     Stream<Node> xpathsToStream(Node node, Collection<String> expressions) throws XPathExpressionException;
 
+    Stream<String> xpathToStreamOfStrings(Node node, String expression) throws XPathExpressionException;
+
+    Stream<String> xpathsToStreamOfStrings(Node node, Collection<String> expressions) throws XPathExpressionException;
 }

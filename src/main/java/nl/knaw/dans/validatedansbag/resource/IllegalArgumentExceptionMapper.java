@@ -27,7 +27,7 @@ public class IllegalArgumentExceptionMapper implements ExceptionMapper<FormDataP
 
     @Override
     public Response toResponse(FormDataParamException e) {
-        var valueInstantiationError = findExceptionOfType(e, ValueInstantiationException.class);
+        var valueInstantiationError = findExceptionOfTypeValueInstantationException(e);
         var message = e.getMessage();
 
         if (valueInstantiationError != null) {
@@ -41,10 +41,10 @@ public class IllegalArgumentExceptionMapper implements ExceptionMapper<FormDataP
             .build();
     }
 
-    Throwable findExceptionOfType(Throwable e, Class<? extends Throwable> classType) {
+    Throwable findExceptionOfTypeValueInstantationException(Throwable e) {
 
         while (e.getCause() != null) {
-            if (e.getClass().equals(classType)) {
+            if (e.getClass().equals(ValueInstantiationException.class)) {
                 return e;
             }
 

@@ -18,6 +18,7 @@ package nl.knaw.dans.validatedansbag.core.validator;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -32,22 +33,25 @@ class PolygonListValidatorImplTest {
     @Test
     void validateTooShort() {
         var msg = "1 2 1 2";
-        var e = assertThrows(PolygonListValidator.PolygonValidationException.class, () -> new PolygonListValidatorImpl().validatePolygonList(msg));
-        assertTrue(e.getLocalizedMessage().contains("too few values"));
+        var result = new PolygonListValidatorImpl().validatePolygonList(msg);
+        assertFalse(result.isValid());
+        assertTrue(result.getMessage().contains("too few values"));
     }
 
     @Test
     void validateUnEvenLength() {
         var msg = "1 2 3 4 5 6 7 1 2";
-        var e = assertThrows(PolygonListValidator.PolygonValidationException.class, () -> new PolygonListValidatorImpl().validatePolygonList(msg));
-        assertTrue(e.getLocalizedMessage().contains("odd number of values"));
+        var result = new PolygonListValidatorImpl().validatePolygonList(msg);
+        assertFalse(result.isValid());
+        assertTrue(result.getMessage().contains("odd number of values"));
     }
 
     @Test
     void validateEndingDoesntEqualBegin() {
         var msg = "1 2 3 4 5 6 7 8";
-        var e = assertThrows(PolygonListValidator.PolygonValidationException.class, () -> new PolygonListValidatorImpl().validatePolygonList(msg));
-        assertTrue(e.getLocalizedMessage().contains("unequal first and last"));
+        var result = new PolygonListValidatorImpl().validatePolygonList(msg);
+        assertFalse(result.isValid());
+        assertTrue(result.getMessage().contains("unequal first and last"));
     }
 
     @Test

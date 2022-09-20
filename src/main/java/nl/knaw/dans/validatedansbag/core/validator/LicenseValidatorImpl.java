@@ -16,11 +16,15 @@
 package nl.knaw.dans.validatedansbag.core.validator;
 
 import nl.knaw.dans.validatedansbag.core.config.LicenseConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.util.stream.Collectors;
 
 public class LicenseValidatorImpl implements LicenseValidator {
+    private static final Logger log = LoggerFactory.getLogger(LicenseValidatorImpl.class);
+
     private final LicenseConfig licenseConfig;
 
     public LicenseValidatorImpl(LicenseConfig licenseConfig) {
@@ -33,12 +37,17 @@ public class LicenseValidatorImpl implements LicenseValidator {
 
     @Override
     public boolean isValidLicense(String license) {
-        // strip trailing slashes so url's are more consistent
+        // strip trailing slashes so urls are more consistent
+        // it might be worth investigating if this should be more extensive
+        // for example, also dropping the www. prefix
         var licenses = licenseConfig.getAllowedLicenses().stream()
             .map(URI::toString)
             .map(this::normalizeLicense)
             .collect(Collectors.toSet());
 
-        return licenses.contains(normalizeLicense(license));
+        var normalizedLicense = normalizeLicense(license);
+        log.trace("Normalized license from {} to {}", license, normalizedLicense);
+
+        return licenses.contains(normalizedLicense);
     }
 }

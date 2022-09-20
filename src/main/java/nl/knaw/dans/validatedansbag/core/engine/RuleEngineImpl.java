@@ -238,12 +238,12 @@ public class RuleEngineImpl implements RuleEngine {
             var number = rule.getNumber();
 
             // it is considered a duplicate if
-            // - one of the 2 (or both) rules have type ALL
+            // - one of the 2 (or both) rules have type ALL (indicated by a null value)
             // - both have the same type
             if (seen.containsKey(number)) {
                 var s = seen.get(number);
 
-                if (s.equals(DepositType.ALL) || rule.getDepositType().equals(DepositType.ALL)) {
+                if (s == null || rule.getDepositType() == null) {
                     duplicates.add(number);
                 }
 
@@ -259,11 +259,11 @@ public class RuleEngineImpl implements RuleEngine {
     }
 
     private boolean shouldBeIgnoredBecauseOfDepositType(NumberedRule rule, DepositType depositType) {
-        if (DepositType.ALL.equals(rule.getDepositType())) {
+        if (rule.getDepositType() == null) {
             return false;
         }
 
-        return !rule.getDepositType().equals(depositType);
+        return !depositType.equals(rule.getDepositType());
     }
 
     private boolean shouldBeIgnoredBecauseOfValidationLevel(NumberedRule rule, ValidationLevel validationLevel) {

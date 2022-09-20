@@ -122,6 +122,16 @@ public class XmlReaderImpl implements XmlReader {
         return items.stream().flatMap(i -> i);
     }
 
+    @Override
+    public Stream<String> xpathToStreamOfStrings(Node node, String expression) throws XPathExpressionException {
+        return xpathToStream(node, expression).map(Node::getTextContent);
+    }
+
+    @Override
+    public Stream<String> xpathsToStreamOfStrings(Node node, Collection<String> expressions) throws XPathExpressionException {
+        return xpathsToStream(node, expressions).map(Node::getTextContent);
+    }
+
     private DocumentBuilderFactory getFactory() throws ParserConfigurationException {
         var factory = DocumentBuilderFactory.newInstance();
         factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);

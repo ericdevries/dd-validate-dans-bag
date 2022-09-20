@@ -18,10 +18,12 @@ package nl.knaw.dans.validatedansbag.core.service;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public interface OriginalFilepathsService {
 
     List<OriginalFilePathItem> getMapping(Path bagDir);
+
     Map<Path, Path> getMappingsFromOriginalToRenamed(Path bagDir);
 
     boolean exists(Path path);
@@ -29,6 +31,7 @@ public interface OriginalFilepathsService {
     class OriginalFilePathItem {
         private final Path originalFilename;
         private final Path renamedFilename;
+
         public OriginalFilePathItem(Path originalFilename, Path renamedFilename) {
             this.originalFilename = originalFilename;
             this.renamedFilename = renamedFilename;
@@ -42,5 +45,27 @@ public interface OriginalFilepathsService {
             return renamedFilename;
         }
 
+        @Override
+        public String toString() {
+            return "OriginalFilePathItem{" +
+                "originalFilename=" + originalFilename +
+                ", renamedFilename=" + renamedFilename +
+                '}';
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o)
+                return true;
+            if (o == null || getClass() != o.getClass())
+                return false;
+            OriginalFilePathItem that = (OriginalFilePathItem) o;
+            return Objects.equals(originalFilename, that.originalFilename) && Objects.equals(renamedFilename, that.renamedFilename);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(originalFilename, renamedFilename);
+        }
     }
 }

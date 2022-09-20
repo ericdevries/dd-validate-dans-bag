@@ -223,7 +223,7 @@ class RuleEngineImplTest {
             new NumberedRule("1.3", fakeRule, DepositType.DEPOSIT, List.of("1.2")),
             new NumberedRule("1.3", fakeRule, DepositType.MIGRATION, List.of("1.2")),
             new NumberedRule("1.4", fakeRule),
-            new NumberedRule("1.6", fakeRule, DepositType.DEPOSIT, List.of("1.3")),
+            new NumberedRule("1.6", fakeRule,DepositType.DEPOSIT, List.of("1.3")),
             new NumberedRule("1.6", fakeRule, DepositType.MIGRATION, List.of("1.3")),
         };
 

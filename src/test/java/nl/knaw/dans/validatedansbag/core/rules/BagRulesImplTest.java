@@ -24,6 +24,7 @@ import nl.knaw.dans.validatedansbag.core.engine.RuleResult;
 import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReader;
 import nl.knaw.dans.validatedansbag.core.service.DataverseService;
 import nl.knaw.dans.validatedansbag.core.service.FileService;
+import nl.knaw.dans.validatedansbag.core.service.FilesXmlService;
 import nl.knaw.dans.validatedansbag.core.service.OriginalFilepathsService;
 import nl.knaw.dans.validatedansbag.core.service.XmlReader;
 import nl.knaw.dans.validatedansbag.core.service.XmlReaderImpl;
@@ -43,12 +44,15 @@ import org.xml.sax.SAXException;
 
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
+import java.nio.CharBuffer;
+import java.nio.charset.CharacterCodingException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -63,6 +67,8 @@ class BagRulesImplTest {
     final DataverseService dataverseService = Mockito.mock(DataverseService.class);
 
     final LicenseValidator licenseValidator = new LicenseValidatorImpl(new TestLicenseConfig());
+    final FilesXmlService filesXmlService = Mockito.mock(FilesXmlService.class);
+
     final OrganizationIdentifierPrefixValidator organizationIdentifierPrefixValidator = new OrganizationIdentifierPrefixValidatorImpl(
         List.of(new OtherIdPrefix("user001", "USER1-"), new OtherIdPrefix("user002", "U2:"))
     );
@@ -78,12 +84,12 @@ class BagRulesImplTest {
 
     BagRules getBagRules() {
         return new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator,
-            organizationIdentifierPrefixValidator);
+            organizationIdentifierPrefixValidator, filesXmlService);
     }
 
     BagRules getBagRulesWithXmlReader(XmlReader xmlReader) {
         return new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, identifierValidator, polygonListValidator, licenseValidator,
-            organizationIdentifierPrefixValidator);
+            organizationIdentifierPrefixValidator, filesXmlService);
     }
 
     @Test
@@ -279,7 +285,7 @@ class BagRulesImplTest {
         Mockito.when(bagItMetadataReader.getField(Mockito.any(), Mockito.eq("Is-Version-Of")))
             .thenReturn(List.of("http://google.com"))
             .thenReturn(List.of("urn:uuid:1234"))
-            .thenReturn(List.of("urn:not uuid:1234"));
+            .thenReturn(List.of("urn:notuuid:1234"));
 
         assertEquals(RuleResult.Status.ERROR, checker.bagInfoIsVersionOfIsValidUrnUuid().validate(Path.of("bagdir")).getStatus());
         assertEquals(RuleResult.Status.ERROR, checker.bagInfoIsVersionOfIsValidUrnUuid().validate(Path.of("bagdir")).getStatus());
@@ -1079,5 +1085,226 @@ class BagRulesImplTest {
         var result = checker.containsNotJustMD5Manifest().validate(Path.of("bagdir"));
 
         assertEquals(RuleResult.Status.ERROR, result.getStatus());
+    }
+
+    @Test
+    void organizationalIdentifierPrefixIsValid() throws Exception {
+
+        var checker = getBagRules();
+
+        Mockito.when(bagItMetadataReader.getSingleField(Mockito.any(), Mockito.any()))
+            .thenReturn("USER1-organizational-identifier")
+            .thenReturn("user001");
+
+        var result = checker.organizationalIdentifierPrefixIsValid().validate(Path.of("bagdir"));
+
+        assertEquals(RuleResult.Status.SUCCESS, result.getStatus());
+    }
+
+    @Test
+    void organizationalIdentifierPrefixIsInvalid() throws Exception {
+
+        var checker = getBagRules();
+
+        Mockito.when(bagItMetadataReader.getSingleField(Mockito.any(), Mockito.any()))
+            .thenReturn("WRONG-organizational-identifier")
+            .thenReturn("user001");
+
+        var result = checker.organizationalIdentifierPrefixIsValid().validate(Path.of("bagdir"));
+
+        assertEquals(RuleResult.Status.ERROR, result.getStatus());
+    }
+
+    @Test
+    void organizationalIdentifierPrefixIsMissing() throws Exception {
+
+        var checker = getBagRules();
+
+        Mockito.when(bagItMetadataReader.getSingleField(Mockito.any(), Mockito.any()))
+            .thenReturn("WRONG-organizational-identifier")
+            .thenReturn(null);
+
+        var result = checker.organizationalIdentifierPrefixIsValid().validate(Path.of("bagdir"));
+
+        assertEquals(RuleResult.Status.SKIP_DEPENDENCIES, result.getStatus());
+    }
+
+    @Test
+    void hasOnlyValidFileNames() throws Exception {
+        // invalidCharacters = ":*?\"<>|;#";
+
+        Mockito.when(fileService.getAllFiles(Mockito.any()))
+            .thenReturn(List.of(
+                Path.of("some/path.txt"),
+                Path.of("some/other_path-\\backslash.txt"),
+                Path.of("some/{}[]`~@$ðfáðfgfüþúüúíáðœfä&^()-_+= .txt")
+            ));
+
+        var checker = getBagRules();
+        var result = checker.hasOnlyValidFileNames().validate(Path.of("bagdir"));
+
+        assertEquals(RuleResult.Status.SUCCESS, result.getStatus());
+    }
+
+    @Test
+    void hasAlsoInvalidFileNames() throws Exception {
+        // invalidCharacters = ":*?\"<>|;#";
+
+        Mockito.when(fileService.getAllFiles(Mockito.any()))
+            .thenReturn(List.of(
+                Path.of("some/path:\\?.txt")
+            ));
+
+        var checker = getBagRules();
+        var result = checker.hasOnlyValidFileNames().validate(Path.of("bagdir"));
+
+        assertEquals(RuleResult.Status.ERROR, result.getStatus());
+    }
+
+    @Test
+    void optionalFileIsUtf8Decodable() throws Exception {
+        Mockito.when(fileService.exists(Mockito.any())).thenReturn(true);
+        Mockito.when(fileService.readFileContents(Mockito.any(), Mockito.any())).thenReturn(CharBuffer.allocate(1));
+
+        var checker = getBagRules();
+        var result = checker.optionalFileIsUtf8Decodable(Path.of("somefile.txt")).validate(Path.of("bagdir"));
+
+        assertEquals(RuleResult.Status.SUCCESS, result.getStatus());
+    }
+
+    @Test
+    void optionalFileIsUtf8DecodableAndDoesNotExist() throws Exception {
+        Mockito.when(fileService.exists(Mockito.any())).thenReturn(false);
+        Mockito.when(fileService.readFileContents(Mockito.any(), Mockito.any())).thenReturn(CharBuffer.allocate(1));
+
+        var checker = getBagRules();
+        var result = checker.optionalFileIsUtf8Decodable(Path.of("somefile.txt")).validate(Path.of("bagdir"));
+
+        assertEquals(RuleResult.Status.SKIP_DEPENDENCIES, result.getStatus());
+    }
+
+    @Test
+    void optionalFileIsUtf8DecodableButThrowsException() throws Exception {
+        Mockito.when(fileService.exists(Mockito.any())).thenReturn(true);
+        Mockito.when(fileService.readFileContents(Mockito.any(), Mockito.any()))
+            .thenThrow(new CharacterCodingException());
+
+        var checker = getBagRules();
+        var result = checker.optionalFileIsUtf8Decodable(Path.of("somefile.txt")).validate(Path.of("bagdir"));
+
+        assertEquals(RuleResult.Status.ERROR, result.getStatus());
+    }
+
+    @Test
+    void isOriginalFilepathsFileComplete() throws Exception {
+        Mockito.when(originalFilepathsService.exists(Mockito.any())).thenReturn(true);
+        Mockito.when(filesXmlService.readFilepaths(Mockito.any()))
+            .thenReturn(Stream.of(
+                Path.of("data/1.txt"),
+                Path.of("data/2.txt")
+            ));
+
+        Mockito.when(fileService.getAllFiles(Mockito.any()))
+            .thenReturn(List.of(
+                Path.of("bagdir/data/a.txt"),
+                Path.of("bagdir/data/b.txt")
+            ));
+
+        Mockito.when(originalFilepathsService.getMapping(Mockito.any()))
+            .thenReturn(List.of(
+                new OriginalFilepathsService.OriginalFilePathItem(Path.of("data/1.txt"), Path.of("data/a.txt")),
+                new OriginalFilepathsService.OriginalFilePathItem(Path.of("data/2.txt"), Path.of("data/b.txt"))
+            ));
+
+        var checker = getBagRules();
+        var result = checker.isOriginalFilepathsFileComplete().validate(Path.of("bagdir"));
+
+        assertEquals(RuleResult.Status.SUCCESS, result.getStatus());
+    }
+
+    @Test
+    void isOriginalFilepathsFileCompleteWithWrongMapping() throws Exception {
+        Mockito.when(originalFilepathsService.exists(Mockito.any())).thenReturn(true);
+        Mockito.when(filesXmlService.readFilepaths(Mockito.any()))
+            .thenReturn(Stream.of(
+                Path.of("data/1.txt"),
+                Path.of("data/2.txt")
+            ));
+
+        Mockito.when(fileService.getAllFiles(Mockito.any()))
+            .thenReturn(List.of(
+                Path.of("bagdir/data/a.txt"),
+                Path.of("bagdir/data/b.txt")
+            ));
+
+        Mockito.when(originalFilepathsService.getMapping(Mockito.any()))
+            .thenReturn(List.of(
+                new OriginalFilepathsService.OriginalFilePathItem(Path.of("data/1.txt"), Path.of("data/a.txt")),
+                new OriginalFilepathsService.OriginalFilePathItem(Path.of("data/2.txt"), Path.of("data/c.txt")) // this one is wrong
+            ));
+
+        var checker = getBagRules();
+        var result = checker.isOriginalFilepathsFileComplete().validate(Path.of("bagdir"));
+
+        assertEquals(RuleResult.Status.ERROR, result.getStatus());
+    }
+
+    @Test
+    void isOriginalFilepathsFileCompleteWithMissingMapping() throws Exception {
+        Mockito.when(originalFilepathsService.exists(Mockito.any())).thenReturn(true);
+        Mockito.when(filesXmlService.readFilepaths(Mockito.any()))
+            .thenReturn(Stream.of(
+                Path.of("data/1.txt"),
+                Path.of("data/2.txt")
+            ));
+
+        Mockito.when(fileService.getAllFiles(Mockito.any()))
+            .thenReturn(List.of(
+                Path.of("bagdir/data/a.txt"),
+                Path.of("bagdir/data/b.txt")
+            ));
+
+        Mockito.when(originalFilepathsService.getMapping(Mockito.any()))
+            .thenReturn(List.of(
+                new OriginalFilepathsService.OriginalFilePathItem(Path.of("data/2.txt"), Path.of("data/b.txt")) // this one is wrong
+            ));
+
+        var checker = getBagRules();
+        var result = checker.isOriginalFilepathsFileComplete().validate(Path.of("bagdir"));
+
+        assertEquals(RuleResult.Status.ERROR, result.getStatus());
+    }
+
+    @Test
+    void isOriginalFilepathsFileCompleteWithMissingFiles() throws Exception {
+        Mockito.when(originalFilepathsService.exists(Mockito.any())).thenReturn(true);
+        Mockito.when(filesXmlService.readFilepaths(Mockito.any()))
+            .thenReturn(Stream.of(
+                Path.of("data/1.txt")
+            ));
+
+        Mockito.when(fileService.getAllFiles(Mockito.any()))
+            .thenReturn(List.of(
+                Path.of("bagdir/data/a.txt")
+            ));
+
+        Mockito.when(originalFilepathsService.getMapping(Mockito.any()))
+            .thenReturn(List.of(
+                new OriginalFilepathsService.OriginalFilePathItem(Path.of("data/1.txt"), Path.of("data/a.txt")),
+                new OriginalFilepathsService.OriginalFilePathItem(Path.of("data/2.txt"), Path.of("data/b.txt"))
+            ));
+
+        var checker = getBagRules();
+        var result = checker.isOriginalFilepathsFileComplete().validate(Path.of("bagdir"));
+
+        assertEquals(RuleResult.Status.ERROR, result.getStatus());
+    }
+    @Test
+    void isOriginalFilepathsFileCompleteSkipped() throws Exception {
+        Mockito.when(originalFilepathsService.exists(Mockito.any())).thenReturn(false);
+        var checker = getBagRules();
+        var result = checker.isOriginalFilepathsFileComplete().validate(Path.of("bagdir"));
+
+        assertEquals(RuleResult.Status.SKIP_DEPENDENCIES, result.getStatus());
     }
 }
