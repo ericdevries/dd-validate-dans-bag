@@ -4,12 +4,10 @@ server:
   adminContextPath: /
   applicationConnectors:
     - type: http
-      # Replace with port number unique for this service
-      port: 20000
+      port: 20330
   adminConnectors:
     - type: http
-      # Replace with port number unique for this service
-      port: 20001
+      port: 20331
 
 #
 # See https://www.dropwizard.io/en/latest/manual/configuration.html#logging

@@ -108,7 +108,7 @@ public class RuleEngineServiceImpl implements RuleEngineService {
             new NumberedRule("3.1.9", bagRules.allUrlsAreValid(), List.of("3.1.1")),
 
             new NumberedRule("3.1.10(a)", bagRules.ddmMustHaveRightsHolderDeposit(), DepositType.DEPOSIT, List.of("3.1.1")),
-            new NumberedRule("3.1.10(b)", bagRules.ddmMustHaveRightsHolderMigration(), DepositType.MIGRATION, List.of("3.1.1")),
+            new NumberedRule("3.1.10(b)", bagRules.ddmMustHaveRightsHolderDeposit(), DepositType.MIGRATION, List.of("3.1.1")),
 
             new NumberedRule("3.2.1", xmlRules.xmlFileConfirmsToSchema(metadataFilesPath, "files.xml"), List.of("3.1.1")),
             new NumberedRule("3.2.2", filesXmlRules.filesXmlFilePathAttributesContainLocalBagPathAndNonPayloadFilesAreNotDescribed(), List.of("2.2(b)")),
