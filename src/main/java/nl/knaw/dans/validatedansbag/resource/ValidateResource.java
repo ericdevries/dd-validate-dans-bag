@@ -57,7 +57,7 @@ public class ValidateResource {
 
     @POST
     @Consumes(MediaType.MULTIPART_FORM_DATA)
-    @Produces(MediaType.APPLICATION_JSON)
+    @Produces({MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN})
     public ValidateOkDto validateFormData(
         @Valid @NotNull @FormDataParam(value = "command") ValidateCommandDto command,
         @FormDataParam(value = "zip") InputStream zipInputStream
