@@ -775,12 +775,9 @@ public class BagRulesImpl implements BagRules {
 
             // in case of deposit, it may also be in the dcterms:rightsHolder element
             var rightsHolder = getRightsHolderInElement(document);
-            var inRole = getRightsHolderInAuthor(document);
 
-            log.debug("Results for rights holder search: {} and {}", rightsHolder, inRole);
-
-            if (inRole.isEmpty() && rightsHolder.isEmpty()) {
-                return RuleResult.error("No RightsHolder found in <dcx-dai:role> element nor in <dcterms:rightsHolder> element");
+            if (rightsHolder.isEmpty()) {
+                return RuleResult.error("No RightsHolder found in <dcterms:rightsHolder> element");
             }
 
             return RuleResult.ok();
@@ -793,10 +790,27 @@ public class BagRulesImpl implements BagRules {
             var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
 
             var inRole = getRightsHolderInAuthor(document);
-            log.debug("Results for rights holder search: {}", inRole);
+            var rightsHolder = getRightsHolderInElement(document);
+            log.debug("Results for rights holder search, inRole {}, in rightsHolder element {}", inRole, rightsHolder);
 
-            if (inRole.isEmpty()) {
-                return RuleResult.error("No RightsHolder found in <dcx-dai:role>");
+            if (inRole.isEmpty() && rightsHolder.isEmpty()) {
+                return RuleResult.error("No RightsHolder found in <dcx-dai:role> nor in <rightsHolder> element");
+            }
+
+            return RuleResult.ok();
+        };
+    }
+
+    @Override
+    public BagValidatorRule ddmMustNotHaveRightsHolderRole() {
+        return (path) -> {
+            var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
+
+            var inRole = getRightsHolderInAuthor(document);
+            log.debug("Results for rights holder search, inRole {}", inRole);
+
+            if (inRole.isPresent()) {
+                return RuleResult.error("RightsHolder found in <dcx-dai:role>");
             }
 
             return RuleResult.ok();
