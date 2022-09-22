@@ -62,6 +62,8 @@ public interface BagRules {
     BagValidatorRule ddmMustHaveRightsHolderDeposit();
     BagValidatorRule ddmMustHaveRightsHolderMigration();
 
+    BagValidatorRule ddmMustNotHaveRightsHolderRole();
+
     BagValidatorRule ddmIsnisAreValid();
 
     BagValidatorRule ddmOrcidsAreValid();
