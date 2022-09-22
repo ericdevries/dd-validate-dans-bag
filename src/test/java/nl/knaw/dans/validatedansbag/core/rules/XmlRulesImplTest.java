@@ -74,7 +74,7 @@ class XmlRulesImplTest {
 
         var checker = new XmlRulesImpl(reader, xmlSchemaValidator, fileService);
 
-        var result = checker.xmlFileConfirmsToSchema(Path.of("metadata/dataset.xml"), "ddm").validate(Path.of("bagdir"));
+        var result = checker.xmlFileConformsToSchema(Path.of("metadata/dataset.xml"), "ddm").validate(Path.of("bagdir"));
         assertEquals(RuleResult.Status.SUCCESS, result.getStatus());
     }
 
@@ -98,7 +98,7 @@ class XmlRulesImplTest {
 
         var checker = new XmlRulesImpl(reader, xmlSchemaValidator, fileService);
 
-        var result = checker.xmlFileConfirmsToSchema(Path.of("metadata/dataset.xml"), "ddm").validate(Path.of("bagdir"));
+        var result = checker.xmlFileConformsToSchema(Path.of("metadata/dataset.xml"), "ddm").validate(Path.of("bagdir"));
         assertEquals(RuleResult.Status.ERROR, result.getStatus());
     }
 
@@ -121,7 +121,7 @@ class XmlRulesImplTest {
 
         var checker = new XmlRulesImpl(reader, xmlSchemaValidator, fileService);
 
-        var result = checker.xmlFileConfirmsToSchema(Path.of("metadata/dataset.xml"), "ddm").validate(Path.of("bagdir"));
+        var result = checker.xmlFileConformsToSchema(Path.of("metadata/dataset.xml"), "ddm").validate(Path.of("bagdir"));
         assertEquals(RuleResult.Status.ERROR, result.getStatus());
     }
 

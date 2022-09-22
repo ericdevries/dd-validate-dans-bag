@@ -18,7 +18,7 @@ package nl.knaw.dans.validatedansbag.core.rules;
 import java.nio.file.Path;
 
 public interface XmlRules {
-    BagValidatorRule xmlFileConfirmsToSchema(Path file, String schema);
+    BagValidatorRule xmlFileConformsToSchema(Path file, String schema);
 
     BagValidatorRule xmlFileIfExistsConformsToSchema(Path file, String schema);
 }

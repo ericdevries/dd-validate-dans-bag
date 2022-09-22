@@ -53,7 +53,7 @@ public class XmlRulesImpl implements XmlRules {
     }
 
     @Override
-    public BagValidatorRule xmlFileConfirmsToSchema(Path file, String schema) {
+    public BagValidatorRule xmlFileConformsToSchema(Path file, String schema) {
         return (path) -> {
             var fileName = path.resolve(file);
             log.debug("Validating {} against schema {}", fileName, schema);
@@ -77,7 +77,7 @@ public class XmlRulesImpl implements XmlRules {
 
             if (fileService.exists(fileName)) {
                 log.debug("Validating {} against schema {}", fileName, schema);
-                return xmlFileConfirmsToSchema(file, schema).validate(path);
+                return xmlFileConformsToSchema(file, schema).validate(path);
             }
             else {
                 return RuleResult.skipDependencies();

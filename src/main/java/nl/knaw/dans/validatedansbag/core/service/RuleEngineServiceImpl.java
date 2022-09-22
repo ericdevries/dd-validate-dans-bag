@@ -27,7 +27,6 @@ import nl.knaw.dans.validatedansbag.core.rules.BagRules;
 import nl.knaw.dans.validatedansbag.core.rules.DatastationRules;
 import nl.knaw.dans.validatedansbag.core.rules.FilesXmlRules;
 import nl.knaw.dans.validatedansbag.core.rules.XmlRules;
-import org.checkerframework.checker.units.qual.N;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -98,7 +97,7 @@ public class RuleEngineServiceImpl implements RuleEngineService {
             new NumberedRule("2.6.2", bagRules.isOriginalFilepathsFileComplete(), List.of("2.6.1")),
 
             // metadata/dataset.xml
-            new NumberedRule("3.1.1", xmlRules.xmlFileConfirmsToSchema(datasetPath, "dataset.xml"), List.of("1.1.1", "2.2(a)")),
+            new NumberedRule("3.1.1", xmlRules.xmlFileConformsToSchema(datasetPath, "dataset.xml"), List.of("1.1.1", "2.2(a)")),
             new NumberedRule("3.1.2", bagRules.ddmMayContainDctermsLicenseFromList(), List.of("3.1.1")),
             new NumberedRule("3.1.3", bagRules.ddmDoiIdentifiersAreValid(), List.of("3.1.1")),
 
@@ -115,7 +114,7 @@ public class RuleEngineServiceImpl implements RuleEngineService {
             new NumberedRule("3.1.10(b)", bagRules.ddmMustHaveRightsHolderDeposit(), DepositType.MIGRATION, List.of("3.1.1")),
             new NumberedRule("3.1.11", bagRules.ddmMustNotHaveRightsHolderRole(), DepositType.DEPOSIT, List.of("3.1.1")),
 
-            new NumberedRule("3.2.1", xmlRules.xmlFileConfirmsToSchema(metadataFilesPath, "files.xml"), List.of("3.1.1")),
+            new NumberedRule("3.2.1", xmlRules.xmlFileConformsToSchema(metadataFilesPath, "files.xml"), List.of("3.1.1")),
             new NumberedRule("3.2.2", filesXmlRules.filesXmlFilePathAttributesContainLocalBagPathAndNonPayloadFilesAreNotDescribed(), List.of("2.2(b)")),
             new NumberedRule("3.2.3", filesXmlRules.filesXmlNoDuplicateFilesAndEveryPayloadFileIsDescribed(), List.of("2.2(b)")),
 
