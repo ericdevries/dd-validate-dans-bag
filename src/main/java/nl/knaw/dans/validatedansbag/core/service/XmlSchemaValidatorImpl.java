@@ -77,13 +77,17 @@ public class XmlSchemaValidatorImpl implements XmlSchemaValidator {
     }
 
     Schema getValidatorForFilename(String filename) throws MalformedURLException, SAXException {
+        log.debug("Looking up validator schema for file {}", filename);
         var result = validators.get(filename);
+        log.debug("Found validator schema {}", result);
 
         if (result == null) {
             var schema = filenameToSchemaMap.get(filename);
 
             if (schema != null) {
                 result = schemaFactory.newSchema(new URL(schemaUrls.get(schema)));
+                log.debug("Saving schema validator");
+                validators.put(filename, result);
             }
             else {
                 log.warn("Requested XML schema for filename {} but this filename is unknown", filename);
