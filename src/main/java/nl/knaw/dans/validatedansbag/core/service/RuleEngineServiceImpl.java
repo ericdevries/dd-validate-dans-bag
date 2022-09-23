@@ -80,6 +80,7 @@ public class RuleEngineServiceImpl implements RuleEngineService {
                 "original/files.xml",
                 "depositor-info",
                 "depositor-info/agreements.xml",
+                "depositor-info/depositor-agreement.pdf",
                 "depositor-info/message-from-depositor.txt",
                 "license.txt",
                 "license.pdf"
