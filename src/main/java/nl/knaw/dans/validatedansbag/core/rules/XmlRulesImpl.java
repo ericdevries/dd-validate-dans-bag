@@ -60,7 +60,7 @@ public class XmlRulesImpl implements XmlRules {
             var errors = validateXmlFile(fileName, schema);
 
             if (errors.size() > 0) {
-                var msg = String.format("%s does not confirm to %s: \n%s",
+                var msg = String.format("%s does not conform to %s: \n%s",
                     file, schema, String.join("\n", errors));
 
                 return RuleResult.error(msg);
