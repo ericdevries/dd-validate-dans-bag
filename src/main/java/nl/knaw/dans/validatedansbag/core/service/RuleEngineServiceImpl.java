@@ -82,6 +82,7 @@ public class RuleEngineServiceImpl implements RuleEngineService {
                 "depositor-info/agreements.xml",
                 "depositor-info/depositor-agreement.pdf",
                 "depositor-info/message-from-depositor.txt",
+                "license.html",
                 "license.txt",
                 "license.pdf"
             }), DepositType.MIGRATION, List.of("2.1")),
