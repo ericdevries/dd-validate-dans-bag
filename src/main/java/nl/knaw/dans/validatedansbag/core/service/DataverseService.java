@@ -35,4 +35,6 @@ public interface DataverseService {
     DataverseResponse<DatasetLatestVersion> getDataset(String globalId) throws IOException, DataverseException;
 
     DataverseResponse<List<RoleAssignmentReadOnly>> getDataverseRoleAssignments(String itemId) throws IOException, DataverseException;
+
+    void checkConnection() throws IOException, DataverseException;
 }

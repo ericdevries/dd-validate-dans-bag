@@ -60,19 +60,10 @@ public class XmlSchemaValidatorImpl implements XmlSchemaValidator {
     public XmlSchemaValidatorImpl() {
         this.schemaFactory = SchemaFactory.newInstance("http://www.w3.org/2001/XMLSchema");
 
-        for (var filename : filenameToSchemaMap.keySet()) {
-            try {
-                log.info("Loading validator for {}...", filename);
-                getValidatorForFilename(filename);
-                log.info("Validator for {} loaded.", filename);
-            }
-            catch (MalformedURLException | SAXException e) {
-                log.error("Unable to load validator for filename {}", filename, e);
-                // throw a runtime exception because
-                var name = filenameToSchemaMap.get(filename);
-                var url = schemaUrls.get(name);
-                throw new RuntimeException(String.format("Unable to load XSD '%s'", url), e);
-            }
+        try {
+            this.loadSchemas();
+        } catch (Throwable e) {
+            log.error("Unable to load XML schema's on startup", e);
         }
     }
 
@@ -131,5 +122,29 @@ public class XmlSchemaValidatorImpl implements XmlSchemaValidator {
         validator.validate(new DOMSource(node));
 
         return exceptions;
+    }
+
+    @Override
+    public void loadSchemas() throws Exception {
+        for (var filename : filenameToSchemaMap.keySet()) {
+            log.trace("Start loading of validator for {}", filename);
+            if (validators.get(filename) != null) {
+                log.trace("Validator {} already exists, skipping", filename);
+                continue;
+            }
+
+            try {
+                log.info("Loading validator for {}...", filename);
+                getValidatorForFilename(filename);
+                log.info("Validator for {} loaded.", filename);
+            }
+            catch (MalformedURLException | SAXException e) {
+                log.error("Unable to load validator for filename {}", filename, e);
+                // throw a runtime exception because
+                var name = filenameToSchemaMap.get(filename);
+                var url = schemaUrls.get(name);
+                throw new RuntimeException(String.format("Unable to load XSD '%s'", url), e);
+            }
+        }
     }
 }
