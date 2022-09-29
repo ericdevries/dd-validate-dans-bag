@@ -629,7 +629,7 @@ public class BagRulesImpl implements BagRules {
             var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
 
             // points
-            var expr = "//gml:Point | //gml:lowerCorner | //gml:upperCorner";
+            var expr = "//gml:Point/gml:pos | //gml:lowerCorner | //gml:upperCorner";
 
             var errors = xmlReader.xpathToStream(document, expr)
                 .map(value -> {
