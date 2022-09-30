@@ -62,7 +62,7 @@ class ValidateResourceTest {
         var multipart = new FormDataMultiPart()
             .field("command", data, MediaType.APPLICATION_JSON_TYPE);
 
-        var response = EXT.target("/validate")
+        EXT.target("/validate")
             .register(MultiPartFeature.class)
             .request()
             .post(Entity.entity(multipart, multipart.getMediaType()), String.class);
@@ -86,7 +86,7 @@ class ValidateResourceTest {
         Mockito.doReturn(Optional.of(Path.of("bagdir")))
             .when(fileService).getFirstDirectory(Mockito.any());
 
-        var response = EXT.target("/validate")
+        EXT.target("/validate")
             .register(MultiPartFeature.class)
             .request()
             .post(Entity.entity(multipart, multipart.getMediaType()), String.class);
@@ -104,7 +104,7 @@ class ValidateResourceTest {
         Mockito.doReturn(Optional.of(Path.of("bagdir")))
             .when(fileService).getFirstDirectory(Mockito.any());
 
-        var response = EXT.target("/validate")
+        EXT.target("/validate")
             .request()
             .post(zip, String.class);
 
@@ -123,13 +123,11 @@ class ValidateResourceTest {
         Mockito.doThrow(BagNotFoundException.class)
             .when(ruleEngineService).validateBag(Mockito.any(), Mockito.any(), Mockito.any());
 
-        try (var response = EXT.target("/validate")
+        var response = EXT.target("/validate")
             .register(MultiPartFeature.class)
             .request()
-            .post(Entity.entity(multipart, multipart.getMediaType()), Response.class)) {
-
-            Assertions.assertEquals(400, response.getStatus());
-        }
+            .post(Entity.entity(multipart, multipart.getMediaType()), Response.class);
+        Assertions.assertEquals(400, response.getStatus());
     }
 
     @Test
@@ -139,12 +137,10 @@ class ValidateResourceTest {
         Mockito.doThrow(ZipError.class)
             .when(fileService).extractZipFile(Mockito.any(InputStream.class));
 
-        try (var response = EXT.target("/validate")
+        var response = EXT.target("/validate")
             .register(MultiPartFeature.class)
             .request()
-            .post(zip, Response.class)) {
-
-            Assertions.assertEquals(500, response.getStatus());
-        }
+            .post(zip, Response.class);
+        Assertions.assertEquals(500, response.getStatus());
     }
 }

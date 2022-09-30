@@ -108,10 +108,10 @@ class ValidateResourceIntegrationTest {
         return new ValidateResource(ruleEngineService, fileService);
     }
 
-    static private List<String> getViolatedRuleNumbers(ValidateOkDto response) {
+    static private Set<String> getViolatedRuleNumbers(ValidateOkDto response) {
         return response.getRuleViolations().stream()
             .map(ValidateOkRuleViolationsDto::getRule)
-            .collect(Collectors.toList());
+            .collect(Collectors.toSet());
     }
 
     @BeforeEach
@@ -141,7 +141,7 @@ class ValidateResourceIntegrationTest {
         assertEquals(ValidateOkDto.InformationPackageTypeEnum.DEPOSIT, response.getInformationPackageType());
         assertEquals(filename, response.getBagLocation());
         // 4.1 is not reported when we add dependency 1.1.1 to 1.2.1 (as in all other groups)
-        assertEquals( List.of("1.1.1", "4.1"), getViolatedRuleNumbers(response));
+        assertEquals( Set.of("1.1.1", "4.1"), getViolatedRuleNumbers(response));
     }
 
     @Test
@@ -254,7 +254,7 @@ class ValidateResourceIntegrationTest {
         assertEquals("1.0.0", response.getProfileVersion());
         assertEquals(ValidateOkDto.InformationPackageTypeEnum.MIGRATION, response.getInformationPackageType());
         assertEquals(filename, response.getBagLocation());
-        assertEquals( List.of("2.6.2", "3.2.2", "3.2.3", "4.1"), getViolatedRuleNumbers(response));
+        assertEquals( Set.of("2.6.2", "3.2.2", "3.2.3", "4.1"), getViolatedRuleNumbers(response));
     }
 
     @Test
@@ -277,7 +277,7 @@ class ValidateResourceIntegrationTest {
         assertEquals("1.0.0", response.getProfileVersion());
         assertEquals(ValidateOkDto.InformationPackageTypeEnum.DEPOSIT, response.getInformationPackageType());
         assertNull(response.getBagLocation());
-        assertEquals( List.of("4.1"), getViolatedRuleNumbers(response));
+        assertEquals( Set.of("4.1"), getViolatedRuleNumbers(response));
     }
 
     @Test
@@ -573,10 +573,7 @@ class ValidateResourceIntegrationTest {
             .request()
             .post(Entity.entity(multipart, multipart.getMediaType()), ValidateOkDto.class);
 
-        var failed = response.getRuleViolations().stream()
-            .map(ValidateOkRuleViolationsDto::getRule).collect(Collectors.toSet());
-
-        assertEquals(Set.of("4.4(b)"), failed);
+        assertEquals(Set.of("4.4(b)"), getViolatedRuleNumbers(response));
         assertFalse(response.getIsCompliant());
         assertEquals("bag-with-is-version-of", response.getName());
     }
@@ -672,10 +669,7 @@ class ValidateResourceIntegrationTest {
             .request()
             .post(Entity.entity(multipart, multipart.getMediaType()), ValidateOkDto.class);
 
-        var failed = response.getRuleViolations().stream()
-            .map(ValidateOkRuleViolationsDto::getRule).collect(Collectors.toSet());
-
-        assertEquals(Set.of("4.2", "4.4(a)"), failed);
+        assertEquals(Set.of("4.2", "4.4(a)"), getViolatedRuleNumbers(response));
         assertFalse(response.getIsCompliant());
         assertEquals("bag-with-is-version-of", response.getName());
     }
