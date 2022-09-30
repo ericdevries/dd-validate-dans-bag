@@ -21,6 +21,8 @@ import io.dropwizard.forms.MultiPartBundle;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import nl.knaw.dans.validatedansbag.core.engine.RuleEngineImpl;
+import nl.knaw.dans.validatedansbag.core.health.DataverseHealthCheck;
+import nl.knaw.dans.validatedansbag.core.health.XmlSchemaHealthCheck;
 import nl.knaw.dans.validatedansbag.core.rules.BagRulesImpl;
 import nl.knaw.dans.validatedansbag.core.rules.DatastationRulesImpl;
 import nl.knaw.dans.validatedansbag.core.rules.FilesXmlRulesImpl;
@@ -93,5 +95,8 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
         environment.jersey().register(new IllegalArgumentExceptionMapper());
         environment.jersey().register(new ValidateResource(ruleEngineService, fileService));
         environment.jersey().register(new ValidateOkDtoYamlMessageBodyWriter());
+
+        environment.healthChecks().register("xml-schemas", new XmlSchemaHealthCheck(xmlSchemaValidator));
+        environment.healthChecks().register("dataverse", new DataverseHealthCheck(dataverseService));
     }
 }

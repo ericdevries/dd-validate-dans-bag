@@ -69,3 +69,32 @@ validation:
       - "http://www.tapr.org/ohl.html"
       - "http://dans.knaw.nl/en/about/organisation-and-policy/legal-information/DANSGeneralconditionsofuseUKDEF.pdf"
       - "http://dans.knaw.nl/en/about/organisation-and-policy/legal-information/DANSLicence.pdf"
+
+health:
+  delayedShutdownHandlerEnabled: false
+  healthChecks:
+    - name: deadlocks
+      critical: true
+      schedule:
+        checkInterval: 5s
+        downtimeInterval: 10s
+        failureAttempts: 1
+        successAttempts: 1
+    - name: xml-schemas
+      critical: true
+      initialState: false
+      schedule:
+        checkInterval: 60s
+        initialDelay: 1s
+        downtimeInterval: 30s
+        failureAttempts: 1
+        successAttempts: 1
+    - name: dataverse
+      critical: false
+      initialState: true
+      schedule:
+        checkInterval: 10s
+        initialDelay: 1s
+        downtimeInterval: 5s
+        failureAttempts: 2
+        successAttempts: 3
