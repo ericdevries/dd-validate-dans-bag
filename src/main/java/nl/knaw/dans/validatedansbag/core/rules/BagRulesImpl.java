@@ -641,6 +641,7 @@ public class BagRulesImpl implements BagRules {
 
                     try {
                         var parts = Arrays.stream(text.split("\\s+"))
+                            .map(String::trim)
                             .map(Float::parseFloat)
                             .collect(Collectors.toList());
 
