@@ -108,6 +108,12 @@ class ValidateResourceIntegrationTest {
         return new ValidateResource(ruleEngineService, fileService);
     }
 
+    static private List<String> getViolatedRuleNumbers(ValidateOkDto response) {
+        return response.getRuleViolations().stream()
+            .map(ValidateOkRuleViolationsDto::getRule)
+            .collect(Collectors.toList());
+    }
+
     @BeforeEach
     void setup() {
         Mockito.reset(dataverseService);
@@ -134,7 +140,8 @@ class ValidateResourceIntegrationTest {
         assertEquals("1.0.0", response.getProfileVersion());
         assertEquals(ValidateOkDto.InformationPackageTypeEnum.DEPOSIT, response.getInformationPackageType());
         assertEquals(filename, response.getBagLocation());
-        assertEquals(2, response.getRuleViolations().size());
+        // 4.1 is not reported when we add dependency 1.1.1 to 1.2.1 (as in all other groups)
+        assertEquals( List.of("1.1.1", "4.1"), getViolatedRuleNumbers(response));
     }
 
     @Test
@@ -247,7 +254,7 @@ class ValidateResourceIntegrationTest {
         assertEquals("1.0.0", response.getProfileVersion());
         assertEquals(ValidateOkDto.InformationPackageTypeEnum.MIGRATION, response.getInformationPackageType());
         assertEquals(filename, response.getBagLocation());
-        assertEquals(4, response.getRuleViolations().size());
+        assertEquals( List.of("2.6.2", "3.2.2", "3.2.3", "4.1"), getViolatedRuleNumbers(response));
     }
 
     @Test
@@ -270,7 +277,7 @@ class ValidateResourceIntegrationTest {
         assertEquals("1.0.0", response.getProfileVersion());
         assertEquals(ValidateOkDto.InformationPackageTypeEnum.DEPOSIT, response.getInformationPackageType());
         assertNull(response.getBagLocation());
-        assertEquals(1, response.getRuleViolations().size());
+        assertEquals( List.of("4.1"), getViolatedRuleNumbers(response));
     }
 
     @Test
