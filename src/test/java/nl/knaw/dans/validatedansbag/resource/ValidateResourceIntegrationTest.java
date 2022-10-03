@@ -148,7 +148,7 @@ class ValidateResourceIntegrationTest {
         assertEquals("1.0.0", response.getProfileVersion());
         assertEquals(InformationPackageTypeEnum.DEPOSIT, response.getInformationPackageType());
         assertEquals(bagDir, response.getBagLocation());
-        assertTrue(response.getRuleViolations().size() != 0, "expecting rule violations, got none");
+        assertTrue(response.getRuleViolations().size() > 0, "expecting rule violations, got none");
     }
 
     @Test
@@ -246,7 +246,7 @@ class ValidateResourceIntegrationTest {
         var data = new ValidateCommandDto();
         data.setBagLocation(bagDir);
         data.setPackageType(PackageTypeEnum.MIGRATION);
-        data.setLevel(LevelEnum.WITH_DATA_STATION_CONTEXT);
+        data.setLevel(LevelEnum.STAND_ALONE);
 
         var multipart = new FormDataMultiPart()
             .field("command", data, MediaType.APPLICATION_JSON_TYPE);
@@ -260,7 +260,7 @@ class ValidateResourceIntegrationTest {
         assertEquals("1.0.0", response.getProfileVersion());
         assertEquals(InformationPackageTypeEnum.MIGRATION, response.getInformationPackageType());
         assertEquals(bagDir, response.getBagLocation());
-        assertEquals( Set.of("2.6.2", "3.2.2", "3.2.3", "4.1"), getViolatedRuleNumbers(response));
+        assertEquals( Set.of("2.6.2", "3.2.2", "3.2.3"), getViolatedRuleNumbers(response));
     }
 
     @Test

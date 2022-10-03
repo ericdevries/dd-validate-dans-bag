@@ -18,6 +18,7 @@ package nl.knaw.dans.validatedansbag.resource;
 import io.dropwizard.testing.junit5.DropwizardExtensionsSupport;
 import io.dropwizard.testing.junit5.ResourceExtension;
 import nl.knaw.dans.openapi.api.ValidateCommandDto;
+import nl.knaw.dans.openapi.api.ValidateCommandDto.PackageTypeEnum;
 import nl.knaw.dans.validatedansbag.core.BagNotFoundException;
 import nl.knaw.dans.validatedansbag.core.service.FileService;
 import nl.knaw.dans.validatedansbag.core.service.RuleEngineService;
@@ -57,7 +58,7 @@ class ValidateResourceTest {
     void validateFormData() {
         var data = new ValidateCommandDto();
         data.setBagLocation("it/is/here");
-        data.setPackageType(ValidateCommandDto.PackageTypeEnum.DEPOSIT);
+        data.setPackageType(PackageTypeEnum.DEPOSIT);
 
         var multipart = new FormDataMultiPart()
             .field("command", data, MediaType.APPLICATION_JSON_TYPE);
@@ -74,7 +75,7 @@ class ValidateResourceTest {
     void validateFormDataWithZipFile() throws Exception {
         var data = new ValidateCommandDto();
         data.setBagLocation(null);
-        data.setPackageType(ValidateCommandDto.PackageTypeEnum.DEPOSIT);
+        data.setPackageType(PackageTypeEnum.DEPOSIT);
 
         var multipart = new FormDataMultiPart()
             .field("command", data, MediaType.APPLICATION_JSON_TYPE)
@@ -115,7 +116,7 @@ class ValidateResourceTest {
     void validateMultipartFileButTheFileDoesNotExist() throws Exception {
         var data = new ValidateCommandDto();
         data.setBagLocation("some/path");
-        data.setPackageType(ValidateCommandDto.PackageTypeEnum.DEPOSIT);
+        data.setPackageType(PackageTypeEnum.DEPOSIT);
 
         var multipart = new FormDataMultiPart()
             .field("command", data, MediaType.APPLICATION_JSON_TYPE);
