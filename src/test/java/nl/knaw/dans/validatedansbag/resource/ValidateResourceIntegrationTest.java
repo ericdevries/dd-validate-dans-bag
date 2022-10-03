@@ -270,7 +270,7 @@ class ValidateResourceIntegrationTest {
 
         var data = new ValidateCommandDto();
         data.setPackageType(PackageTypeEnum.DEPOSIT);
-        data.setLevel(LevelEnum.WITH_DATA_STATION_CONTEXT);
+        data.setLevel(LevelEnum.STAND_ALONE);
         var multipart = new FormDataMultiPart()
             .field("command", data, MediaType.APPLICATION_JSON_TYPE)
             .field("zip", bagDir.openStream(), MediaType.valueOf("application/zip"));
@@ -280,11 +280,11 @@ class ValidateResourceIntegrationTest {
             .request()
             .post(Entity.entity(multipart, multipart.getMediaType()), ValidateOkDto.class);
 
-        assertFalse(response.getIsCompliant());
+        assertTrue(response.getIsCompliant());
         assertEquals("1.0.0", response.getProfileVersion());
         assertEquals(InformationPackageTypeEnum.DEPOSIT, response.getInformationPackageType());
         assertNull(response.getBagLocation());
-        assertEquals( Set.of("4.1"), getViolatedRuleNumbers(response));
+        assertEquals( 0, response.getRuleViolations().size());
     }
 
     @Test
