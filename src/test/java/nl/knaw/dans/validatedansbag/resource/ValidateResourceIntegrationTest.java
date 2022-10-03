@@ -21,7 +21,10 @@ import nl.knaw.dans.lib.dataverse.model.RoleAssignmentReadOnly;
 import nl.knaw.dans.lib.dataverse.model.dataset.DatasetLatestVersion;
 import nl.knaw.dans.lib.dataverse.model.search.SearchResult;
 import nl.knaw.dans.openapi.api.ValidateCommandDto;
+import nl.knaw.dans.openapi.api.ValidateCommandDto.LevelEnum;
+import nl.knaw.dans.openapi.api.ValidateCommandDto.PackageTypeEnum;
 import nl.knaw.dans.openapi.api.ValidateOkDto;
+import nl.knaw.dans.openapi.api.ValidateOkDto.InformationPackageTypeEnum;
 import nl.knaw.dans.openapi.api.ValidateOkRuleViolationsDto;
 import nl.knaw.dans.validatedansbag.core.config.OtherIdPrefix;
 import nl.knaw.dans.validatedansbag.core.config.SwordDepositorRoles;
@@ -54,6 +57,7 @@ import org.xml.sax.SAXException;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.net.URL;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -114,6 +118,10 @@ class ValidateResourceIntegrationTest {
             .collect(Collectors.toSet());
     }
 
+    private URL getResourceUrl(String name) {
+        return Objects.requireNonNull(getClass().getClassLoader().getResource(name));
+    }
+
     @BeforeEach
     void setup() {
         Mockito.reset(dataverseService);
@@ -122,12 +130,12 @@ class ValidateResourceIntegrationTest {
 
     @Test
     void validateFormDataWithInvalidBag() {
-        var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("bags/audiences-invalid")).getFile();
+        var bagDir = getResourceUrl("bags/audiences-invalid").getFile();
 
         var data = new ValidateCommandDto();
-        data.setBagLocation(filename);
-        data.setPackageType(ValidateCommandDto.PackageTypeEnum.DEPOSIT);
-        data.setLevel(ValidateCommandDto.LevelEnum.WITH_DATA_STATION_CONTEXT);
+        data.setBagLocation(bagDir);
+        data.setPackageType(PackageTypeEnum.DEPOSIT);
+        data.setLevel(LevelEnum.WITH_DATA_STATION_CONTEXT);
         var multipart = new FormDataMultiPart()
             .field("command", data, MediaType.APPLICATION_JSON_TYPE);
 
@@ -138,20 +146,20 @@ class ValidateResourceIntegrationTest {
 
         assertFalse(response.getIsCompliant());
         assertEquals("1.0.0", response.getProfileVersion());
-        assertEquals(ValidateOkDto.InformationPackageTypeEnum.DEPOSIT, response.getInformationPackageType());
-        assertEquals(filename, response.getBagLocation());
+        assertEquals(InformationPackageTypeEnum.DEPOSIT, response.getInformationPackageType());
+        assertEquals(bagDir, response.getBagLocation());
         // 4.1 is not reported when we add dependency 1.1.1 to 1.2.1 (as in all other groups)
         assertEquals( Set.of("1.1.1", "4.1"), getViolatedRuleNumbers(response));
     }
 
     @Test
     void validateFormDataWithSomeException() throws Exception {
-        var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("bags/valid-bag")).getFile();
+        var bagDir = getResourceUrl("bags/valid-bag").getFile();
 
         var data = new ValidateCommandDto();
-        data.setBagLocation(filename);
-        data.setPackageType(ValidateCommandDto.PackageTypeEnum.DEPOSIT);
-        data.setLevel(ValidateCommandDto.LevelEnum.WITH_DATA_STATION_CONTEXT);
+        data.setBagLocation(bagDir);
+        data.setPackageType(PackageTypeEnum.DEPOSIT);
+        data.setLevel(LevelEnum.WITH_DATA_STATION_CONTEXT);
         var multipart = new FormDataMultiPart()
             .field("command", data, MediaType.APPLICATION_JSON_TYPE);
 
@@ -169,12 +177,12 @@ class ValidateResourceIntegrationTest {
 
     @Test
     void validateFormDataWithValidBagAndOriginalFilepaths() throws Exception {
-        var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("bags/datastation-valid-bag")).getFile();
+        var bagDir = getResourceUrl("bags/datastation-valid-bag").getFile();
 
         var data = new ValidateCommandDto();
-        data.setBagLocation(filename);
-        data.setPackageType(ValidateCommandDto.PackageTypeEnum.MIGRATION);
-        data.setLevel(ValidateCommandDto.LevelEnum.WITH_DATA_STATION_CONTEXT);
+        data.setBagLocation(bagDir);
+        data.setPackageType(PackageTypeEnum.MIGRATION);
+        data.setLevel(LevelEnum.WITH_DATA_STATION_CONTEXT);
 
         var multipart = new FormDataMultiPart()
             .field("command", data, MediaType.APPLICATION_JSON_TYPE);
@@ -228,19 +236,19 @@ class ValidateResourceIntegrationTest {
 
         assertTrue(response.getIsCompliant());
         assertEquals("1.0.0", response.getProfileVersion());
-        assertEquals(ValidateOkDto.InformationPackageTypeEnum.MIGRATION, response.getInformationPackageType());
-        assertEquals(filename, response.getBagLocation());
+        assertEquals(InformationPackageTypeEnum.MIGRATION, response.getInformationPackageType());
+        assertEquals(bagDir, response.getBagLocation());
         assertEquals(0, response.getRuleViolations().size());
     }
 
     @Test
     void validateFormDataWithInValidBagAndOriginalFilepaths() {
-        var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("bags/original-filepaths-invalid-bag")).getFile();
+        var bagDir = getResourceUrl("bags/original-filepaths-invalid-bag").getFile();
 
         var data = new ValidateCommandDto();
-        data.setBagLocation(filename);
-        data.setPackageType(ValidateCommandDto.PackageTypeEnum.MIGRATION);
-        data.setLevel(ValidateCommandDto.LevelEnum.WITH_DATA_STATION_CONTEXT);
+        data.setBagLocation(bagDir);
+        data.setPackageType(PackageTypeEnum.MIGRATION);
+        data.setLevel(LevelEnum.WITH_DATA_STATION_CONTEXT);
 
         var multipart = new FormDataMultiPart()
             .field("command", data, MediaType.APPLICATION_JSON_TYPE);
@@ -252,21 +260,22 @@ class ValidateResourceIntegrationTest {
 
         assertFalse(response.getIsCompliant());
         assertEquals("1.0.0", response.getProfileVersion());
-        assertEquals(ValidateOkDto.InformationPackageTypeEnum.MIGRATION, response.getInformationPackageType());
-        assertEquals(filename, response.getBagLocation());
+        assertEquals(InformationPackageTypeEnum.MIGRATION, response.getInformationPackageType());
+        assertEquals(bagDir, response.getBagLocation());
         assertEquals( Set.of("2.6.2", "3.2.2", "3.2.3", "4.1"), getViolatedRuleNumbers(response));
     }
 
     @Test
     void validateMultipartZipFile() throws Exception {
-        var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("zips/audiences.zip"));
+        String name = "zips/audiences.zip";
+        var bagDir = getResourceUrl(name);
 
         var data = new ValidateCommandDto();
-        data.setPackageType(ValidateCommandDto.PackageTypeEnum.DEPOSIT);
-        data.setLevel(ValidateCommandDto.LevelEnum.WITH_DATA_STATION_CONTEXT);
+        data.setPackageType(PackageTypeEnum.DEPOSIT);
+        data.setLevel(LevelEnum.WITH_DATA_STATION_CONTEXT);
         var multipart = new FormDataMultiPart()
             .field("command", data, MediaType.APPLICATION_JSON_TYPE)
-            .field("zip", filename.openStream(), MediaType.valueOf("application/zip"));
+            .field("zip", bagDir.openStream(), MediaType.valueOf("application/zip"));
 
         var response = EXT.target("/validate")
             .register(MultiPartFeature.class)
@@ -275,41 +284,41 @@ class ValidateResourceIntegrationTest {
 
         assertFalse(response.getIsCompliant());
         assertEquals("1.0.0", response.getProfileVersion());
-        assertEquals(ValidateOkDto.InformationPackageTypeEnum.DEPOSIT, response.getInformationPackageType());
+        assertEquals(InformationPackageTypeEnum.DEPOSIT, response.getInformationPackageType());
         assertNull(response.getBagLocation());
         assertEquals( Set.of("4.1"), getViolatedRuleNumbers(response));
     }
 
     @Test
     void validateZipFile() throws Exception {
-        var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("zips/audiences.zip"));
+        var bagDir = getResourceUrl("zips/audiences.zip");
 
         var data = new ValidateCommandDto();
-        data.setPackageType(ValidateCommandDto.PackageTypeEnum.DEPOSIT);
-        data.setLevel(ValidateCommandDto.LevelEnum.WITH_DATA_STATION_CONTEXT);
+        data.setPackageType(PackageTypeEnum.DEPOSIT);
+        data.setLevel(LevelEnum.WITH_DATA_STATION_CONTEXT);
         var response = EXT.target("/validate")
             .request()
-            .post(Entity.entity(filename.openStream(), MediaType.valueOf("application/zip")), ValidateOkDto.class);
+            .post(Entity.entity(bagDir.openStream(), MediaType.valueOf("application/zip")), ValidateOkDto.class);
 
         assertTrue(response.getIsCompliant());
         assertEquals("1.0.0", response.getProfileVersion());
-        assertEquals(ValidateOkDto.InformationPackageTypeEnum.DEPOSIT, response.getInformationPackageType());
+        assertEquals(InformationPackageTypeEnum.DEPOSIT, response.getInformationPackageType());
         assertNull(response.getBagLocation());
         assertEquals(0, response.getRuleViolations().size());
     }
 
     @Test
     void validateZipFileAndGetTextResponse() throws Exception {
-        var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("zips/invalid-sha1.zip"));
+        var bagDir = getResourceUrl("zips/invalid-sha1.zip");
 
         var data = new ValidateCommandDto();
-        data.setPackageType(ValidateCommandDto.PackageTypeEnum.DEPOSIT);
-        data.setLevel(ValidateCommandDto.LevelEnum.WITH_DATA_STATION_CONTEXT);
+        data.setPackageType(PackageTypeEnum.DEPOSIT);
+        data.setLevel(LevelEnum.WITH_DATA_STATION_CONTEXT);
 
         var response = EXT.target("/validate")
             .request()
             .header("accept", "text/plain")
-            .post(Entity.entity(filename.openStream(), MediaType.valueOf("application/zip")), String.class);
+            .post(Entity.entity(bagDir.openStream(), MediaType.valueOf("application/zip")), String.class);
 
         assertTrue(response.contains("Bag location:"));
         assertTrue(response.contains("Name:"));
@@ -323,8 +332,8 @@ class ValidateResourceIntegrationTest {
     void validateMultipartDataLocationCouldNotBeRead() {
         var data = new ValidateCommandDto();
         data.setBagLocation("/some/non/existing/filename");
-        data.setPackageType(ValidateCommandDto.PackageTypeEnum.DEPOSIT);
-        data.setLevel(ValidateCommandDto.LevelEnum.WITH_DATA_STATION_CONTEXT);
+        data.setPackageType(PackageTypeEnum.DEPOSIT);
+        data.setLevel(LevelEnum.WITH_DATA_STATION_CONTEXT);
 
         var multipart = new FormDataMultiPart()
             .field("command", data, MediaType.APPLICATION_JSON_TYPE);
@@ -340,12 +349,12 @@ class ValidateResourceIntegrationTest {
 
     @Test
     void validateWithHasOrganizationalIdentifier() throws Exception {
-        var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("bags/bag-with-is-version-of")).getFile();
+        var bagDir = getResourceUrl("bags/bag-with-is-version-of").getFile();
 
         var data = new ValidateCommandDto();
-        data.setBagLocation(filename);
-        data.setPackageType(ValidateCommandDto.PackageTypeEnum.DEPOSIT);
-        data.setLevel(ValidateCommandDto.LevelEnum.WITH_DATA_STATION_CONTEXT);
+        data.setBagLocation(bagDir);
+        data.setPackageType(PackageTypeEnum.DEPOSIT);
+        data.setLevel(LevelEnum.WITH_DATA_STATION_CONTEXT);
 
         var multipart = new FormDataMultiPart()
             .field("command", data, MediaType.APPLICATION_JSON_TYPE);
@@ -462,12 +471,12 @@ class ValidateResourceIntegrationTest {
 
     @Test
     void validateWithHasOrganizationalIdentifierButItDoesNotMatch() throws Exception {
-        var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("bags/bag-with-is-version-of")).getFile();
+        var bagDir = getResourceUrl("bags/bag-with-is-version-of").getFile();
 
         var data = new ValidateCommandDto();
-        data.setBagLocation(filename);
-        data.setPackageType(ValidateCommandDto.PackageTypeEnum.DEPOSIT);
-        data.setLevel(ValidateCommandDto.LevelEnum.WITH_DATA_STATION_CONTEXT);
+        data.setBagLocation(bagDir);
+        data.setPackageType(PackageTypeEnum.DEPOSIT);
+        data.setLevel(LevelEnum.WITH_DATA_STATION_CONTEXT);
 
         var multipart = new FormDataMultiPart()
             .field("command", data, MediaType.APPLICATION_JSON_TYPE);
@@ -580,12 +589,12 @@ class ValidateResourceIntegrationTest {
 
     @Test
     void validateWithNoMatchingSwordToken() throws Exception {
-        var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("bags/bag-with-is-version-of")).getFile();
+        var bagDir = getResourceUrl("bags/bag-with-is-version-of").getFile();
 
         var data = new ValidateCommandDto();
-        data.setBagLocation(filename);
-        data.setPackageType(ValidateCommandDto.PackageTypeEnum.DEPOSIT);
-        data.setLevel(ValidateCommandDto.LevelEnum.WITH_DATA_STATION_CONTEXT);
+        data.setBagLocation(bagDir);
+        data.setPackageType(PackageTypeEnum.DEPOSIT);
+        data.setLevel(LevelEnum.WITH_DATA_STATION_CONTEXT);
 
         var multipart = new FormDataMultiPart()
             .field("command", data, MediaType.APPLICATION_JSON_TYPE);
