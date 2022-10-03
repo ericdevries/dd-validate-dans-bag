@@ -165,13 +165,12 @@ class ValidateResourceIntegrationTest {
         Mockito.when(xmlSchemaValidator.validateDocument(Mockito.any(), Mockito.anyString()))
             .thenThrow(new SAXException("Something is broken"));
 
-        try (var response = EXT.target("/validate")
+        var response = EXT.target("/validate")
             .register(MultiPartFeature.class)
             .request()
-            .post(Entity.entity(multipart, multipart.getMediaType()), Response.class)) {
+            .post(Entity.entity(multipart, multipart.getMediaType()), Response.class);
 
-            assertEquals(500, response.getStatus());
-        }
+        assertEquals(500, response.getStatus());
     }
 
     @Test
@@ -307,6 +306,21 @@ class ValidateResourceIntegrationTest {
     }
 
     @Test
+    void validateBagNotFoundInEmptyZipFile() throws Exception {
+        var bagDir = getResourceUrl("zips/empty.zip");
+
+        var data = new ValidateCommandDto();
+        data.setPackageType(PackageTypeEnum.DEPOSIT);
+        data.setLevel(LevelEnum.WITH_DATA_STATION_CONTEXT);
+        var response = EXT.target("/validate")
+            .request()
+            .post(Entity.entity(bagDir.openStream(), MediaType.valueOf("application/zip")), Response.class);
+
+        assertEquals(400, response.getStatus());
+        assertEquals("java.io.ByteArrayInputStream", response.getEntity().toString().replaceAll("@.*","")); // TODO can't we return a more descriptive body?
+    }
+
+    @Test
     void validateZipFileAndGetTextResponse() throws Exception {
         var bagDir = getResourceUrl("zips/invalid-sha1.zip");
 
@@ -337,13 +351,12 @@ class ValidateResourceIntegrationTest {
         var multipart = new FormDataMultiPart()
             .field("command", data, MediaType.APPLICATION_JSON_TYPE);
 
-        try (var response = EXT.target("/validate")
+        var response = EXT.target("/validate")
             .register(MultiPartFeature.class)
             .request()
-            .post(Entity.entity(multipart, multipart.getMediaType()), Response.class)) {
+            .post(Entity.entity(multipart, multipart.getMediaType()), Response.class);
 
-            assertEquals(400, response.getStatus());
-        }
+        assertEquals(400, response.getStatus());
     }
 
     @Test
