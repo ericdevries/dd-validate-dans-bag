@@ -135,7 +135,7 @@ class ValidateResourceIntegrationTest {
         var data = new ValidateCommandDto();
         data.setBagLocation(bagDir);
         data.setPackageType(PackageTypeEnum.DEPOSIT);
-        data.setLevel(LevelEnum.WITH_DATA_STATION_CONTEXT);
+        data.setLevel(LevelEnum.STAND_ALONE);
         var multipart = new FormDataMultiPart()
             .field("command", data, MediaType.APPLICATION_JSON_TYPE);
 
