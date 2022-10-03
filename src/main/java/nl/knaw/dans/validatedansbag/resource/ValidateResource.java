@@ -17,6 +17,8 @@ package nl.knaw.dans.validatedansbag.resource;
 
 import nl.knaw.dans.openapi.api.ValidateCommandDto;
 import nl.knaw.dans.openapi.api.ValidateOkDto;
+import nl.knaw.dans.openapi.api.ValidateOkDto.InformationPackageTypeEnum;
+import nl.knaw.dans.openapi.api.ValidateOkDto.LevelEnum;
 import nl.knaw.dans.openapi.api.ValidateOkRuleViolationsDto;
 import nl.knaw.dans.validatedansbag.core.BagNotFoundException;
 import nl.knaw.dans.validatedansbag.core.engine.DepositType;
@@ -179,17 +181,17 @@ public class ValidateResource {
         return ValidationLevel.STAND_ALONE;
     }
 
-    ValidateOkDto.InformationPackageTypeEnum toInfoPackageType(DepositType value) {
+    InformationPackageTypeEnum toInfoPackageType(DepositType value) {
         if (DepositType.MIGRATION.equals(value)) {
-            return ValidateOkDto.InformationPackageTypeEnum.MIGRATION;
+            return InformationPackageTypeEnum.MIGRATION;
         }
-        return ValidateOkDto.InformationPackageTypeEnum.DEPOSIT;
+        return InformationPackageTypeEnum.DEPOSIT;
     }
 
-    ValidateOkDto.LevelEnum toLevel(ValidationLevel value) {
+    LevelEnum toLevel(ValidationLevel value) {
         if (ValidationLevel.WITH_DATA_STATION_CONTEXT.equals(value)) {
-            return ValidateOkDto.LevelEnum.WITH_DATA_STATION_CONTEXT;
+            return LevelEnum.WITH_DATA_STATION_CONTEXT;
         }
-        return ValidateOkDto.LevelEnum.STAND_ALONE;
+        return LevelEnum.STAND_ALONE;
     }
 }
