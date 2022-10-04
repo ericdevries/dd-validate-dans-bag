@@ -22,6 +22,7 @@ import org.mockito.Mockito;
 import java.nio.file.Path;
 import java.util.List;
 
+import static nl.knaw.dans.validatedansbag.core.engine.NumberedRule.numberedRule;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -33,11 +34,12 @@ class RuleEngineImplTest {
         var fakeRule = Mockito.mock(BagValidatorRule.class);
         var result = new RuleResult(RuleResult.Status.SUCCESS, List.of());
         Mockito.when(fakeRule.validate(Mockito.any())).thenReturn(result);
+
         var rules = new NumberedRule[] {
-            new NumberedRule("1.1", fakeRule),
-            new NumberedRule("1.2", fakeRule),
-            new NumberedRule("1.3", fakeRule),
-            new NumberedRule("1.4", fakeRule),
+            numberedRule("1.1", fakeRule).build(),
+            numberedRule("1.2", fakeRule).build(),
+            numberedRule("1.3", fakeRule).build(),
+            numberedRule("1.4", fakeRule).build(),
         };
 
         var engine = new RuleEngineImpl();
@@ -54,10 +56,10 @@ class RuleEngineImplTest {
         var result = new RuleResult(RuleResult.Status.SUCCESS, List.of());
         Mockito.when(fakeRule.validate(Mockito.any())).thenReturn(result);
         var rules = new NumberedRule[] {
-            new NumberedRule("1.1", fakeRule),
-            new NumberedRule("1.2", fakeRuleSkipped),
-            new NumberedRule("1.3", fakeRule, List.of("1.2")),
-            new NumberedRule("1.4", fakeRule),
+            numberedRule("1.1", fakeRule).build(),
+            numberedRule("1.2", fakeRuleSkipped).build(),
+            numberedRule("1.3", fakeRule, "1.2").build(),
+            numberedRule("1.4", fakeRule).build(),
         };
 
         var failedResult = new RuleResult(RuleResult.Status.ERROR, List.of());
@@ -78,10 +80,10 @@ class RuleEngineImplTest {
         var result = new RuleResult(RuleResult.Status.SUCCESS, List.of());
         Mockito.when(fakeRule.validate(Mockito.any())).thenReturn(result);
         var rules = new NumberedRule[] {
-            new NumberedRule("1.1", fakeRule),
-            new NumberedRule("1.2", fakeRuleFailed),
-            new NumberedRule("1.3", fakeRule, List.of("1.2")),
-            new NumberedRule("1.4", fakeRule),
+            numberedRule("1.1", fakeRule).build(),
+            numberedRule("1.2", fakeRuleFailed).build(),
+            numberedRule("1.3", fakeRule, "1.2").build(),
+            numberedRule("1.4", fakeRule).build(),
         };
 
         var failedResult = new RuleResult(RuleResult.Status.ERROR, List.of());
@@ -102,11 +104,11 @@ class RuleEngineImplTest {
         Mockito.when(fakeRule.validate(Mockito.any())).thenReturn(result);
 
         var rules = new NumberedRule[] {
-            new NumberedRule("1.1", fakeRule),
-            new NumberedRule("1.2", fakeRule, DepositType.DEPOSIT),
-            new NumberedRule("1.2", fakeRule, DepositType.MIGRATION),
-            new NumberedRule("1.3", fakeRule, List.of("1.2")),
-            new NumberedRule("1.4", fakeRule),
+            numberedRule("1.1", fakeRule).build(),
+            numberedRule("1.2", fakeRule).withDepositType(DepositType.DEPOSIT).build(),
+            numberedRule("1.2", fakeRule).withDepositType(DepositType.MIGRATION).build(),
+            numberedRule("1.3", fakeRule, "1.2").build(),
+            numberedRule("1.4", fakeRule).build(),
         };
 
         var engine = new RuleEngineImpl();
@@ -122,11 +124,11 @@ class RuleEngineImplTest {
         var result = new RuleResult(RuleResult.Status.SUCCESS, List.of());
         Mockito.when(fakeRule.validate(Mockito.any())).thenReturn(result);
         var rules = new NumberedRule[] {
-            new NumberedRule("1.1", fakeRule),
-            new NumberedRule("1.2", fakeRule, DepositType.DEPOSIT),
-            new NumberedRule("1.2", fakeRule, DepositType.DEPOSIT),
-            new NumberedRule("1.3", fakeRule, List.of("1.2")),
-            new NumberedRule("1.4", fakeRule),
+            numberedRule("1.1", fakeRule).build(),
+            numberedRule("1.2", fakeRule).withDepositType(DepositType.DEPOSIT).build(),
+            numberedRule("1.2", fakeRule).withDepositType(DepositType.DEPOSIT).build(),
+            numberedRule("1.3", fakeRule, "1.2").build(),
+            numberedRule("1.4", fakeRule).build(),
         };
 
         var engine = new RuleEngineImpl();
@@ -142,9 +144,9 @@ class RuleEngineImplTest {
         var result = new RuleResult(RuleResult.Status.SUCCESS, List.of());
         Mockito.when(fakeRule.validate(Mockito.any())).thenReturn(result);
         var rules = new NumberedRule[] {
-            new NumberedRule("1.1", fakeRule),
-            new NumberedRule("1.3", fakeRule, List.of("1.2")),
-            new NumberedRule("1.4", fakeRule),
+            numberedRule("1.1", fakeRule).build(),
+            numberedRule("1.3", fakeRule, "1.2").build(),
+            numberedRule("1.4", fakeRule).build(),
         };
 
         var engine = new RuleEngineImpl();
@@ -160,10 +162,10 @@ class RuleEngineImplTest {
         var result = new RuleResult(RuleResult.Status.SUCCESS, List.of());
         Mockito.when(fakeRule.validate(Mockito.any())).thenReturn(result);
         var rules = new NumberedRule[] {
-            new NumberedRule("1.1", fakeRule),
-            new NumberedRule("1.2", fakeRule, DepositType.DEPOSIT),
-            new NumberedRule("1.3", fakeRule, List.of("1.2")),
-            new NumberedRule("1.4", fakeRule),
+            numberedRule("1.1", fakeRule).build(),
+            numberedRule("1.2", fakeRule).withDepositType(DepositType.DEPOSIT).build(),
+            numberedRule("1.3", fakeRule, "1.2").build(),
+            numberedRule("1.4", fakeRule).build(),
         };
 
         var engine = new RuleEngineImpl();
@@ -179,11 +181,11 @@ class RuleEngineImplTest {
         var result = new RuleResult(RuleResult.Status.SUCCESS, List.of());
         Mockito.when(fakeRule.validate(Mockito.any())).thenReturn(result);
         var rules = new NumberedRule[] {
-            new NumberedRule("1.1", fakeRule),
-            new NumberedRule("1.2", fakeRule),
-            new NumberedRule("1.2", fakeRule, DepositType.MIGRATION),
-            new NumberedRule("1.3", fakeRule, List.of("1.2")),
-            new NumberedRule("1.4", fakeRule),
+            numberedRule("1.1", fakeRule).build(),
+            numberedRule("1.2", fakeRule).build(),
+            numberedRule("1.2", fakeRule).withDepositType(DepositType.MIGRATION).build(),
+            numberedRule("1.3", fakeRule, "1.2").build(),
+            numberedRule("1.4", fakeRule).build(),
         };
 
         var engine = new RuleEngineImpl();
@@ -199,11 +201,11 @@ class RuleEngineImplTest {
         var result = new RuleResult(RuleResult.Status.SUCCESS, List.of());
         Mockito.when(fakeRule.validate(Mockito.any())).thenReturn(result);
         var rules = new NumberedRule[] {
-            new NumberedRule("1.1", fakeRule),
-            new NumberedRule("1.2", fakeRule),
-            new NumberedRule("1.3", fakeRule, DepositType.DEPOSIT, List.of("1.2")),
-            new NumberedRule("1.3", fakeRule, DepositType.MIGRATION, List.of("1.2")),
-            new NumberedRule("1.4", fakeRule),
+            numberedRule("1.1", fakeRule).build(),
+            numberedRule("1.2", fakeRule).build(),
+            numberedRule("1.3", fakeRule, "1.2").withDepositType(DepositType.DEPOSIT).build(),
+            numberedRule("1.3", fakeRule, "1.2").withDepositType(DepositType.MIGRATION).build(),
+            numberedRule("1.4", fakeRule).build(),
         };
 
         var engine = new RuleEngineImpl();
@@ -219,13 +221,13 @@ class RuleEngineImplTest {
         var result = new RuleResult(RuleResult.Status.SUCCESS, List.of());
         Mockito.when(fakeRule.validate(Mockito.any())).thenReturn(result);
         var rules = new NumberedRule[] {
-            new NumberedRule("1.1", fakeRule),
-            new NumberedRule("1.2", fakeRule),
-            new NumberedRule("1.3", fakeRule, DepositType.DEPOSIT, List.of("1.2")),
-            new NumberedRule("1.3", fakeRule, DepositType.MIGRATION, List.of("1.2")),
-            new NumberedRule("1.4", fakeRule),
-            new NumberedRule("1.6", fakeRule, DepositType.DEPOSIT, List.of("1.3")),
-            new NumberedRule("1.6", fakeRule, DepositType.MIGRATION, List.of("1.3")),
+            numberedRule("1.1", fakeRule).build(),
+            numberedRule("1.2", fakeRule).build(),
+            numberedRule("1.3", fakeRule, "1.2").withDepositType(DepositType.DEPOSIT).build(),
+            numberedRule("1.3", fakeRule, "1.2").withDepositType(DepositType.MIGRATION).build(),
+            numberedRule("1.4", fakeRule).build(),
+            numberedRule("1.6", fakeRule, "1.3").withDepositType(DepositType.DEPOSIT).build(),
+            numberedRule("1.6", fakeRule, "1.3").withDepositType(DepositType.MIGRATION).build(),
         };
 
         var engine = new RuleEngineImpl();
@@ -246,14 +248,14 @@ class RuleEngineImplTest {
         Mockito.when(fakeRule.validate(Mockito.any())).thenReturn(goodResult);
 
         var rules = new NumberedRule[] {
-            new NumberedRule("1.1", fakeRule),
-            new NumberedRule("1.2", fakeRule),
-            new NumberedRule("1.3", fakeErrorRule, DepositType.DEPOSIT, List.of("1.2")),
-            new NumberedRule("1.3", fakeErrorRule, DepositType.MIGRATION, List.of("1.2")),
+            numberedRule("1.1", fakeRule).build(),
+            numberedRule("1.2", fakeRule).build(),
+            numberedRule("1.3", fakeErrorRule, "1.2").withDepositType(DepositType.DEPOSIT).build(),
+            numberedRule("1.3", fakeErrorRule, "1.2").withDepositType(DepositType.MIGRATION).build()
         };
 
         var engine = new RuleEngineImpl();
-        var result = engine.validateRules(Path.of("bagdir"), rules, DepositType.DEPOSIT, ValidationLevel.STAND_ALONE );
+        var result = engine.validateRules(Path.of("bagdir"), rules, DepositType.DEPOSIT, ValidationLevel.STAND_ALONE);
 
         assertEquals(3, result.size());
     }

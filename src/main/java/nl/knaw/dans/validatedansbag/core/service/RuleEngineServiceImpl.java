@@ -33,6 +33,8 @@ import org.slf4j.LoggerFactory;
 import java.nio.file.Path;
 import java.util.List;
 
+import static nl.knaw.dans.validatedansbag.core.engine.NumberedRule.numberedRule;
+
 public class RuleEngineServiceImpl implements RuleEngineService {
     private static final Logger log = LoggerFactory.getLogger(RuleEngineServiceImpl.class);
     private final RuleEngine ruleEngine;
@@ -48,29 +50,28 @@ public class RuleEngineServiceImpl implements RuleEngineService {
 
         // validity
         this.defaultRules = new NumberedRule[] {
-            new NumberedRule("1.1.1", bagRules.bagIsValid()),
+            numberedRule("1.1.1", bagRules.bagIsValid()).build(),
 
             // bag-info.txt
-            new NumberedRule("1.2.1", bagRules.bagInfoExistsAndIsWellFormed()),
-            new NumberedRule("1.2.2(a)", bagRules.bagInfoContainsExactlyOneOf("Created"), List.of("1.2.1")),
-            new NumberedRule("1.2.2(b)", bagRules.bagInfoCreatedElementIsIso8601Date(), List.of("1.2.2(a)")),
-            new NumberedRule("1.2.3", bagRules.bagInfoContainsAtMostOneOf("Data-Station-User-Account"), List.of("1.2.1")),
-            new NumberedRule("1.2.4(a)", bagRules.bagInfoContainsAtMostOneOf("Is-Version-Of"), List.of("1.2.1")),
-            new NumberedRule("1.2.4(b)", bagRules.bagInfoIsVersionOfIsValidUrnUuid(), List.of("1.2.4(a)")),
-            new NumberedRule("1.2.5(a)", bagRules.bagInfoContainsAtMostOneOf("Has-Organizational-Identifier"), List.of("1.2.1")),
-            new NumberedRule("1.2.5(b)", bagRules.bagInfoContainsAtMostOneOf("Has-Organizational-Identifier-Version"), List.of("1.2.5(a)")),
+            numberedRule("1.2.1", bagRules.bagInfoExistsAndIsWellFormed()).build(),
+            numberedRule("1.2.2(a)", bagRules.bagInfoContainsExactlyOneOf("Created"), "1.2.1").build(),
+            numberedRule("1.2.2(b)", bagRules.bagInfoCreatedElementIsIso8601Date(), "1.2.2(a)").build(),
+            numberedRule("1.2.3", bagRules.bagInfoContainsAtMostOneOf("Data-Station-User-Account"), "1.2.1").build(),
+            numberedRule("1.2.4(a)", bagRules.bagInfoContainsAtMostOneOf("Is-Version-Of"), "1.2.1").build(),
+            numberedRule("1.2.4(b)", bagRules.bagInfoIsVersionOfIsValidUrnUuid(), "1.2.4(a)").build(),
+            numberedRule("1.2.5(a)", bagRules.bagInfoContainsAtMostOneOf("Has-Organizational-Identifier"), "1.2.1").build(),
+            numberedRule("1.2.5(b)", bagRules.bagInfoContainsAtMostOneOf("Has-Organizational-Identifier-Version"), "1.2.5(a)").build(),
 
             // manifests
-            new NumberedRule("1.3.1", bagRules.containsNotJustMD5Manifest(), List.of("1.1.1")),
+            numberedRule("1.3.1", bagRules.containsNotJustMD5Manifest(), "1.1.1").build(),
 
             // Structural
-            new NumberedRule("2.1", bagRules.containsDir(metadataPath), List.of("1.1.1")),
-            new NumberedRule("2.2(a)", bagRules.containsFile(metadataPath.resolve("dataset.xml")), List.of("2.1")),
-            new NumberedRule("2.2(b)", bagRules.containsFile(metadataPath.resolve("files.xml")), List.of("2.1")),
+            numberedRule("2.1", bagRules.containsDir(metadataPath), "1.1.1").build(),
+            numberedRule("2.2(a)", bagRules.containsFile(metadataPath.resolve("dataset.xml")), "2.1").build(),
+            numberedRule("2.2(b)", bagRules.containsFile(metadataPath.resolve("files.xml")), "2.1").build(),
 
             // Both 2.4 rules also cover 2.2(c), 2.3 and 2.4
-
-            new NumberedRule("2.4", bagRules.containsNothingElseThan(metadataPath, new String[] {
+            numberedRule("2.4", bagRules.containsNothingElseThan(metadataPath, new String[] {
                 "dataset.xml",
                 "files.xml",
                 "provenance.xml",
@@ -86,59 +87,71 @@ public class RuleEngineServiceImpl implements RuleEngineService {
                 "license.html",
                 "license.txt",
                 "license.pdf"
-            }), DepositType.MIGRATION, List.of("2.1")),
+            }), "2.1").withDepositType(DepositType.MIGRATION).build(),
 
-            new NumberedRule("2.4", bagRules.containsNothingElseThan(metadataPath, new String[] {
+            numberedRule("2.4", bagRules.containsNothingElseThan(metadataPath, new String[] {
                 "dataset.xml",
                 "files.xml"
-            }), DepositType.DEPOSIT, List.of("2.1")),
+            }), "2.1").withDepositType(DepositType.DEPOSIT).build(),
 
-            new NumberedRule("2.5", bagRules.hasOnlyValidFileNames(), List.of("2.1")),
+            numberedRule("2.5", bagRules.hasOnlyValidFileNames(), "2.1").build(),
 
             // original-filepaths.txt
-            new NumberedRule("2.6.1", bagRules.optionalFileIsUtf8Decodable(Path.of("original-filepaths.txt")), List.of("1.1.1")),
-            new NumberedRule("2.6.2", bagRules.isOriginalFilepathsFileComplete(), List.of("2.6.1")),
+            numberedRule("2.6.1", bagRules.optionalFileIsUtf8Decodable(Path.of("original-filepaths.txt")), "1.1.1").build(),
+            numberedRule("2.6.2", bagRules.isOriginalFilepathsFileComplete(), "2.6.1").build(),
 
             // metadata/dataset.xml
-            new NumberedRule("3.1.1", xmlRules.xmlFileConformsToSchema(datasetPath, "dataset.xml"), List.of("1.1.1", "2.2(a)")),
-            new NumberedRule("3.1.2", bagRules.ddmMayContainDctermsLicenseFromList(), List.of("3.1.1")),
-            new NumberedRule("3.1.3", bagRules.ddmDoiIdentifiersAreValid(), List.of("3.1.1")),
+            numberedRule("3.1.1", xmlRules.xmlFileConformsToSchema(datasetPath, "dataset.xml"), "1.1.1", "2.2(a)").build(),
+            numberedRule("3.1.2", bagRules.ddmMayContainDctermsLicenseFromList(), "3.1.1").build(),
+            numberedRule("3.1.3", bagRules.ddmDoiIdentifiersAreValid(), "3.1.1").build(),
 
-            new NumberedRule("3.1.4(a)", bagRules.ddmDaisAreValid(), List.of("3.1.1")),
-            new NumberedRule("3.1.4(b)", bagRules.ddmIsnisAreValid(), List.of("3.1.1")),
-            new NumberedRule("3.1.4(c)", bagRules.ddmOrcidsAreValid(), List.of("3.1.1")),
-            new NumberedRule("3.1.5", bagRules.ddmGmlPolygonPosListIsWellFormed(), List.of("3.1.1")),
-            new NumberedRule("3.1.6", bagRules.polygonsInSameMultiSurfaceHaveSameSrsName(), List.of("3.1.1")),
-            new NumberedRule("3.1.7", bagRules.pointsHaveAtLeastTwoValues(), List.of("3.1.1")),
-            new NumberedRule("3.1.8", bagRules.archisIdentifiersHaveAtMost10Characters(), List.of("3.1.1")),
-            new NumberedRule("3.1.9", bagRules.allUrlsAreValid(), List.of("3.1.1")),
+            numberedRule("3.1.4(a)", bagRules.ddmDaisAreValid(), "3.1.1").build(),
+            numberedRule("3.1.4(b)", bagRules.ddmIsnisAreValid(), "3.1.1").build(),
+            numberedRule("3.1.4(c)", bagRules.ddmOrcidsAreValid(), "3.1.1").build(),
+            numberedRule("3.1.5", bagRules.ddmGmlPolygonPosListIsWellFormed(), "3.1.1").build(),
+            numberedRule("3.1.6", bagRules.polygonsInSameMultiSurfaceHaveSameSrsName(), "3.1.1").build(),
+            numberedRule("3.1.7", bagRules.pointsHaveAtLeastTwoValues(), "3.1.1").build(),
+            numberedRule("3.1.8", bagRules.archisIdentifiersHaveAtMost10Characters(), "3.1.1").build(),
+            numberedRule("3.1.9", bagRules.allUrlsAreValid(), "3.1.1").build(),
 
-            new NumberedRule("3.1.10(a)", bagRules.ddmMustHaveRightsHolderDeposit(), DepositType.DEPOSIT, List.of("3.1.1")),
-            new NumberedRule("3.1.10(b)", bagRules.ddmMustHaveRightsHolderDeposit(), DepositType.MIGRATION, List.of("3.1.1")),
-            new NumberedRule("3.1.11", bagRules.ddmMustNotHaveRightsHolderRole(), DepositType.DEPOSIT, List.of("3.1.1")),
+            numberedRule("3.1.10(a)", bagRules.ddmMustHaveRightsHolderDeposit(), "3.1.1").withDepositType(DepositType.DEPOSIT).build(),
+            numberedRule("3.1.10(b)", bagRules.ddmMustHaveRightsHolderDeposit(), "3.1.1").withDepositType(DepositType.MIGRATION).build(),
+            numberedRule("3.1.11", bagRules.ddmMustNotHaveRightsHolderRole(), "3.1.1").withDepositType(DepositType.DEPOSIT).build(),
 
-            new NumberedRule("3.2.1", xmlRules.xmlFileConformsToSchema(metadataFilesPath, "files.xml"), List.of("3.1.1")),
-            new NumberedRule("3.2.2", filesXmlRules.filesXmlFilePathAttributesContainLocalBagPathAndNonPayloadFilesAreNotDescribed(), List.of("2.2(b)")),
-            new NumberedRule("3.2.3", filesXmlRules.filesXmlNoDuplicateFilesAndEveryPayloadFileIsDescribed(), List.of("2.2(b)")),
+            numberedRule("3.2.1", xmlRules.xmlFileConformsToSchema(metadataFilesPath, "files.xml"), "3.1.1").build(),
+            numberedRule("3.2.2", filesXmlRules.filesXmlFilePathAttributesContainLocalBagPathAndNonPayloadFilesAreNotDescribed(), "2.2(b)").build(),
+            numberedRule("3.2.3", filesXmlRules.filesXmlNoDuplicateFilesAndEveryPayloadFileIsDescribed(), "2.2(b)").build(),
 
             // agreements.xml
-            new NumberedRule("3.3.1", xmlRules.xmlFileIfExistsConformsToSchema(Path.of("metadata/depositor-info/agreements.xml"), "agreements.xml"), DepositType.MIGRATION),
+            numberedRule("3.3.1", xmlRules.xmlFileIfExistsConformsToSchema(Path.of("metadata/depositor-info/agreements.xml"), "agreements.xml"))
+                .withDepositType(DepositType.MIGRATION).build(),
 
             // amd.xml
-            new NumberedRule("3.3.2", xmlRules.xmlFileIfExistsConformsToSchema(Path.of("metadata/amd.xml"), "amd.xml"), DepositType.MIGRATION),
+            numberedRule("3.3.2", xmlRules.xmlFileIfExistsConformsToSchema(Path.of("metadata/amd.xml"), "amd.xml")).withDepositType(DepositType.MIGRATION).build(),
 
             // emd.xml
-            new NumberedRule("3.3.3", xmlRules.xmlFileIfExistsConformsToSchema(Path.of("metadata/emd.xml"), "emd.xml"), DepositType.MIGRATION),
+            numberedRule("3.3.3", xmlRules.xmlFileIfExistsConformsToSchema(Path.of("metadata/emd.xml"), "emd.xml")).withDepositType(DepositType.MIGRATION).build(),
 
             // provenance.xml
-            new NumberedRule("3.3.4", xmlRules.xmlFileIfExistsConformsToSchema(Path.of("metadata/provenance.xml"), "provenance.xml"), DepositType.MIGRATION),
+            numberedRule("3.3.4", xmlRules.xmlFileIfExistsConformsToSchema(Path.of("metadata/provenance.xml"), "provenance.xml")).withDepositType(DepositType.MIGRATION).build(),
 
-            new NumberedRule("4.1", bagRules.bagInfoContainsExactlyOneOf("Data-Station-User-Account"), ValidationContext.WITH_DATA_STATION_CONTEXT, List.of("1.2.1")),
-            new NumberedRule("4.2", datastationRules.userIsAuthorizedToCreateDataset(), ValidationContext.WITH_DATA_STATION_CONTEXT, List.of("4.1")),
-            new NumberedRule("4.3", bagRules.organizationalIdentifierPrefixIsValid(), ValidationContext.WITH_DATA_STATION_CONTEXT, List.of("4.1", "1.2.5(a)")),
-            new NumberedRule("4.4(a)", datastationRules.bagExistsInDatastation(), ValidationContext.WITH_DATA_STATION_CONTEXT, List.of("4.1")),
-            new NumberedRule("4.4(b)", datastationRules.organizationalIdentifierExistsInDataset(), ValidationContext.WITH_DATA_STATION_CONTEXT, List.of("4.1", "4.4(a)")),
-            new NumberedRule("4.4(c)", datastationRules.userIsAuthorizedToUpdateDataset(), ValidationContext.WITH_DATA_STATION_CONTEXT, List.of("4.1", "4.4(a)")),
+            numberedRule("4.1", bagRules.bagInfoContainsExactlyOneOf("Data-Station-User-Account"), "1.2.1")
+                .withValidationContext(ValidationContext.WITH_DATA_STATION_CONTEXT).build(),
+
+            numberedRule("4.2", datastationRules.userIsAuthorizedToCreateDataset(), "4.1")
+                .withValidationContext(ValidationContext.WITH_DATA_STATION_CONTEXT).build(),
+
+            numberedRule("4.3", bagRules.organizationalIdentifierPrefixIsValid(), "4.1", "1.2.5(a)")
+                .withValidationContext(ValidationContext.WITH_DATA_STATION_CONTEXT).build(),
+
+            numberedRule("4.4(a)", datastationRules.bagExistsInDatastation(), "4.1")
+                .withValidationContext(ValidationContext.WITH_DATA_STATION_CONTEXT).build(),
+
+            numberedRule("4.4(b)", datastationRules.organizationalIdentifierExistsInDataset(), "4.1", "4.4(a)")
+                .withValidationContext(ValidationContext.WITH_DATA_STATION_CONTEXT).build(),
+
+            numberedRule("4.4(c)", datastationRules.userIsAuthorizedToUpdateDataset(), "4.1", "4.4(a)")
+                .withValidationContext(ValidationContext.WITH_DATA_STATION_CONTEXT).build()
         };
 
         this.validateRuleConfiguration();

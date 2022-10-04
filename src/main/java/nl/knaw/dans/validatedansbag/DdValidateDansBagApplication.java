@@ -63,7 +63,7 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
 
     @Override
     public String getName() {
-        return "Dd Validate Dans Bag";
+        return "DD Validate Dans Bag";
     }
 
     @Override

@@ -18,13 +18,17 @@ package nl.knaw.dans.validatedansbag.resource;
 import io.dropwizard.testing.junit5.DropwizardExtensionsSupport;
 import io.dropwizard.testing.junit5.ResourceExtension;
 import nl.knaw.dans.openapi.api.ValidateCommandDto;
+import nl.knaw.dans.openapi.api.ValidateCommandDto.LevelEnum;
 import nl.knaw.dans.openapi.api.ValidateCommandDto.PackageTypeEnum;
+import nl.knaw.dans.openapi.api.ValidateOkDto;
+import nl.knaw.dans.openapi.api.ValidateOkDto.InformationPackageTypeEnum;
 import nl.knaw.dans.validatedansbag.core.BagNotFoundException;
+import nl.knaw.dans.validatedansbag.core.engine.DepositType;
+import nl.knaw.dans.validatedansbag.core.engine.ValidationLevel;
 import nl.knaw.dans.validatedansbag.core.service.FileService;
 import nl.knaw.dans.validatedansbag.core.service.RuleEngineService;
 import org.glassfish.jersey.media.multipart.FormDataMultiPart;
 import org.glassfish.jersey.media.multipart.MultiPartFeature;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,6 +45,7 @@ import java.util.Optional;
 import java.util.zip.ZipError;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(DropwizardExtensionsSupport.class)
 class ValidateResourceTest {
@@ -111,11 +116,14 @@ class ValidateResourceTest {
         Mockito.doReturn(Path.of("/tmp/bag-1"))
             .when(fileService).extractZipFile(Mockito.any(InputStream.class));
 
-        Mockito.doThrow(IOException.class)
+        Mockito.doReturn(Optional.of(Path.of("/tmp/bag-1/bag")))
+            .when(fileService).getFirstDirectory(Mockito.any());
+
+        Mockito.doThrow(new IOException("Error deleting directory"))
             .when(fileService).deleteDirectoryAndContents(Mockito.any());
         // caught in validateInputStream.finally, not covered by ValidateResourceIntegrationTest
 
-        try(var response = EXT.target("/validate")
+        try (var response = EXT.target("/validate")
             .register(MultiPartFeature.class)
             .request()
             .post(Entity.entity(multipart, multipart.getMediaType()), Response.class)) {
@@ -155,12 +163,12 @@ class ValidateResourceTest {
         Mockito.doThrow(BagNotFoundException.class)
             .when(ruleEngineService).validateBag(Mockito.any(), Mockito.any(), Mockito.any());
 
-        try(var response = EXT.target("/validate")
+        try (var response = EXT.target("/validate")
             .register(MultiPartFeature.class)
             .request()
             .post(Entity.entity(multipart, multipart.getMediaType()), Response.class)
         ) {
-            Assertions.assertEquals(400, response.getStatus());
+            assertEquals(400, response.getStatus());
         }
     }
 
@@ -171,12 +179,81 @@ class ValidateResourceTest {
         Mockito.doThrow(ZipError.class)
             .when(fileService).extractZipFile(Mockito.any(InputStream.class));
 
-        try(var response = EXT.target("/validate")
+        try (var response = EXT.target("/validate")
             .register(MultiPartFeature.class)
             .request()
             .post(zip, Response.class)
         ) {
-            Assertions.assertEquals(500, response.getStatus());
+            assertEquals(500, response.getStatus());
         }
+    }
+
+    @Test
+    void validateBagNotFoundExceptionReturnsBadRequest() throws Exception {
+        var zip = Entity.entity(new ByteArrayInputStream(new byte[4]), MediaType.valueOf("application/zip"));
+
+        Mockito.when(fileService.getFirstDirectory(Mockito.any()))
+            .thenReturn(Optional.empty());
+
+        try (var response = EXT.target("/validate")
+            .register(MultiPartFeature.class)
+            .request()
+            .post(zip, Response.class)
+        ) {
+            assertEquals(400, response.getStatus());
+            assertTrue(response.readEntity(String.class).contains("Extracted zip does not contain a directory"));
+        }
+    }
+
+    @Test
+    void validateIOErrorThrowsInternalServerError() throws Exception {
+        var zip = Entity.entity(new ByteArrayInputStream(new byte[4]), MediaType.valueOf("application/zip"));
+
+        Mockito.when(fileService.getFirstDirectory(Mockito.any()))
+            .thenReturn(Optional.of(Path.of("something")));
+
+        Mockito.doThrow(new IOException("Error deleting directory"))
+            .when(fileService).deleteDirectoryAndContents(Mockito.any());
+
+        try (var response = EXT.target("/validate")
+            .register(MultiPartFeature.class)
+            .request()
+            .post(zip, Response.class)
+        ) {
+            assertEquals(500, response.getStatus());
+            assertTrue(response.readEntity(String.class).contains("Error deleting directory"));
+        }
+    }
+
+    @Test
+    void toDepositType() {
+        var service = new ValidateResource(ruleEngineService, fileService);
+        assertEquals(DepositType.DEPOSIT, service.toDepositType(PackageTypeEnum.DEPOSIT));
+        assertEquals(DepositType.MIGRATION, service.toDepositType(PackageTypeEnum.MIGRATION));
+        assertEquals(DepositType.DEPOSIT, service.toDepositType(null)); // this is the default case
+    }
+
+    @Test
+    void toValidationLevel() {
+        var service = new ValidateResource(ruleEngineService, fileService);
+        assertEquals(ValidationLevel.STAND_ALONE, service.toValidationLevel(LevelEnum.STAND_ALONE));
+        assertEquals(ValidationLevel.WITH_DATA_STATION_CONTEXT, service.toValidationLevel(LevelEnum.WITH_DATA_STATION_CONTEXT));
+        assertEquals(ValidationLevel.STAND_ALONE, service.toValidationLevel(null)); // this is the default case
+    }
+
+    @Test
+    void toInfoPackageType() {
+        var service = new ValidateResource(ruleEngineService, fileService);
+        assertEquals(InformationPackageTypeEnum.DEPOSIT, service.toInfoPackageType(DepositType.DEPOSIT));
+        assertEquals(InformationPackageTypeEnum.MIGRATION, service.toInfoPackageType(DepositType.MIGRATION));
+        assertEquals(InformationPackageTypeEnum.DEPOSIT, service.toInfoPackageType(null)); // this is the default case
+    }
+
+    @Test
+    void toLevel() {
+        var service = new ValidateResource(ruleEngineService, fileService);
+        assertEquals(ValidateOkDto.LevelEnum.STAND_ALONE, service.toLevel(ValidationLevel.STAND_ALONE));
+        assertEquals(ValidateOkDto.LevelEnum.WITH_DATA_STATION_CONTEXT, service.toLevel(ValidationLevel.WITH_DATA_STATION_CONTEXT));
+        assertEquals(ValidateOkDto.LevelEnum.STAND_ALONE, service.toLevel(null)); // this is the default case
     }
 }

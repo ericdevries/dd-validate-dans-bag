@@ -18,52 +18,41 @@ package nl.knaw.dans.validatedansbag.core.engine;
 import nl.knaw.dans.validatedansbag.core.rules.BagValidatorRule;
 
 import java.util.List;
+import java.util.Objects;
 
 public class NumberedRule {
     private final String number;
     private final BagValidatorRule rule;
-    private final List<String> dependencies;
-    private final DepositType depositType;
-    private final ValidationContext validationContext;
+    private List<String> dependencies;
+    private DepositType depositType;
+    private ValidationContext validationContext;
 
-    public NumberedRule(String number, BagValidatorRule rule, List<String> dependencies, DepositType depositType, ValidationContext validationContext) {
-        this.number = number;
-        this.rule = rule;
+    private NumberedRule(String number, BagValidatorRule rule, List<String> dependencies, DepositType depositType, ValidationContext validationContext) {
+        this.number = Objects.requireNonNull(number, "Number must not be null");
+        this.rule = Objects.requireNonNull(rule, "Rule must not be null");
         this.dependencies = dependencies;
         this.depositType = depositType;
-        this.validationContext = validationContext;
+        this.validationContext = Objects.requireNonNullElse(validationContext, ValidationContext.ALWAYS);
     }
 
-    public NumberedRule(String number, BagValidatorRule rule) {
-        this(number, rule, null, null, ValidationContext.ALWAYS);
-    }
-
-    public NumberedRule(String number, BagValidatorRule rule, List<String> dependencies) {
-        this(number, rule, dependencies, null, ValidationContext.ALWAYS);
-    }
-
-    public NumberedRule(String number, BagValidatorRule rule, DepositType depositType, List<String> dependencies) {
-        this(number, rule, dependencies, depositType, ValidationContext.ALWAYS);
-    }
-
-    public NumberedRule(String number, BagValidatorRule rule, DepositType depositType) {
-        this(number, rule, null, depositType, ValidationContext.ALWAYS);
-    }
-
-    public NumberedRule(String number, BagValidatorRule rule, ValidationContext validationContext) {
-        this(number, rule, null, null, validationContext);
-    }
-
-    public NumberedRule(String number, BagValidatorRule rule, ValidationContext validationContext, List<String> dependencies) {
-        this(number, rule, dependencies, null, validationContext);
+    public static NumberedRuleBuilder numberedRule(String number, BagValidatorRule rule, String... dependencies) {
+        return new NumberedRuleBuilder(number, rule, dependencies);
     }
 
     public ValidationContext getValidationContext() {
         return validationContext;
     }
 
+    public void setValidationContext(ValidationContext validationContext) {
+        this.validationContext = validationContext;
+    }
+
     public DepositType getDepositType() {
         return depositType;
+    }
+
+    public void setDepositType(DepositType depositType) {
+        this.depositType = depositType;
     }
 
     public String getNumber() {
@@ -78,6 +67,10 @@ public class NumberedRule {
         return dependencies;
     }
 
+    private void setDependencies(List<String> dependencies) {
+        this.dependencies = dependencies;
+    }
+
     @Override
     public String toString() {
         return "NumberedRule{" +
@@ -85,7 +78,30 @@ public class NumberedRule {
             ", rule=" + rule +
             ", dependencies=" + dependencies +
             ", depositType=" + depositType +
+            ", validationContext=" + validationContext +
             '}';
+    }
+
+    public static class NumberedRuleBuilder {
+        private final NumberedRule numberedRule;
+
+        public NumberedRuleBuilder(String number, BagValidatorRule rule, String... dependencies) {
+            this.numberedRule = new NumberedRule(number, rule, List.of(dependencies), null, ValidationContext.ALWAYS);
+        }
+
+        public NumberedRuleBuilder withDepositType(DepositType depositType) {
+            this.numberedRule.setDepositType(depositType);
+            return this;
+        }
+
+        public NumberedRuleBuilder withValidationContext(ValidationContext validationContext) {
+            this.numberedRule.setValidationContext(validationContext);
+            return this;
+        }
+
+        public NumberedRule build() {
+            return numberedRule;
+        }
     }
 
 }

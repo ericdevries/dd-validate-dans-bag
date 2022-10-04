@@ -29,24 +29,10 @@ import nl.knaw.dans.openapi.api.ValidateOkRuleViolationsDto;
 import nl.knaw.dans.validatedansbag.DdValidateDansBagApplication;
 import nl.knaw.dans.validatedansbag.core.config.OtherIdPrefix;
 import nl.knaw.dans.validatedansbag.core.config.SwordDepositorRoles;
-import nl.knaw.dans.validatedansbag.core.engine.RuleEngineImpl;
-import nl.knaw.dans.validatedansbag.core.rules.BagRulesImpl;
-import nl.knaw.dans.validatedansbag.core.rules.DatastationRulesImpl;
-import nl.knaw.dans.validatedansbag.core.rules.FilesXmlRulesImpl;
 import nl.knaw.dans.validatedansbag.core.rules.TestLicenseConfig;
-import nl.knaw.dans.validatedansbag.core.rules.XmlRulesImpl;
-import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReaderImpl;
 import nl.knaw.dans.validatedansbag.core.service.DataverseService;
 import nl.knaw.dans.validatedansbag.core.service.FileServiceImpl;
-import nl.knaw.dans.validatedansbag.core.service.FilesXmlServiceImpl;
-import nl.knaw.dans.validatedansbag.core.service.OriginalFilepathsServiceImpl;
-import nl.knaw.dans.validatedansbag.core.service.RuleEngineServiceImpl;
-import nl.knaw.dans.validatedansbag.core.service.XmlReaderImpl;
 import nl.knaw.dans.validatedansbag.core.service.XmlSchemaValidator;
-import nl.knaw.dans.validatedansbag.core.validator.IdentifierValidatorImpl;
-import nl.knaw.dans.validatedansbag.core.validator.LicenseValidatorImpl;
-import nl.knaw.dans.validatedansbag.core.validator.OrganizationIdentifierPrefixValidatorImpl;
-import nl.knaw.dans.validatedansbag.core.validator.PolygonListValidatorImpl;
 import org.glassfish.jersey.media.multipart.FormDataMultiPart;
 import org.glassfish.jersey.media.multipart.MultiPartFeature;
 import org.junit.jupiter.api.BeforeEach;
@@ -55,6 +41,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.xml.sax.SAXException;
 
+import javax.ws.rs.BadRequestException;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -187,7 +174,6 @@ class ValidateResourceIntegrationTest {
             + "  }\n"
             + "}";
 
-
         var dataverseRoleAssignmentsJson = "{\n"
             + "  \"status\": \"OK\",\n"
             + "  \"data\": [\n"
@@ -243,7 +229,7 @@ class ValidateResourceIntegrationTest {
         assertEquals("1.0.0", response.getProfileVersion());
         assertEquals(InformationPackageTypeEnum.MIGRATION, response.getInformationPackageType());
         assertEquals(bagDir, response.getBagLocation());
-        assertEquals( Set.of("2.6.2", "3.2.2", "3.2.3"), getViolatedRuleNumbers(response));
+        assertEquals(Set.of("2.6.2", "3.2.2", "3.2.3"), getViolatedRuleNumbers(response));
     }
 
     @Test
@@ -267,17 +253,15 @@ class ValidateResourceIntegrationTest {
         assertEquals("1.0.0", response.getProfileVersion());
         assertEquals(InformationPackageTypeEnum.DEPOSIT, response.getInformationPackageType());
         assertNull(response.getBagLocation());
-        assertEquals( 0, response.getRuleViolations().size());
+        assertEquals(0, response.getRuleViolations().size());
     }
 
     @Test
     void validateZipFile() throws Exception {
         var bagDir = getResourceUrl("zips/audiences.zip");
 
-        var data = new ValidateCommandDto();
-        data.setPackageType(PackageTypeEnum.DEPOSIT);
-        data.setLevel(LevelEnum.WITH_DATA_STATION_CONTEXT);
         var response = EXT.target("/validate")
+            .queryParam("level", LevelEnum.STAND_ALONE.toString())
             .request()
             .post(Entity.entity(bagDir.openStream(), MediaType.valueOf("application/zip")), ValidateOkDto.class);
 
@@ -292,26 +276,21 @@ class ValidateResourceIntegrationTest {
     void validateBagNotFoundInEmptyZipFile() throws Exception {
         var bagDir = getResourceUrl("zips/empty.zip");
 
-        var data = new ValidateCommandDto();
-        data.setPackageType(PackageTypeEnum.DEPOSIT);
-        data.setLevel(LevelEnum.WITH_DATA_STATION_CONTEXT);
         var response = EXT.target("/validate")
             .request()
             .post(Entity.entity(bagDir.openStream(), MediaType.valueOf("application/zip")), Response.class);
 
         assertEquals(400, response.getStatus());
-        assertEquals("java.io.ByteArrayInputStream", response.getEntity().toString().replaceAll("@.*","")); // TODO can't we return a more descriptive body?
+        var message = response.readEntity(BadRequestException.class);
+        assertEquals("Request could not be processed: Extracted zip does not contain a directory", message.getMessage());
     }
 
     @Test
     void validateZipFileAndGetTextResponse() throws Exception {
         var bagDir = getResourceUrl("zips/invalid-sha1.zip");
 
-        var data = new ValidateCommandDto();
-        data.setPackageType(PackageTypeEnum.DEPOSIT);
-        data.setLevel(LevelEnum.WITH_DATA_STATION_CONTEXT);
-
         var response = EXT.target("/validate")
+            .queryParam("level", LevelEnum.WITH_DATA_STATION_CONTEXT.toString())
             .request()
             .header("accept", "text/plain")
             .post(Entity.entity(bagDir.openStream(), MediaType.valueOf("application/zip")), String.class);
@@ -334,7 +313,7 @@ class ValidateResourceIntegrationTest {
         var multipart = new FormDataMultiPart()
             .field("command", data, MediaType.APPLICATION_JSON_TYPE);
 
-        try(var response = EXT.target("/validate")
+        try (var response = EXT.target("/validate")
             .register(MultiPartFeature.class)
             .request()
             .post(Entity.entity(multipart, multipart.getMediaType()), Response.class)

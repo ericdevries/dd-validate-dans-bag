@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class RuleEngineImpl implements RuleEngine {
     private static final Logger log = LoggerFactory.getLogger(RuleEngineImpl.class);
@@ -70,12 +69,7 @@ public class RuleEngineImpl implements RuleEngine {
                 // will never be processed, so skip it and remove it from the remaining rules
                 if (shouldBeSkipped(rule, ruleResults)) {
                     log.trace("Skipping task {} because dependencies are not successful", rule.getNumber());
-                    ruleResults.put(number, new RuleValidationResult(number, RuleValidationResult.RuleValidationResultStatus.SKIPPED));
-                    toRemove.add(rule);
-                }
-                else if (shouldBeIgnoredBecauseOfDepositType(rule, depositType)) {
-                    log.trace("Skipping task {} because it does not apply to this deposit (deposit type: {}, rule type: {})", rule.getNumber(), depositType, rule.getDepositType());
-                    ruleResults.put(number, new RuleValidationResult(number, RuleValidationResult.RuleValidationResultStatus.SKIPPED));
+                    ruleResults.put(number, RuleValidationResult.skipped(number));
                     toRemove.add(rule);
                 }
                 else if (canBeExecuted(rule, ruleResults)) {
@@ -87,13 +81,13 @@ public class RuleEngineImpl implements RuleEngine {
 
                     switch (response.getStatus()) {
                         case SUCCESS:
-                            ruleValidationResult = new RuleValidationResult(number, RuleValidationResult.RuleValidationResultStatus.SUCCESS);
+                            ruleValidationResult = RuleValidationResult.success(number);
                             break;
                         case SKIP_DEPENDENCIES:
-                            ruleValidationResult = new RuleValidationResult(number, RuleValidationResult.RuleValidationResultStatus.SUCCESS, true);
+                            ruleValidationResult = RuleValidationResult.skipDependencies(number);
                             break;
                         case ERROR:
-                            ruleValidationResult = new RuleValidationResult(number, RuleValidationResult.RuleValidationResultStatus.FAILURE, formatErrorMessages(response.getErrorMessages()));
+                            ruleValidationResult = RuleValidationResult.error(number, formatErrorMessages(response.getErrorMessages()));
                             break;
                     }
 
@@ -111,16 +105,6 @@ public class RuleEngineImpl implements RuleEngine {
             }
 
             remainingRules.removeAll(toRemove);
-
-            if (toRemove.size() == 0) {
-                log.warn("No rules executed this round, but there are still rules to be checked; most likely a dependency configuration error!");
-
-                for (var rule : remainingRules) {
-                    log.warn(" - Rule {} is yet to be executed", rule);
-                }
-
-                break;
-            }
         }
 
         // TODO this does not belong here, but it would be nice to log the results of the validation

@@ -38,8 +38,8 @@ import javax.ws.rs.InternalServerErrorException;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.stream.Collectors;
 
@@ -59,7 +59,7 @@ public class ValidateResource {
 
     @POST
     @Consumes(MediaType.MULTIPART_FORM_DATA)
-    @Produces({MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN})
+    @Produces({ MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN })
     public ValidateOkDto validateFormData(
         @Valid @NotNull @FormDataParam(value = "command") ValidateCommandDto command,
         @FormDataParam(value = "zip") InputStream zipInputStream
@@ -92,17 +92,21 @@ public class ValidateResource {
         }
         catch (Exception e) {
             log.error("Internal server error", e);
-            throw new InternalServerErrorException("Internal server error", e);
+            throw new InternalServerErrorException("Internal server error: " + e.getMessage(), e);
         }
     }
 
     @POST
     @Consumes({ "application/zip" })
     @Produces({ MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN })
-    public ValidateOkDto validateZip(InputStream inputStream) {
+    public ValidateOkDto validateZip(InputStream inputStream, @QueryParam("level") ValidationLevel level) {
+        if (level == null) {
+            level = ValidationLevel.STAND_ALONE;
+        }
+
         try {
             log.info("Received request to validate zip file");
-            return validateInputStream(inputStream, DepositType.DEPOSIT, ValidationLevel.STAND_ALONE);
+            return validateInputStream(inputStream, DepositType.DEPOSIT, level);
         }
         catch (BagNotFoundException e) {
             log.error("Bag not found", e);
@@ -110,7 +114,7 @@ public class ValidateResource {
         }
         catch (Exception e) {
             log.error("Internal server error", e);
-            throw new InternalServerErrorException("Internal server error", e);
+            throw new InternalServerErrorException("Internal server error: " + e.getMessage(), e);
         }
     }
 
@@ -124,14 +128,8 @@ public class ValidateResource {
             return validatePath(bagDir, depositType, validationLevel);
         }
         finally {
-            try {
-                fileService.deleteDirectoryAndContents(tempPath);
-            }
-            catch (IOException e) {
-                log.error("Error cleaning up temporary directory");
-            }
+            fileService.deleteDirectoryAndContents(tempPath);
         }
-
     }
 
     ValidateOkDto validatePath(java.nio.file.Path bagDir, DepositType depositType, ValidationLevel validationLevel) throws Exception {
@@ -155,7 +153,8 @@ public class ValidateResource {
 
                 if (rule.getErrorMessage() != null) {
                     message.append(rule.getErrorMessage());
-                } else {
+                }
+                else {
                     log.debug("not covered despite constructors that set to null");
                 }
 

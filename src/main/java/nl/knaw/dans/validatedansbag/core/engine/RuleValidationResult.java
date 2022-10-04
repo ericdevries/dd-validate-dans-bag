@@ -16,8 +16,7 @@
 package nl.knaw.dans.validatedansbag.core.engine;
 
 /**
- * This object is used internally by the RuleEngine to keep
- * track of the status of rules executed
+ * This object is used internally by the RuleEngine to keep track of the status of rules executed
  */
 public class RuleValidationResult {
 
@@ -26,25 +25,31 @@ public class RuleValidationResult {
     private final String errorMessage;
     private final boolean shouldSkipDependencies;
 
-    public RuleValidationResult(String number, RuleValidationResultStatus status) {
-        this.number = number;
-        this.status = status;
-        this.errorMessage = null;
-        this.shouldSkipDependencies = false;
-    }
-
-    public RuleValidationResult(String number, RuleValidationResultStatus status, String errorMessage) {
+    protected RuleValidationResult(String number, RuleValidationResultStatus status, String errorMessage, boolean shouldSkipDependencies) {
         this.number = number;
         this.status = status;
         this.errorMessage = errorMessage;
-        this.shouldSkipDependencies = false;
+        this.shouldSkipDependencies = shouldSkipDependencies;
+
+        if (RuleValidationResultStatus.FAILURE.equals(status) && errorMessage == null) {
+            throw new RuntimeException("When RuleValidationResultStatus is set to FAIULRE, the error message is required");
+        }
     }
 
-    public RuleValidationResult(String number, RuleValidationResultStatus status, boolean shouldSkipDependencies) {
-        this.number = number;
-        this.status = status;
-        this.errorMessage = null;
-        this.shouldSkipDependencies = shouldSkipDependencies;
+    public static RuleValidationResult success(String number) {
+        return new RuleValidationResult(number, RuleValidationResultStatus.SUCCESS, null, false);
+    }
+
+    public static RuleValidationResult skipDependencies(String number) {
+        return new RuleValidationResult(number, RuleValidationResultStatus.SUCCESS, null, true);
+    }
+
+    public static RuleValidationResult error(String number, String errorMessage) {
+        return new RuleValidationResult(number, RuleValidationResultStatus.FAILURE, errorMessage, false);
+    }
+
+    public static RuleValidationResult skipped(String number) {
+        return new RuleValidationResult(number, RuleValidationResultStatus.SKIPPED, null, true);
     }
 
     public String getErrorMessage() {
@@ -63,12 +68,6 @@ public class RuleValidationResult {
         return status;
     }
 
-    public enum RuleValidationResultStatus {
-        SUCCESS,
-        FAILURE,
-        SKIPPED
-    }
-
     @Override
     public String toString() {
         return "RuleValidationResult{" +
@@ -77,5 +76,11 @@ public class RuleValidationResult {
             ", errorMessage='" + errorMessage + '\'' +
             ", shouldSkipDependencies=" + shouldSkipDependencies +
             '}';
+    }
+
+    public enum RuleValidationResultStatus {
+        SUCCESS,
+        FAILURE,
+        SKIPPED
     }
 }
