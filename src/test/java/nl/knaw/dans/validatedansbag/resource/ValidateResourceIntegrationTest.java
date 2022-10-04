@@ -26,6 +26,7 @@ import nl.knaw.dans.openapi.api.ValidateCommandDto.PackageTypeEnum;
 import nl.knaw.dans.openapi.api.ValidateOkDto;
 import nl.knaw.dans.openapi.api.ValidateOkDto.InformationPackageTypeEnum;
 import nl.knaw.dans.openapi.api.ValidateOkRuleViolationsDto;
+import nl.knaw.dans.validatedansbag.DdValidateDansBagApplication;
 import nl.knaw.dans.validatedansbag.core.config.OtherIdPrefix;
 import nl.knaw.dans.validatedansbag.core.config.SwordDepositorRoles;
 import nl.knaw.dans.validatedansbag.core.engine.RuleEngineImpl;
@@ -84,30 +85,11 @@ class ValidateResourceIntegrationTest {
     }
 
     static ValidateResource buildValidateResource() {
-
+        List<OtherIdPrefix> otherIdPrefixes = List.of(new OtherIdPrefix("user001", "u1:"), new OtherIdPrefix("user002", "u2:"));
         var fileService = new FileServiceImpl();
-        var bagItMetadataReader = new BagItMetadataReaderImpl();
-        var xmlReader = new XmlReaderImpl();
-        var daiDigestCalculator = new IdentifierValidatorImpl();
-        var polygonListValidator = new PolygonListValidatorImpl();
-        var originalFilepathsService = new OriginalFilepathsServiceImpl(fileService);
-        var licenseValidator = new LicenseValidatorImpl(new TestLicenseConfig());
-        var filesXmlService = new FilesXmlServiceImpl(xmlReader);
-
-        var organizationIdentifierPrefixValidator = new OrganizationIdentifierPrefixValidatorImpl(
-            List.of(new OtherIdPrefix("user001", "u1:"), new OtherIdPrefix("user002", "u2:"))
-        );
-
-        // set up the different rule implementations
-        var bagRules = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, licenseValidator,
-            organizationIdentifierPrefixValidator, filesXmlService);
-        var filesXmlRules = new FilesXmlRulesImpl(fileService, originalFilepathsService, filesXmlService);
-        var xmlRules = new XmlRulesImpl(xmlReader, xmlSchemaValidator, fileService);
-        var datastationRules = new DatastationRulesImpl(bagItMetadataReader, dataverseService, new SwordDepositorRoles("datasetcreator", "dataseteditor"));
-
-        // set up the engine and the service that has a default set of rules
-        var ruleEngine = new RuleEngineImpl();
-        var ruleEngineService = new RuleEngineServiceImpl(ruleEngine, bagRules, xmlRules, filesXmlRules, fileService, datastationRules);
+        var swordDepositorRoles = new SwordDepositorRoles("datasetcreator", "dataseteditor");
+        var ruleEngineService = DdValidateDansBagApplication.createRuleEngineService(
+            fileService, xmlSchemaValidator, dataverseService, otherIdPrefixes, new TestLicenseConfig(), swordDepositorRoles);
 
         return new ValidateResource(ruleEngineService, fileService);
     }

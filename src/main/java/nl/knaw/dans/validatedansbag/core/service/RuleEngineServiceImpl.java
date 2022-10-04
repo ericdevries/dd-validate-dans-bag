@@ -69,6 +69,7 @@ public class RuleEngineServiceImpl implements RuleEngineService {
             new NumberedRule("2.2(b)", bagRules.containsFile(metadataPath.resolve("files.xml")), List.of("2.1")),
 
             // Both 2.4 rules also cover 2.2(c), 2.3 and 2.4
+
             new NumberedRule("2.4", bagRules.containsNothingElseThan(metadataPath, new String[] {
                 "dataset.xml",
                 "files.xml",
