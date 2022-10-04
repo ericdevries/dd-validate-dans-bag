@@ -30,14 +30,18 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 
+import javax.ws.rs.InternalServerErrorException;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.Optional;
 import java.util.zip.ZipError;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @ExtendWith(DropwizardExtensionsSupport.class)
 class ValidateResourceTest {
@@ -91,6 +95,34 @@ class ValidateResourceTest {
             .register(MultiPartFeature.class)
             .request()
             .post(Entity.entity(multipart, multipart.getMediaType()), String.class);
+
+        Mockito.verify(fileService).extractZipFile(Mockito.any(InputStream.class));//.extractZipFile(Mockito.any(Path.class));
+    }
+
+    @Test
+    void validateFormDataWithInternalServerError() throws Exception {
+        var data = new ValidateCommandDto();
+        data.setBagLocation(null);
+        data.setPackageType(PackageTypeEnum.DEPOSIT);
+
+        var multipart = new FormDataMultiPart()
+            .field("command", data, MediaType.APPLICATION_JSON_TYPE)
+            .field("zip", new ByteArrayInputStream(new byte[4]), MediaType.valueOf("application/zip"));
+
+        Mockito.doReturn(Path.of("/tmp/bag-1"))
+            .when(fileService).extractZipFile(Mockito.any(InputStream.class));
+
+        Mockito.doThrow(IOException.class)
+            .when(fileService).deleteDirectoryAndContents(Mockito.any());
+        // caught in validateInputStream.finally, not covered by ValidateResourceIntegrationTest
+
+        try(var response = EXT.target("/validate")
+            .register(MultiPartFeature.class)
+            .request()
+            .post(Entity.entity(multipart, multipart.getMediaType()), Response.class)) {
+
+            assertEquals(500, response.getStatus());
+        }
 
         Mockito.verify(fileService).extractZipFile(Mockito.any(InputStream.class));//.extractZipFile(Mockito.any(Path.class));
     }

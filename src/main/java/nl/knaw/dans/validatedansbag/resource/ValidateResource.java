@@ -155,6 +155,8 @@ public class ValidateResource {
 
                 if (rule.getErrorMessage() != null) {
                     message.append(rule.getErrorMessage());
+                } else {
+                    log.debug("not covered despite constructors that set to null");
                 }
 
                 ret.setViolation(message.toString());
