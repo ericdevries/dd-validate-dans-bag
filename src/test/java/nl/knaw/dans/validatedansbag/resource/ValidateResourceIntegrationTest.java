@@ -165,12 +165,13 @@ class ValidateResourceIntegrationTest {
         Mockito.when(xmlSchemaValidator.validateDocument(Mockito.any(), Mockito.anyString()))
             .thenThrow(new SAXException("Something is broken"));
 
-        var response = EXT.target("/validate")
+        try (var response = EXT.target("/validate")
             .register(MultiPartFeature.class)
             .request()
-            .post(Entity.entity(multipart, multipart.getMediaType()), Response.class);
-
-        assertEquals(500, response.getStatus());
+            .post(Entity.entity(multipart, multipart.getMediaType()), Response.class)
+        ) {
+            assertEquals(500, response.getStatus());
+        }
     }
 
     @Test
@@ -351,12 +352,13 @@ class ValidateResourceIntegrationTest {
         var multipart = new FormDataMultiPart()
             .field("command", data, MediaType.APPLICATION_JSON_TYPE);
 
-        var response = EXT.target("/validate")
+        try(var response = EXT.target("/validate")
             .register(MultiPartFeature.class)
             .request()
-            .post(Entity.entity(multipart, multipart.getMediaType()), Response.class);
-
-        assertEquals(400, response.getStatus());
+            .post(Entity.entity(multipart, multipart.getMediaType()), Response.class)
+        ) {
+            assertEquals(400, response.getStatus());
+        }
     }
 
     @Test

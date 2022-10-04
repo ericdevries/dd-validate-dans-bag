@@ -30,7 +30,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 
-import javax.ws.rs.InternalServerErrorException;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -156,11 +155,13 @@ class ValidateResourceTest {
         Mockito.doThrow(BagNotFoundException.class)
             .when(ruleEngineService).validateBag(Mockito.any(), Mockito.any(), Mockito.any());
 
-        var response = EXT.target("/validate")
+        try(var response = EXT.target("/validate")
             .register(MultiPartFeature.class)
             .request()
-            .post(Entity.entity(multipart, multipart.getMediaType()), Response.class);
-        Assertions.assertEquals(400, response.getStatus());
+            .post(Entity.entity(multipart, multipart.getMediaType()), Response.class)
+        ) {
+            Assertions.assertEquals(400, response.getStatus());
+        }
     }
 
     @Test
@@ -170,10 +171,12 @@ class ValidateResourceTest {
         Mockito.doThrow(ZipError.class)
             .when(fileService).extractZipFile(Mockito.any(InputStream.class));
 
-        var response = EXT.target("/validate")
+        try(var response = EXT.target("/validate")
             .register(MultiPartFeature.class)
             .request()
-            .post(zip, Response.class);
-        Assertions.assertEquals(500, response.getStatus());
+            .post(zip, Response.class)
+        ) {
+            Assertions.assertEquals(500, response.getStatus());
+        }
     }
 }
