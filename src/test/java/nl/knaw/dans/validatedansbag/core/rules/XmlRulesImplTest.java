@@ -19,6 +19,7 @@ import nl.knaw.dans.validatedansbag.core.engine.RuleResult;
 import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReader;
 import nl.knaw.dans.validatedansbag.core.service.FileService;
 import nl.knaw.dans.validatedansbag.core.service.OriginalFilepathsService;
+import nl.knaw.dans.validatedansbag.core.service.XmlReader;
 import nl.knaw.dans.validatedansbag.core.service.XmlReaderImpl;
 import nl.knaw.dans.validatedansbag.core.service.XmlSchemaValidator;
 import org.junit.jupiter.api.AfterEach;
@@ -95,6 +96,27 @@ class XmlRulesImplTest {
 
         Mockito.doReturn(List.of(new SAXParseException("msg", null)))
             .when(xmlSchemaValidator).validateDocument(Mockito.any(), Mockito.anyString());
+
+        var checker = new XmlRulesImpl(reader, xmlSchemaValidator, fileService);
+
+        var result = checker.xmlFileConformsToSchema(Path.of("metadata/dataset.xml"), "ddm").validate(Path.of("bagdir"));
+        assertEquals(RuleResult.Status.ERROR, result.getStatus());
+    }
+
+    @Test
+    void xmlFileIsInvalid() throws Exception {
+
+        var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n"
+            + "<ddm:DDM xmlns:ddm=\"http://easy.dans.knaw.nl/schemas/md/ddm/\" xmlns=\"http://easy.dans.knaw.nl/schemas/bag/metadata/files/\" xmlns:abr=\"http://www.den.nl/standaard/166/Archeologisch-Basisregister/\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:dcterms=\"http://purl.org/dc/terms/\" xmlns:dcx-dai=\"http://easy.dans.knaw.nl/schemas/dcx/dai/\" xmlns:dcx-gml=\"http://easy.dans.knaw.nl/schemas/dcx/gml/\" xmlns:id-type=\"http://easy.dans.knaw.nl/schemas/vocab/identifier-type/\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://easy.dans.knaw.nl/schemas/md/ddm/ https://easy.dans.knaw.nl/schemas/md/ddm/ddm.xsd\">\n"
+            + "    ddm:profile>\n"
+            + "        <dc:title>PAN-00008136 - knobbed sickle</dc:title>\n"
+            + "    </ddm:profile>\n"
+            + "</ddm:DDM>\n";
+
+        var reader = Mockito.mock(XmlReader.class);
+
+        Mockito.doThrow(new SAXParseException("Invalid XML", null))
+            .when(reader).readXmlFile(Mockito.any());
 
         var checker = new XmlRulesImpl(reader, xmlSchemaValidator, fileService);
 
