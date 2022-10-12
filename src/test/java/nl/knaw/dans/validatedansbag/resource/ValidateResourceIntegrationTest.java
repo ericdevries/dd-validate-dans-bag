@@ -34,7 +34,6 @@ import nl.knaw.dans.validatedansbag.core.rules.XmlRulesImpl;
 import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReaderImpl;
 import nl.knaw.dans.validatedansbag.core.service.DataverseService;
 import nl.knaw.dans.validatedansbag.core.service.FileServiceImpl;
-import nl.knaw.dans.validatedansbag.core.service.FilesXmlService;
 import nl.knaw.dans.validatedansbag.core.service.FilesXmlServiceImpl;
 import nl.knaw.dans.validatedansbag.core.service.OriginalFilepathsServiceImpl;
 import nl.knaw.dans.validatedansbag.core.service.RuleEngineServiceImpl;
@@ -135,7 +134,7 @@ class ValidateResourceIntegrationTest {
         assertEquals("1.0.0", response.getProfileVersion());
         assertEquals(ValidateOkDto.InformationPackageTypeEnum.DEPOSIT, response.getInformationPackageType());
         assertEquals(filename, response.getBagLocation());
-        assertEquals(1, response.getRuleViolations().size());
+        assertEquals(2, response.getRuleViolations().size());
     }
 
     @Test
@@ -162,15 +161,58 @@ class ValidateResourceIntegrationTest {
     }
 
     @Test
-    void validateFormDataWithValidBagAndOriginalFilepaths() {
-        var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("bags/original-filepaths-valid-bag")).getFile();
+    void validateFormDataWithValidBagAndOriginalFilepaths() throws Exception {
+        var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("bags/datastation-valid-bag")).getFile();
 
         var data = new ValidateCommandDto();
         data.setBagLocation(filename);
         data.setPackageType(ValidateCommandDto.PackageTypeEnum.MIGRATION);
         data.setLevel(ValidateCommandDto.LevelEnum.WITH_DATA_STATION_CONTEXT);
+
         var multipart = new FormDataMultiPart()
             .field("command", data, MediaType.APPLICATION_JSON_TYPE);
+
+        var searchResultsJson = "{\n"
+            + "  \"status\": \"OK\",\n"
+            + "  \"data\": {\n"
+            + "    \"q\": \"NBN:urn:nbn:nl:ui:13-025de6e2-bdcf-4622-b134-282b4c590f42\",\n"
+            + "    \"total_count\": 1,\n"
+            + "    \"start\": 0,\n"
+            + "    \"spelling_alternatives\": {},\n"
+            + "    \"items\": [\n"
+            + "      {\n"
+            + "        \"name\": \"Manual Test\",\n"
+            + "        \"type\": \"dataset\",\n"
+            + "        \"url\": \"https://doi.org/10.5072/FK2/QZZSST\",\n"
+            + "        \"global_id\": \"doi:10.5072/FK2/QZZSST\"\n"
+            + "      }\n"
+            + "    ],\n"
+            + "    \"count_in_response\": 1\n"
+            + "  }\n"
+            + "}";
+
+
+        var dataverseRoleAssignmentsJson = "{\n"
+            + "  \"status\": \"OK\",\n"
+            + "  \"data\": [\n"
+            + "    {\n"
+            + "      \"id\": 6,\n"
+            + "      \"assignee\": \"@user001\",\n"
+            + "      \"roleId\": 11,\n"
+            + "      \"_roleAlias\": \"datasetcreator\",\n"
+            + "      \"definitionPointId\": 2\n"
+            + "    }\n"
+            + "  ]\n"
+            + "}";
+
+        var swordTokenResult = new MockedDataverseResponse<SearchResult>(searchResultsJson, SearchResult.class);
+        var dataverseRoleAssignmentsResult = new MockedDataverseResponse<List<RoleAssignmentReadOnly>>(dataverseRoleAssignmentsJson, List.class, RoleAssignmentReadOnly.class);
+
+        Mockito.when(dataverseService.searchBySwordToken(Mockito.anyString()))
+            .thenReturn(swordTokenResult);
+
+        Mockito.when(dataverseService.getDataverseRoleAssignments(Mockito.anyString()))
+            .thenReturn(dataverseRoleAssignmentsResult);
 
         var response = EXT.target("/validate")
             .register(MultiPartFeature.class)
@@ -192,6 +234,7 @@ class ValidateResourceIntegrationTest {
         data.setBagLocation(filename);
         data.setPackageType(ValidateCommandDto.PackageTypeEnum.MIGRATION);
         data.setLevel(ValidateCommandDto.LevelEnum.WITH_DATA_STATION_CONTEXT);
+
         var multipart = new FormDataMultiPart()
             .field("command", data, MediaType.APPLICATION_JSON_TYPE);
 
@@ -204,7 +247,7 @@ class ValidateResourceIntegrationTest {
         assertEquals("1.0.0", response.getProfileVersion());
         assertEquals(ValidateOkDto.InformationPackageTypeEnum.MIGRATION, response.getInformationPackageType());
         assertEquals(filename, response.getBagLocation());
-        assertEquals(3, response.getRuleViolations().size());
+        assertEquals(4, response.getRuleViolations().size());
     }
 
     @Test
@@ -223,11 +266,11 @@ class ValidateResourceIntegrationTest {
             .request()
             .post(Entity.entity(multipart, multipart.getMediaType()), ValidateOkDto.class);
 
-        assertTrue(response.getIsCompliant());
+        assertFalse(response.getIsCompliant());
         assertEquals("1.0.0", response.getProfileVersion());
         assertEquals(ValidateOkDto.InformationPackageTypeEnum.DEPOSIT, response.getInformationPackageType());
         assertNull(response.getBagLocation());
-        assertEquals(0, response.getRuleViolations().size());
+        assertEquals(1, response.getRuleViolations().size());
     }
 
     @Test
@@ -625,7 +668,7 @@ class ValidateResourceIntegrationTest {
         var failed = response.getRuleViolations().stream()
             .map(ValidateOkRuleViolationsDto::getRule).collect(Collectors.toSet());
 
-        assertEquals(Set.of("4.2", "4.4(a)", "4.4(b)", "4.4(c)"), failed);
+        assertEquals(Set.of("4.2", "4.4(a)"), failed);
         assertFalse(response.getIsCompliant());
         assertEquals("bag-with-is-version-of", response.getName());
     }

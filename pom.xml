@@ -67,12 +67,12 @@
     <parent>
         <artifactId>dans-dropwizard-project</artifactId>
         <groupId>nl.knaw.dans.shared</groupId>
-        <version>9.4.0</version>
+        <version>9.5.0</version>
     </parent>
 
     <groupId>nl.knaw.dans</groupId>
     <artifactId>dd-validate-dans-bag</artifactId>
-    <version>0.5.1-SNAPSHOT</version>
+    <version>0.6.1-SNAPSHOT</version>
 
     <name>DD Validate Dans Bag</name>
     <url>https://github.com/DANS-KNAW/dd-validate-dans-bag</url>

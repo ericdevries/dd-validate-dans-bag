@@ -23,6 +23,7 @@ import java.nio.file.Path;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class RuleEngineImplTest {
@@ -223,7 +224,7 @@ class RuleEngineImplTest {
             new NumberedRule("1.3", fakeRule, DepositType.DEPOSIT, List.of("1.2")),
             new NumberedRule("1.3", fakeRule, DepositType.MIGRATION, List.of("1.2")),
             new NumberedRule("1.4", fakeRule),
-            new NumberedRule("1.6", fakeRule,DepositType.DEPOSIT, List.of("1.3")),
+            new NumberedRule("1.6", fakeRule, DepositType.DEPOSIT, List.of("1.3")),
             new NumberedRule("1.6", fakeRule, DepositType.MIGRATION, List.of("1.3")),
         };
 
@@ -232,5 +233,28 @@ class RuleEngineImplTest {
         assertDoesNotThrow(
             () -> engine.validateRuleConfiguration(rules));
 
+    }
+
+    @Test
+    void testDifferentDepositTypesDontMakeForDuplicateResults() throws Exception {
+        var badResult = new RuleResult(RuleResult.Status.ERROR, List.of());
+        var goodResult = new RuleResult(RuleResult.Status.SUCCESS, List.of());
+        var fakeRule = Mockito.mock(BagValidatorRule.class);
+
+        var fakeErrorRule = Mockito.mock(BagValidatorRule.class);
+        Mockito.when(fakeErrorRule.validate(Mockito.any())).thenReturn(badResult);
+        Mockito.when(fakeRule.validate(Mockito.any())).thenReturn(goodResult);
+
+        var rules = new NumberedRule[] {
+            new NumberedRule("1.1", fakeRule),
+            new NumberedRule("1.2", fakeRule),
+            new NumberedRule("1.3", fakeErrorRule, DepositType.DEPOSIT, List.of("1.2")),
+            new NumberedRule("1.3", fakeErrorRule, DepositType.MIGRATION, List.of("1.2")),
+        };
+
+        var engine = new RuleEngineImpl();
+        var result = engine.validateRules(Path.of("bagdir"), rules, DepositType.DEPOSIT, ValidationLevel.STAND_ALONE );
+
+        assertEquals(3, result.size());
     }
 }

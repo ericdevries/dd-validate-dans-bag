@@ -55,8 +55,11 @@ public class RuleEngineImpl implements RuleEngine {
 
     @Override
     public List<RuleValidationResult> validateRules(Path bag, NumberedRule[] rules, DepositType depositType, ValidationLevel validationLevel) throws Exception {
-        var ruleResults = new HashMap<String, RuleValidationResult>();
-        var remainingRules = filterRulesOnDepositTypeAndValidationLevel(rules, depositType, validationLevel);
+        final var ruleResults = new HashMap<String, RuleValidationResult>();
+        final var rulesToExecute = filterRulesOnDepositTypeAndValidationLevel(rules, depositType, validationLevel);
+
+        // create a copy, because we will modify this list
+        var remainingRules = new ArrayList<>(rulesToExecute);
 
         while (remainingRules.size() > 0) {
             var toRemove = new HashSet<NumberedRule>();
@@ -121,9 +124,9 @@ public class RuleEngineImpl implements RuleEngine {
         }
 
         // TODO this does not belong here, but it would be nice to log the results of the validation
-        reportOnBag(rules, ruleResults);
+        reportOnBag(rulesToExecute, ruleResults);
 
-        return Stream.of(rules)
+        return rulesToExecute.stream()
             .map(rule -> ruleResults.get(rule.getNumber()))
             .filter(Objects::nonNull)
             .collect(Collectors.toList());
@@ -169,13 +172,13 @@ public class RuleEngineImpl implements RuleEngine {
         return String.format("%" + amount + "s", s);
     }
 
-    private void reportOnBag(NumberedRule[] rules, Map<String, RuleValidationResult> ruleResults) {
-        var maxRuleLength = Stream.of(rules)
+    private void reportOnBag(List<NumberedRule> rules, Map<String, RuleValidationResult> ruleResults) {
+        var maxRuleLength = rules.stream()
             .map(r -> r.getNumber().length())
             .max(Integer::compare)
             .orElse(0);
 
-        var resultsAsString = Stream.of(rules)
+        var resultsAsString = rules.stream()
             .map(rule -> {
                 var result = ruleResults.get(rule.getNumber());
                 var resultStatus = result == null ? RuleValidationResult.RuleValidationResultStatus.SKIPPED : result.getStatus();

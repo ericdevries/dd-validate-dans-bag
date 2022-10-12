@@ -132,12 +132,12 @@ public class RuleEngineServiceImpl implements RuleEngineService {
             // provenance.xml
             new NumberedRule("3.3.4", xmlRules.xmlFileIfExistsConformsToSchema(Path.of("metadata/provenance.xml"), "provenance.xml"), DepositType.MIGRATION),
 
-            new NumberedRule("4.1", bagRules.bagInfoContainsAtMostOneOf("Data-Station-User-Account"), ValidationContext.WITH_DATA_STATION_CONTEXT, List.of("1.2.1")),
+            new NumberedRule("4.1", bagRules.bagInfoContainsExactlyOneOf("Data-Station-User-Account"), ValidationContext.WITH_DATA_STATION_CONTEXT, List.of("1.2.1")),
             new NumberedRule("4.2", datastationRules.userIsAuthorizedToCreateDataset(), ValidationContext.WITH_DATA_STATION_CONTEXT, List.of("4.1")),
             new NumberedRule("4.3", bagRules.organizationalIdentifierPrefixIsValid(), ValidationContext.WITH_DATA_STATION_CONTEXT, List.of("4.1", "1.2.5(a)")),
             new NumberedRule("4.4(a)", datastationRules.bagExistsInDatastation(), ValidationContext.WITH_DATA_STATION_CONTEXT, List.of("4.1")),
-            new NumberedRule("4.4(b)", datastationRules.organizationalIdentifierExistsInDataset(), ValidationContext.WITH_DATA_STATION_CONTEXT, List.of("4.1")),
-            new NumberedRule("4.4(c)", datastationRules.userIsAuthorizedToUpdateDataset(), ValidationContext.WITH_DATA_STATION_CONTEXT, List.of("4.1")),
+            new NumberedRule("4.4(b)", datastationRules.organizationalIdentifierExistsInDataset(), ValidationContext.WITH_DATA_STATION_CONTEXT, List.of("4.1", "4.4(a)")),
+            new NumberedRule("4.4(c)", datastationRules.userIsAuthorizedToUpdateDataset(), ValidationContext.WITH_DATA_STATION_CONTEXT, List.of("4.1", "4.4(a)")),
         };
 
         this.validateRuleConfiguration();

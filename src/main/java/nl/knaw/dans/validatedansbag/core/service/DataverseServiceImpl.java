@@ -83,7 +83,6 @@ public class DataverseServiceImpl implements DataverseService {
     @Override
     public DataverseResponse<DatasetLatestVersion> getDataset(String globalId) throws IOException, DataverseException {
         var client = this.getDataverseClient();
-
         log.trace("Getting dataset from dataverse with id {}", globalId);
         return client.dataset(globalId).getLatestVersion();
     }
@@ -93,5 +92,12 @@ public class DataverseServiceImpl implements DataverseService {
         var client = this.getDataverseClient();
         log.trace("Getting dataset role assignments from dataverse for dataset with id {}", itemId);
         return client.dataverse("root").listRoleAssignments();
+    }
+
+    @Override
+    public void checkConnection() throws IOException, DataverseException {
+        var client = this.getDataverseClient();
+        log.trace("Checking dataverse connection");
+        client.checkConnection();
     }
 }

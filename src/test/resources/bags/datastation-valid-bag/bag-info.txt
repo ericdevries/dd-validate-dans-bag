@@ -1,0 +1,5 @@
+Payload-Oxum: 0.2
+Bagging-Date: 2018-05-25
+Bag-Size: 2.5 KB
+Created: 2018-11-16T00:00:00.000+02:00
+Data-Station-User-Account: user001
