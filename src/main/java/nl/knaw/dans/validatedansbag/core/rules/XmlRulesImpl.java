@@ -22,6 +22,7 @@ import nl.knaw.dans.validatedansbag.core.service.XmlSchemaValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
 
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
@@ -55,15 +56,19 @@ public class XmlRulesImpl implements XmlRules {
     @Override
     public BagValidatorRule xmlFileConformsToSchema(Path file, String schema) {
         return (path) -> {
-            var fileName = path.resolve(file);
-            log.debug("Validating {} against schema {}", fileName, schema);
-            var errors = validateXmlFile(fileName, schema);
+            try {
+                var fileName = path.resolve(file);
+                log.debug("Validating {} against schema {}", fileName, schema);
+                var errors = validateXmlFile(fileName, schema);
 
-            if (errors.size() > 0) {
-                var msg = String.format("%s does not conform to %s: \n%s",
-                    file, schema, String.join("\n", errors));
+                if (errors.size() > 0) {
+                    var msg = String.format("%s does not conform to %s: \n%s",
+                        file, schema, String.join("\n", errors));
 
-                return RuleResult.error(msg);
+                    return RuleResult.error(msg);
+                }
+            } catch (SAXParseException e) {
+                return RuleResult.error(e.getMessage(), e);
             }
 
             return RuleResult.ok();

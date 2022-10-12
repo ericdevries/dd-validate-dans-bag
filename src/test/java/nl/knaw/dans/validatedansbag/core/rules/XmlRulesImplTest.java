@@ -19,6 +19,7 @@ import nl.knaw.dans.validatedansbag.core.engine.RuleResult;
 import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReader;
 import nl.knaw.dans.validatedansbag.core.service.FileService;
 import nl.knaw.dans.validatedansbag.core.service.OriginalFilepathsService;
+import nl.knaw.dans.validatedansbag.core.service.XmlReader;
 import nl.knaw.dans.validatedansbag.core.service.XmlReaderImpl;
 import nl.knaw.dans.validatedansbag.core.service.XmlSchemaValidator;
 import org.junit.jupiter.api.AfterEach;
@@ -95,6 +96,19 @@ class XmlRulesImplTest {
 
         Mockito.doReturn(List.of(new SAXParseException("msg", null)))
             .when(xmlSchemaValidator).validateDocument(Mockito.any(), Mockito.anyString());
+
+        var checker = new XmlRulesImpl(reader, xmlSchemaValidator, fileService);
+
+        var result = checker.xmlFileConformsToSchema(Path.of("metadata/dataset.xml"), "ddm").validate(Path.of("bagdir"));
+        assertEquals(RuleResult.Status.ERROR, result.getStatus());
+    }
+
+    @Test
+    void xmlFileIsInvalid() throws Exception {
+        var reader = Mockito.mock(XmlReader.class);
+
+        Mockito.doThrow(new SAXParseException("Invalid XML", null))
+            .when(reader).readXmlFile(Mockito.any());
 
         var checker = new XmlRulesImpl(reader, xmlSchemaValidator, fileService);
 
