@@ -114,7 +114,7 @@ public class FileServiceImpl implements FileService {
     }
 
     void writeStreamToFile(InputStream inputStream, Path target) throws IOException {
-
+        FileUtils.forceMkdirParent(target.toFile());
         try (var output = new FileOutputStream(target.toFile())) {
             byte[] buf = new byte[8 * 1024];
             var bytesRead = 0;

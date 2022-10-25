@@ -36,6 +36,7 @@ import javax.ws.rs.InternalServerErrorException;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import java.io.IOException;
 import java.io.InputStream;
@@ -97,10 +98,10 @@ public class ValidateResource {
     @POST
     @Consumes({ "application/zip" })
     @Produces({ MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN })
-    public ValidateOkDto validateZip(InputStream inputStream) {
+    public ValidateOkDto validateZip(InputStream inputStream, @QueryParam("level") ValidationLevel level) {
         try {
-            log.info("Received request to validate zip file");
-            return validateInputStream(inputStream, DepositType.DEPOSIT, ValidationLevel.STAND_ALONE);
+            log.info("Received request to validate zip file with level = {}", level);
+            return validateInputStream(inputStream, DepositType.DEPOSIT, level == null ? ValidationLevel.WITH_DATA_STATION_CONTEXT : level);
         }
         catch (BagNotFoundException e) {
             log.error("Bag not found", e);

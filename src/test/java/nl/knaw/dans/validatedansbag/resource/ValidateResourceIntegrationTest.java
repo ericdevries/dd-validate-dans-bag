@@ -277,10 +277,8 @@ class ValidateResourceIntegrationTest {
     void validateZipFile() throws Exception {
         var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("zips/audiences.zip"));
 
-        var data = new ValidateCommandDto();
-        data.setPackageType(ValidateCommandDto.PackageTypeEnum.DEPOSIT);
-        data.setLevel(ValidateCommandDto.LevelEnum.WITH_DATA_STATION_CONTEXT);
         var response = EXT.target("/validate")
+            .queryParam("level", "STAND-ALONE")
             .request()
             .post(Entity.entity(filename.openStream(), MediaType.valueOf("application/zip")), ValidateOkDto.class);
 
@@ -294,10 +292,6 @@ class ValidateResourceIntegrationTest {
     @Test
     void validateZipFileAndGetTextResponse() throws Exception {
         var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("zips/invalid-sha1.zip"));
-
-        var data = new ValidateCommandDto();
-        data.setPackageType(ValidateCommandDto.PackageTypeEnum.DEPOSIT);
-        data.setLevel(ValidateCommandDto.LevelEnum.WITH_DATA_STATION_CONTEXT);
 
         var response = EXT.target("/validate")
             .request()
