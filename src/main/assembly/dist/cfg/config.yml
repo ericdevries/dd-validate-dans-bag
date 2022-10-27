@@ -28,8 +28,8 @@ validation:
       prefix: 'U2:'
 
   swordDepositorRoles:
-    datasetCreator: datasetcreator
-    datasetEditor: dataseteditor
+    datasetCreator: swordcreator
+    datasetEditor: swordupdater
 
   licenses:
     allowedLicenses:
