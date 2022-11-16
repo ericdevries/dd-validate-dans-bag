@@ -15,9 +15,9 @@
  */
 package nl.knaw.dans.validatedansbag.resources;
 
-import nl.knaw.dans.openapi.api.ValidateCommandDto;
-import nl.knaw.dans.openapi.api.ValidateOkDto;
-import nl.knaw.dans.openapi.api.ValidateOkRuleViolationsDto;
+import nl.knaw.dans.validatedansbag.api.ValidateCommandDto;
+import nl.knaw.dans.validatedansbag.api.ValidateOkDto;
+import nl.knaw.dans.validatedansbag.api.ValidateOkRuleViolationsDto;
 import nl.knaw.dans.validatedansbag.core.BagNotFoundException;
 import nl.knaw.dans.validatedansbag.core.engine.DepositType;
 import nl.knaw.dans.validatedansbag.core.engine.RuleValidationResult;

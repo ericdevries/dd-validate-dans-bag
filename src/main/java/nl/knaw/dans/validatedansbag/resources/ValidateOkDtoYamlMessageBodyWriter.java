@@ -17,7 +17,7 @@ package nl.knaw.dans.validatedansbag.resources;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import nl.knaw.dans.openapi.api.ValidateOkDto;
+import nl.knaw.dans.validatedansbag.api.ValidateOkDto;
 
 import javax.ws.rs.Produces;
 import javax.ws.rs.WebApplicationException;
