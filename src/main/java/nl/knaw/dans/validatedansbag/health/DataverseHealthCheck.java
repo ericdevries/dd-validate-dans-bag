@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.knaw.dans.validatedansbag.core.health;
+package nl.knaw.dans.validatedansbag.health;
 
 import com.codahale.metrics.health.HealthCheck;
 import nl.knaw.dans.lib.dataverse.DataverseException;
