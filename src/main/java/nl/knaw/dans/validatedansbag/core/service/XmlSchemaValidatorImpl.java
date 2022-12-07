@@ -27,6 +27,7 @@ import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -36,65 +37,30 @@ import java.util.Map;
 public class XmlSchemaValidatorImpl implements XmlSchemaValidator {
 
     private static final Logger log = LoggerFactory.getLogger(XmlSchemaValidatorImpl.class);
-    protected final Map<String, String> schemaUrls = Map.of(
-        "ddm", "https://easy.dans.knaw.nl/schemas/md/ddm/ddm.xsd",
-        "files", "https://easy.dans.knaw.nl/schemas/bag/metadata/files/files.xsd",
-        "agreements", "https://easy.dans.knaw.nl/schemas/bag/metadata/agreements/agreements.xsd",
-        "provenance", "https://easy.dans.knaw.nl/schemas/bag/metadata/prov/provenance.xsd",
-        "amd", "https://easy.dans.knaw.nl/schemas/bag/metadata/amd/amd.xsd",
-        "emd", "https://easy.dans.knaw.nl/schemas/md/emd/emd.xsd"
-    );
 
-    protected final Map<String, String> filenameToSchemaMap = Map.of(
-        "dataset.xml", "ddm",
-        "files.xml", "files",
-        "agreements.xml", "agreements",
-        "provenance.xml", "provenance",
-        "amd.xml", "amd",
-        "emd.xml", "emd"
-    );
+    private final Map<String, URI> filenameToSchemaLocation;
 
-    protected final Map<String, Schema> validators = new HashMap<>();
+    protected final Map<String, Schema> filenameToSchemaInstance = new HashMap<>();
     private final SchemaFactory schemaFactory;
 
-    public XmlSchemaValidatorImpl() {
+    public XmlSchemaValidatorImpl(Map<String, URI> filenameToSchemaLocation) {
+        this.filenameToSchemaLocation = filenameToSchemaLocation;
         this.schemaFactory = SchemaFactory.newInstance("http://www.w3.org/2001/XMLSchema");
 
         try {
-            this.loadSchemas();
-        } catch (Throwable e) {
+            this.loadSchemaInstances();
+        }
+        catch (Throwable e) {
             log.error("Unable to load XML schema's on startup", e);
         }
     }
 
-    Schema getValidatorForFilename(String filename) throws MalformedURLException, SAXException {
-        log.debug("Looking up validator schema for file {}", filename);
-        var result = validators.get(filename);
-        log.debug("Found validator schema {}", result);
-
-        if (result == null) {
-            var schema = filenameToSchemaMap.get(filename);
-
-            if (schema != null) {
-                result = schemaFactory.newSchema(new URL(schemaUrls.get(schema)));
-                log.debug("Saving schema validator");
-                validators.put(filename, result);
-            }
-            else {
-                log.warn("Requested XML schema for filename {} but this filename is unknown", filename);
-                return null;
-            }
-        }
-
-        return result;
-    }
-
     @Override
     public List<SAXParseException> validateDocument(Node node, String schema) throws IOException, SAXException {
-        var schemaInstance = getValidatorForFilename(schema);
+        var schemaInstance = getSchemaInstanceFor(schema);
 
         if (schemaInstance == null) {
-            throw new NullPointerException(String.format("No validator found for key %s", schema));
+            throw new IllegalStateException(String.format("No schema instance found for key %s", schema));
         }
 
         var validator = schemaInstance.newValidator();
@@ -125,26 +91,47 @@ public class XmlSchemaValidatorImpl implements XmlSchemaValidator {
     }
 
     @Override
-    public void loadSchemas() throws Exception {
-        for (var filename : filenameToSchemaMap.keySet()) {
-            log.trace("Start loading of validator for {}", filename);
-            if (validators.get(filename) != null) {
-                log.trace("Validator {} already exists, skipping", filename);
+    public void loadSchemaInstances() {
+        for (var filename : filenameToSchemaLocation.keySet()) {
+            log.trace("Start loading of schema instance for {}", filename);
+            if (filenameToSchemaInstance.get(filename) != null) {
+                log.trace("Schema instance {} already loaded, skipping", filename);
                 continue;
             }
 
             try {
                 log.info("Loading validator for {}...", filename);
-                getValidatorForFilename(filename);
+                getSchemaInstanceFor(filename);
                 log.info("Validator for {} loaded.", filename);
             }
             catch (MalformedURLException | SAXException e) {
                 log.error("Unable to load validator for filename {}", filename, e);
-                // throw a runtime exception because
-                var name = filenameToSchemaMap.get(filename);
-                var url = schemaUrls.get(name);
+                var url = filenameToSchemaLocation.get(filename);
                 throw new RuntimeException(String.format("Unable to load XSD '%s'", url), e);
             }
         }
+    }
+
+    private Schema getSchemaInstanceFor(String filename) throws MalformedURLException, SAXException {
+        log.debug("Looking up validator schema for file {}", filename);
+        var schemaInstance = filenameToSchemaInstance.get(filename);
+        log.debug("Found validator schema {}", schemaInstance);
+
+        if (schemaInstance == null) {
+            log.debug("Schema instance not yet loaded. Looking for schema location...");
+            var schemaLocation = filenameToSchemaLocation.get(filename);
+
+            if (schemaLocation != null) {
+                log.debug("Found schema location: {}", schemaLocation);
+                schemaInstance = schemaFactory.newSchema(new URL(schemaLocation.toASCIIString()));
+                log.debug("Caching schema instance for {}", schemaLocation);
+                filenameToSchemaInstance.put(filename, schemaInstance);
+            }
+            else {
+                throw new IllegalStateException(String.format("Requested XML schema for filename %s but not schema location is configured for this filename", filename));
+            }
+        }
+
+        return schemaInstance;
     }
 }

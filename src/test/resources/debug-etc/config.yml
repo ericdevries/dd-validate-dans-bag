@@ -39,6 +39,14 @@ validation:
     datasetCreator: swordcreator
     datasetEditor: swordupdater
 
+  xmlSchemas:
+    dataset.xml:  "https://easy.dans.knaw.nl/schemas/md/ddm/ddm.xsd"
+    files.xml: "https://easy.dans.knaw.nl/schemas/bag/metadata/files/files.xsd"
+    agreements.xml: "https://easy.dans.knaw.nl/schemas/bag/metadata/agreements/agreements.xsd"
+    provenance.xml: "https://easy.dans.knaw.nl/schemas/bag/metadata/prov/provenance.xsd"
+    amd.xml: "https://easy.dans.knaw.nl/schemas/bag/metadata/amd/amd.xsd"
+    emd.xml: "https://easy.dans.knaw.nl/schemas/md/emd/emd.xsd"
+
   licenses:
     allowedLicenses:
       - "http://creativecommons.org/licenses/by-nc-nd/4.0/"

@@ -32,7 +32,7 @@ public class XmlSchemaHealthCheck extends HealthCheck {
     protected Result check() throws Exception {
         try {
             log.trace("Loading schema's if necessary");
-            xmlSchemaValidator.loadSchemas();
+            xmlSchemaValidator.loadSchemaInstances();
             return Result.healthy();
         }
         catch (Throwable e) {

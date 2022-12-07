@@ -32,6 +32,9 @@ public class ValidationConfig {
     @NotNull
     private List<OtherIdPrefix> otherIdPrefixes;
 
+    @NotNull
+    private XmlSchemaConfig xmlSchemas;
+
     public LicenseConfig getLicenseConfig() {
         return licenseConfig;
     }
@@ -54,5 +57,13 @@ public class ValidationConfig {
 
     public void setOtherIdPrefixes(List<OtherIdPrefix> otherIdPrefixes) {
         this.otherIdPrefixes = otherIdPrefixes;
+    }
+
+    public XmlSchemaConfig getXmlSchemas() {
+        return xmlSchemas;
+    }
+
+    public void setXmlSchemas(XmlSchemaConfig xmlSchemas) {
+        this.xmlSchemas = xmlSchemas;
     }
 }

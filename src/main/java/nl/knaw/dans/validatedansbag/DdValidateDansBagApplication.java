@@ -75,7 +75,7 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
         var licenseValidator = new LicenseValidatorImpl(configuration.getValidationConfig().getLicenseConfig());
         var filesXmlService = new FilesXmlServiceImpl(xmlReader);
 
-        var xmlSchemaValidator = new XmlSchemaValidatorImpl();
+        var xmlSchemaValidator = new XmlSchemaValidatorImpl(configuration.getValidationConfig().getXmlSchemas().buildMap());
 
         var dataverseService = new DataverseServiceImpl(configuration.getDataverseConfig());
 

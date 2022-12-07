@@ -26,5 +26,5 @@ public interface XmlSchemaValidator {
 
     List<SAXParseException> validateDocument(Node node, String schema) throws IOException, SAXException;
 
-    void loadSchemas() throws Exception;
+    void loadSchemaInstances() throws Exception;
 }
