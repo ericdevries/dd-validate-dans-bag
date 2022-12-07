@@ -138,6 +138,7 @@ public class RuleEngineServiceImpl implements RuleEngineService {
             new NumberedRule("4.4(a)", datastationRules.bagExistsInDatastation(), ValidationContext.WITH_DATA_STATION_CONTEXT, List.of("4.1")),
             new NumberedRule("4.4(b)", datastationRules.organizationalIdentifierExistsInDataset(), ValidationContext.WITH_DATA_STATION_CONTEXT, List.of("4.1", "4.4(a)")),
             new NumberedRule("4.4(c)", datastationRules.userIsAuthorizedToUpdateDataset(), ValidationContext.WITH_DATA_STATION_CONTEXT, List.of("4.1", "4.4(a)")),
+            new NumberedRule("4.6", datastationRules.embargoPeriodWithinLimits(), ValidationContext.WITH_DATA_STATION_CONTEXT),
         };
 
         this.validateRuleConfiguration();

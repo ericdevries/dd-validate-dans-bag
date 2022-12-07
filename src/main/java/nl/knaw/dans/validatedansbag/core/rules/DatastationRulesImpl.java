@@ -16,6 +16,8 @@
 package nl.knaw.dans.validatedansbag.core.rules;
 
 import nl.knaw.dans.lib.dataverse.DataverseException;
+import nl.knaw.dans.lib.dataverse.DataverseResponse;
+import nl.knaw.dans.lib.dataverse.model.DataMessage;
 import nl.knaw.dans.lib.dataverse.model.RoleAssignmentReadOnly;
 import nl.knaw.dans.lib.dataverse.model.dataset.DatasetLatestVersion;
 import nl.knaw.dans.lib.dataverse.model.dataset.PrimitiveSingleValueField;
@@ -24,6 +26,9 @@ import nl.knaw.dans.validatedansbag.core.config.SwordDepositorRoles;
 import nl.knaw.dans.validatedansbag.core.engine.RuleResult;
 import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReader;
 import nl.knaw.dans.validatedansbag.core.service.DataverseService;
+import nl.knaw.dans.validatedansbag.core.service.XmlReader;
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,11 +43,13 @@ public class DatastationRulesImpl implements DatastationRules {
     private final BagItMetadataReader bagItMetadataReader;
     private final DataverseService dataverseService;
     private final SwordDepositorRoles swordDepositorRoles;
+    private final XmlReader xmlReader;
 
-    public DatastationRulesImpl(BagItMetadataReader bagItMetadataReader, DataverseService dataverseService, SwordDepositorRoles swordDepositorRoles) {
+    public DatastationRulesImpl(BagItMetadataReader bagItMetadataReader, DataverseService dataverseService, SwordDepositorRoles swordDepositorRoles, XmlReader xmlReader) {
         this.bagItMetadataReader = bagItMetadataReader;
         this.dataverseService = dataverseService;
         this.swordDepositorRoles = swordDepositorRoles;
+        this.xmlReader = xmlReader;
     }
 
     @Override
@@ -219,6 +226,25 @@ public class DatastationRulesImpl implements DatastationRules {
             }
 
             return RuleResult.skipDependencies();
+        };
+    }
+
+    @Override
+    public BagValidatorRule embargoPeriodWithinLimits() {
+        return (path) -> {
+            var months = Integer.parseInt(dataverseService.getMaxEmbargoDurationInMonths().getData().getMessage());
+            var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
+            var expr = "//ddm:profile/ddm:available";
+
+            var nodes = xmlReader.xpathToStream(document, expr).collect(Collectors.toList());
+            if (nodes.isEmpty())
+                return RuleResult.ok();
+
+            DateTime embargoDate = DateTime.parse(nodes.get(0).getTextContent());
+            if(embargoDate.isBefore(new DateTime(DateTime.now().plusMonths(months))))
+                return RuleResult.ok();
+            else
+                return RuleResult.error("Date available is further is the future than the Embargo Period allows");
         };
     }
 

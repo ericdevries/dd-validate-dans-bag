@@ -19,7 +19,6 @@ package nl.knaw.dans.validatedansbag;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.dropwizard.Configuration;
 import nl.knaw.dans.lib.util.DataverseClientFactory;
-import nl.knaw.dans.validatedansbag.core.config.DataverseConfig;
 import nl.knaw.dans.validatedansbag.core.config.ValidationConfig;
 
 import javax.validation.Valid;

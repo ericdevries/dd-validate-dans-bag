@@ -17,6 +17,7 @@ package nl.knaw.dans.validatedansbag.core.service;
 
 import nl.knaw.dans.lib.dataverse.DataverseException;
 import nl.knaw.dans.lib.dataverse.DataverseResponse;
+import nl.knaw.dans.lib.dataverse.model.DataMessage;
 import nl.knaw.dans.lib.dataverse.model.RoleAssignmentReadOnly;
 import nl.knaw.dans.lib.dataverse.model.dataset.DatasetLatestVersion;
 import nl.knaw.dans.lib.dataverse.model.search.SearchResult;
@@ -35,6 +36,8 @@ public interface DataverseService {
     DataverseResponse<DatasetLatestVersion> getDataset(String globalId) throws IOException, DataverseException;
 
     DataverseResponse<List<RoleAssignmentReadOnly>> getDataverseRoleAssignments(String itemId) throws IOException, DataverseException;
+
+    DataverseResponse<DataMessage> getMaxEmbargoDurationInMonths() throws IOException, DataverseException;
 
     void checkConnection() throws IOException, DataverseException;
 }

@@ -17,6 +17,8 @@ package nl.knaw.dans.validatedansbag.resources;
 
 import io.dropwizard.testing.junit5.DropwizardExtensionsSupport;
 import io.dropwizard.testing.junit5.ResourceExtension;
+import nl.knaw.dans.lib.dataverse.DataverseException;
+import nl.knaw.dans.lib.dataverse.model.DataMessage;
 import nl.knaw.dans.lib.dataverse.model.RoleAssignmentReadOnly;
 import nl.knaw.dans.lib.dataverse.model.dataset.DatasetLatestVersion;
 import nl.knaw.dans.lib.dataverse.model.search.SearchResult;
@@ -54,6 +56,7 @@ import org.xml.sax.SAXException;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -99,7 +102,7 @@ class ValidateResourceIntegrationTest {
             organizationIdentifierPrefixValidator, filesXmlService);
         var filesXmlRules = new FilesXmlRulesImpl(fileService, originalFilepathsService, filesXmlService);
         var xmlRules = new XmlRulesImpl(xmlReader, xmlSchemaValidator, fileService);
-        var datastationRules = new DatastationRulesImpl(bagItMetadataReader, dataverseService, new SwordDepositorRoles("datasetcreator", "dataseteditor"));
+        var datastationRules = new DatastationRulesImpl(bagItMetadataReader, dataverseService, new SwordDepositorRoles("datasetcreator", "dataseteditor"), xmlReader);
 
         // set up the engine and the service that has a default set of rules
         var ruleEngine = new RuleEngineImpl();
@@ -115,7 +118,7 @@ class ValidateResourceIntegrationTest {
     }
 
     @Test
-    void validateFormDataWithInvalidBag() {
+    void validateFormDataWithInvalidBag() throws IOException, DataverseException {
         var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("bags/audiences-invalid")).getFile();
 
         var data = new ValidateCommandDto();
@@ -124,6 +127,16 @@ class ValidateResourceIntegrationTest {
         data.setLevel(ValidateCommandDto.LevelEnum.WITH_DATA_STATION_CONTEXT);
         var multipart = new FormDataMultiPart()
             .field("command", data, MediaType.APPLICATION_JSON_TYPE);
+
+        var embargoResultJson = "{\n"
+            + "  \"status\": \"OK\",\n"
+            + "  \"data\": {\n"
+            + "    \"message\": \"24\"\n"
+            + "  }\n"
+            + "}";
+        var maxEmbargoDurationResult = new MockedDataverseResponse<DataMessage>(embargoResultJson, DataMessage.class);
+        Mockito.when(dataverseService.getMaxEmbargoDurationInMonths())
+            .thenReturn(maxEmbargoDurationResult);
 
         var response = EXT.target("/validate")
             .register(MultiPartFeature.class)
@@ -205,14 +218,25 @@ class ValidateResourceIntegrationTest {
             + "  ]\n"
             + "}";
 
+        var embargoResultJson = "{\n"
+            + "  \"status\": \"OK\",\n"
+            + "  \"data\": {\n"
+            + "    \"message\": \"24\"\n"
+            + "  }\n"
+            + "}";
+
         var swordTokenResult = new MockedDataverseResponse<SearchResult>(searchResultsJson, SearchResult.class);
         var dataverseRoleAssignmentsResult = new MockedDataverseResponse<List<RoleAssignmentReadOnly>>(dataverseRoleAssignmentsJson, List.class, RoleAssignmentReadOnly.class);
+        var maxEmbargoDurationResult = new MockedDataverseResponse<DataMessage>(embargoResultJson, DataMessage.class);
 
         Mockito.when(dataverseService.searchBySwordToken(Mockito.anyString()))
             .thenReturn(swordTokenResult);
 
         Mockito.when(dataverseService.getDataverseRoleAssignments(Mockito.anyString()))
             .thenReturn(dataverseRoleAssignmentsResult);
+
+        Mockito.when(dataverseService.getMaxEmbargoDurationInMonths())
+            .thenReturn(maxEmbargoDurationResult);
 
         var response = EXT.target("/validate")
             .register(MultiPartFeature.class)
@@ -227,7 +251,7 @@ class ValidateResourceIntegrationTest {
     }
 
     @Test
-    void validateFormDataWithInValidBagAndOriginalFilepaths() {
+    void validateFormDataWithInValidBagAndOriginalFilepaths() throws Exception {
         var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("bags/original-filepaths-invalid-bag")).getFile();
 
         var data = new ValidateCommandDto();
@@ -237,6 +261,18 @@ class ValidateResourceIntegrationTest {
 
         var multipart = new FormDataMultiPart()
             .field("command", data, MediaType.APPLICATION_JSON_TYPE);
+
+        var embargoResultJson = "{\n"
+            + "  \"status\": \"OK\",\n"
+            + "  \"data\": {\n"
+            + "    \"message\": \"24\"\n"
+            + "  }\n"
+            + "}";
+
+        var maxEmbargoDurationResult = new MockedDataverseResponse<DataMessage>(embargoResultJson, DataMessage.class);
+
+        Mockito.when(dataverseService.getMaxEmbargoDurationInMonths())
+            .thenReturn(maxEmbargoDurationResult);
 
         var response = EXT.target("/validate")
             .register(MultiPartFeature.class)
@@ -260,6 +296,16 @@ class ValidateResourceIntegrationTest {
         var multipart = new FormDataMultiPart()
             .field("command", data, MediaType.APPLICATION_JSON_TYPE)
             .field("zip", filename.openStream(), MediaType.valueOf("application/zip"));
+
+        var embargoResultJson = "{\n"
+            + "  \"status\": \"OK\",\n"
+            + "  \"data\": {\n"
+            + "    \"message\": \"24\"\n"
+            + "  }\n"
+            + "}";
+        var maxEmbargoDurationResult = new MockedDataverseResponse<DataMessage>(embargoResultJson, DataMessage.class);
+        Mockito.when(dataverseService.getMaxEmbargoDurationInMonths())
+            .thenReturn(maxEmbargoDurationResult);
 
         var response = EXT.target("/validate")
             .register(MultiPartFeature.class)
@@ -292,6 +338,16 @@ class ValidateResourceIntegrationTest {
     @Test
     void validateZipFileAndGetTextResponse() throws Exception {
         var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("zips/invalid-sha1.zip"));
+
+        var embargoResultJson = "{\n"
+            + "  \"status\": \"OK\",\n"
+            + "  \"data\": {\n"
+            + "    \"message\": \"24\"\n"
+            + "  }\n"
+            + "}";
+        var maxEmbargoDurationResult = new MockedDataverseResponse<DataMessage>(embargoResultJson, DataMessage.class);
+        Mockito.when(dataverseService.getMaxEmbargoDurationInMonths())
+            .thenReturn(maxEmbargoDurationResult);
 
         var response = EXT.target("/validate")
             .request()
@@ -417,11 +473,23 @@ class ValidateResourceIntegrationTest {
             + "    }\n"
             + "  ]\n"
             + "}";
+
+        var embargoResultJson = "{\n"
+            + "  \"status\": \"OK\",\n"
+            + "  \"data\": {\n"
+            + "    \"message\": \"24\"\n"
+            + "  }\n"
+            + "}";
+
         var searchResult = new MockedDataverseResponse<SearchResult>(searchResultsJson, SearchResult.class);
         var latestVersionResult = new MockedDataverseResponse<DatasetLatestVersion>(latestVersionJson, DatasetLatestVersion.class);
         var swordTokenResult = new MockedDataverseResponse<SearchResult>(searchResultsJson, SearchResult.class);
         var dataverseRoleAssignmentsResult = new MockedDataverseResponse<List<RoleAssignmentReadOnly>>(dataverseRoleAssignmentsJson, List.class, RoleAssignmentReadOnly.class);
         var datasetRoleAssignmentsResult = new MockedDataverseResponse<List<RoleAssignmentReadOnly>>(datasetRoleAssignmentsJson, List.class, RoleAssignmentReadOnly.class);
+        var maxEmbargoDurationResult = new MockedDataverseResponse<DataMessage>(embargoResultJson, DataMessage.class);
+
+        Mockito.when(dataverseService.getMaxEmbargoDurationInMonths())
+            .thenReturn(maxEmbargoDurationResult);
 
         Mockito.when(dataverseService.getDataverseRoleAssignments(Mockito.anyString()))
             .thenReturn(dataverseRoleAssignmentsResult);
@@ -534,11 +602,22 @@ class ValidateResourceIntegrationTest {
             + "  ]\n"
             + "}";
 
+        var embargoResultJson = "{\n"
+            + "  \"status\": \"OK\",\n"
+            + "  \"data\": {\n"
+            + "    \"message\": \"24\"\n"
+            + "  }\n"
+            + "}";
+
         var searchResult = new MockedDataverseResponse<SearchResult>(searchResultsJson, SearchResult.class);
         var latestVersionResult = new MockedDataverseResponse<DatasetLatestVersion>(latestVersionJson, DatasetLatestVersion.class);
         var swordTokenResult = new MockedDataverseResponse<SearchResult>(searchResultsJson, SearchResult.class);
         var dataverseRoleAssignmentsResult = new MockedDataverseResponse<List<RoleAssignmentReadOnly>>(dataverseRoleAssignmentsJson, List.class, RoleAssignmentReadOnly.class);
         var datasetRoleAssignmentsResult = new MockedDataverseResponse<List<RoleAssignmentReadOnly>>(datasetRoleAssignmentsJson, List.class, RoleAssignmentReadOnly.class);
+        var maxEmbargoDurationResult = new MockedDataverseResponse<DataMessage>(embargoResultJson, DataMessage.class);
+
+        Mockito.when(dataverseService.getMaxEmbargoDurationInMonths())
+            .thenReturn(maxEmbargoDurationResult);
 
         Mockito.when(dataverseService.searchDatasetsByOrganizationalIdentifier(Mockito.anyString()))
             .thenReturn(searchResult);
@@ -641,9 +720,21 @@ class ValidateResourceIntegrationTest {
             + "    }\n"
             + "  }\n"
             + "}";
+
+        var embargoResultJson = "{\n"
+            + "  \"status\": \"OK\",\n"
+            + "  \"data\": {\n"
+            + "    \"message\": \"24\"\n"
+            + "  }\n"
+            + "}";
+
         var searchResult = new MockedDataverseResponse<SearchResult>(searchResultsJson, SearchResult.class);
         var latestVersionResult = new MockedDataverseResponse<DatasetLatestVersion>(latestVersionJson, DatasetLatestVersion.class);
         var swordTokenResult = new MockedDataverseResponse<SearchResult>(swordTokenJson, SearchResult.class);
+        var maxEmbargoDurationResult = new MockedDataverseResponse<DataMessage>(embargoResultJson, DataMessage.class);
+
+        Mockito.when(dataverseService.getMaxEmbargoDurationInMonths())
+            .thenReturn(maxEmbargoDurationResult);
 
         Mockito.when(dataverseService.searchDatasetsByOrganizationalIdentifier(Mockito.anyString()))
             .thenReturn(searchResult);
