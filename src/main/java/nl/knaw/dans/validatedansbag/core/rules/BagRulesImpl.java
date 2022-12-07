@@ -440,26 +440,28 @@ public class BagRulesImpl implements BagRules {
                 return RuleResult.error("No licenses found");
             }
 
-            var node = nodes.get(0);
-            var license = nodes.get(0).getTextContent();
-            var attr = node.getAttributes().getNamedItem("xsi:type").getTextContent();
+            var numLicensesFound = 0;
+            for (Node node : nodes) {
+                var license = node.getTextContent();
+                var attr = node.getAttributes().getNamedItem("xsi:type").getTextContent();
 
-            // converts a namespace uri into a prefix that is used in the document
-            var prefix = document.lookupPrefix(XmlReader.NAMESPACE_DCTERMS);
+                // converts a namespace uri into a prefix that is used in the document
+                var prefix = document.lookupPrefix(XmlReader.NAMESPACE_DCTERMS);
 
-            log.debug("Found namespace prefix {}, comparing to {}", prefix, attr);
+                log.debug("Found namespace prefix {}, comparing to {}", prefix, attr);
 
-            if (!attr.equals(String.format("%s:URI", prefix))) {
+                if (attr.equals(String.format("%s:URI", prefix)))
+                    if (licenseValidator.isValidLicense(license))
+                        numLicensesFound++;
+                    else
+                        return RuleResult.error(String.format("dataset.xml: Found unknown or unsupported license: %s", license));
+            }
+            if(numLicensesFound == 1)
+                return RuleResult.ok();
+            else if(numLicensesFound == 0)
                 return RuleResult.error("No license with xsi:type=\"dcterms:URI\"");
-            }
-
-            if (!licenseValidator.isValidLicense(license)) {
-                return RuleResult.error(String.format(
-                    "dataset.xml: Found unknown or unsupported license: %s", license
-                ));
-            }
-
-            return RuleResult.ok();
+            else
+                return RuleResult.error("More than one license with xsi:type=\"dcterms:URI\"");
         };
     }
 

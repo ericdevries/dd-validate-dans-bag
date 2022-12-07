@@ -472,6 +472,31 @@ class BagRulesImplTest {
     }
 
     @Test
+    void ddmMustHaveExactlyOneLicense() throws Exception {
+        final String xml = "<ddm:DDM\n"
+            + "        xmlns:dc=\"http://purl.org/dc/elements/1.1/\"\n"
+            + "        xmlns:dcx-dai=\"http://easy.dans.knaw.nl/schemas/dcx/dai/\"\n"
+            + "        xmlns:ddm=\"http://easy.dans.knaw.nl/schemas/md/ddm/\"\n"
+            + "        xmlns:dcterms=\"http://purl.org/dc/terms/\"\n"
+            + "        xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
+            + "        xmlns:id-type=\"http://easy.dans.knaw.nl/schemas/vocab/identifier-type/\">\n"
+            + "    <ddm:dcmiMetadata>\n"
+            + "        <dcterms:license xsi:type=\"dcterms:URI\">http://opensource.org/licenses/MIT</dcterms:license>\n"
+            + "        <dcterms:license xsi:type=\"dcterms:URI\">http://opensource.org/licenses/MIT</dcterms:license>\n"
+            + "    </ddm:dcmiMetadata>\n"
+            + "</ddm:DDM>";
+
+        var document = parseXmlString(xml);
+        var reader = Mockito.spy(new XmlReaderImpl());
+
+        Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
+
+        var checker = getBagRulesWithXmlReader(reader);
+
+        var result = checker.ddmMayContainDctermsLicenseFromList().validate(Path.of("bagdir"));
+        assertEquals(RuleResult.Status.ERROR, result.getStatus());
+    }
+    @Test
     void ddmGmlPolygonPosListIsWellFormed() throws Exception {
         var xml = "<ddm:DDM\n"
             + "        xmlns:dc=\"http://purl.org/dc/elements/1.1/\"\n"
