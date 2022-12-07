@@ -17,7 +17,7 @@ logging:
       timeZone: system
 
 dataverse:
-  apiToken: ""
+  apiKey: ""
   baseUrl: "http://localhost:8080/"
 
 validation:

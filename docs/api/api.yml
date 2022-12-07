@@ -1,7 +1,7 @@
 openapi: 3.0.1
 
 servers:
-  - url: http://localhost:20180/
+  - url: http://localhost:20330/
 
 info:
   description: Service for validating DANS bags.

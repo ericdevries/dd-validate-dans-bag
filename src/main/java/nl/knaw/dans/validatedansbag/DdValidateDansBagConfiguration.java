@@ -18,6 +18,7 @@ package nl.knaw.dans.validatedansbag;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.dropwizard.Configuration;
+import nl.knaw.dans.lib.util.DataverseClientFactory;
 import nl.knaw.dans.validatedansbag.core.config.DataverseConfig;
 import nl.knaw.dans.validatedansbag.core.config.ValidationConfig;
 
@@ -30,14 +31,23 @@ public class DdValidateDansBagConfiguration extends Configuration {
     @Valid
     @NotNull
     @JsonProperty("dataverse")
-    private DataverseConfig dataverseConfig;
+    private DataverseClientFactory dataverse;
+
     @Valid
     @NotNull
     @JsonProperty("validation")
     private ValidationConfig validationConfig;
 
-    public DataverseConfig getDataverseConfig() {
-        return dataverseConfig;
+    public DataverseClientFactory getDataverse() {
+        return dataverse;
+    }
+
+    public void setDataverse(DataverseClientFactory dataverse) {
+        this.dataverse = dataverse;
+    }
+
+    public void setValidationConfig(ValidationConfig validationConfig) {
+        this.validationConfig = validationConfig;
     }
 
     public ValidationConfig getValidationConfig() {

@@ -15,28 +15,22 @@
  */
 package nl.knaw.dans.validatedansbag.core.rules;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import nl.knaw.dans.lib.dataverse.DataverseClient;
-import nl.knaw.dans.lib.dataverse.DataverseClientConfig;
-import nl.knaw.dans.validatedansbag.core.config.DataverseConfig;
+import nl.knaw.dans.lib.dataverse.DataverseException;
+import nl.knaw.dans.lib.dataverse.model.RoleAssignmentReadOnly;
+import nl.knaw.dans.lib.dataverse.model.dataset.DatasetLatestVersion;
+import nl.knaw.dans.lib.dataverse.model.search.SearchResult;
 import nl.knaw.dans.validatedansbag.core.config.SwordDepositorRoles;
 import nl.knaw.dans.validatedansbag.core.engine.RuleResult;
 import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReader;
 import nl.knaw.dans.validatedansbag.core.service.DataverseService;
-import nl.knaw.dans.validatedansbag.core.service.DataverseServiceImpl;
-import org.apache.http.HttpResponse;
-import org.apache.http.ProtocolVersion;
-import org.apache.http.client.HttpClient;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.message.BasicHttpResponse;
-import org.apache.http.message.BasicStatusLine;
+import nl.knaw.dans.validatedansbag.resources.MockedDataverseResponse;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URI;
+import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -44,49 +38,28 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class DatastationRulesImplTest {
 
     final BagItMetadataReader bagItMetadataReader = Mockito.mock(BagItMetadataReader.class);
-    final DataverseServiceImpl dataverseService = new DataverseServiceImpl(new DataverseConfig("", ""));
+    final DataverseService dataverseService = Mockito.mock(DataverseService.class);
     final SwordDepositorRoles swordDepositorRoles = new SwordDepositorRoles("datasetcreator", "dataseteditor");
-    final HttpClient httpClient = Mockito.mock(HttpClient.class);
+
+    DatastationRulesImplTest() {
+    }
 
     @AfterEach
     void afterEach() {
         Mockito.reset(bagItMetadataReader);
-        Mockito.reset(httpClient);
-    }
-
-    HttpResponse createStringResponse(String str) throws UnsupportedEncodingException {
-        var statusLine = new BasicStatusLine(new ProtocolVersion("HTTP", 1, 1), 200, "OK");
-        var response = new BasicHttpResponse(statusLine);
-        response.setEntity(new StringEntity(str));
-
-        return response;
-    }
-
-    DataverseService createDataverseServiceSpy() {
-        var dv = Mockito.spy(dataverseService);
-        var config = new DataverseClientConfig(URI.create("http://localhost:8080"));
-        var client = new DataverseClient(config, httpClient, new ObjectMapper());
-
-        Mockito.doReturn(client).when(dv).getDataverseClient();
-
-        return dv;
+        Mockito.reset(dataverseService);
     }
 
     @Test
     void bagExistsInDatastation() throws Exception {
-        var dv = createDataverseServiceSpy();
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dv, swordDepositorRoles);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles);
 
         Mockito.doReturn("is-version-of-id")
             .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
 
         var doi = "doi:10.5072/FK2/QZZSST";
-        var searchResult = getSearchResult(doi);
-        var latestVersionResult = getLatestVersion(doi, null);
-
-        Mockito.when(httpClient.execute(Mockito.any()))
-            .thenReturn(createStringResponse(searchResult))
-            .thenReturn(createStringResponse(latestVersionResult));
+        mockSearchBySwordToken(getSearchResult(doi));
+        mockGetDataset(getLatestVersion(doi, null));
 
         var result = checker.bagExistsInDatastation().validate(Path.of("bagdir"));
         assertEquals(RuleResult.Status.SUCCESS, result.getStatus());
@@ -94,16 +67,13 @@ class DatastationRulesImplTest {
 
     @Test
     void bagNotExistsInDatastation() throws Exception {
-        var dv = createDataverseServiceSpy();
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dv, swordDepositorRoles);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles);
 
         Mockito.doReturn("is-version-of-id")
             .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
 
-        var searchResult = getEmptySearchResult();
-
-        Mockito.when(httpClient.execute(Mockito.any()))
-            .thenReturn(createStringResponse(searchResult));
+        String emptySearchResult = getEmptySearchResult();
+        mockSearchBySwordToken(emptySearchResult);
 
         var result = checker.bagExistsInDatastation().validate(Path.of("bagdir"));
         assertEquals(RuleResult.Status.ERROR, result.getStatus());
@@ -112,20 +82,15 @@ class DatastationRulesImplTest {
     @Test
     void organizationalIdentifierExistsInDataset() throws Exception {
 
-        var dv = createDataverseServiceSpy();
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dv, swordDepositorRoles);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles);
 
-        Mockito.doReturn("dans-other-id")
+        String otherId = "dans-other-id";
+        Mockito.doReturn(otherId)
             .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
 
         var doi = "doi:10.5072/FK2/QZZSST";
-        var dansOtherId = "dans-other-id";
-        var searchResult = getSearchResult(doi);
-        var latestVersionResult = getLatestVersion(doi, dansOtherId);
-
-        Mockito.when(httpClient.execute(Mockito.any()))
-            .thenReturn(createStringResponse(searchResult))
-            .thenReturn(createStringResponse(latestVersionResult));
+        mockSearchBySwordToken(getSearchResult(doi));
+        mockGetDataset(getLatestVersion(doi, otherId));
 
         var result = checker.organizationalIdentifierExistsInDataset().validate(Path.of("bagdir"));
         assertEquals(RuleResult.Status.SUCCESS, result.getStatus());
@@ -134,19 +99,14 @@ class DatastationRulesImplTest {
     @Test
     void organizationalIdentifierExistsInDatasetBothAreNull() throws Exception {
 
-        var dv = createDataverseServiceSpy();
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dv, swordDepositorRoles);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles);
 
         Mockito.doReturn(null)
             .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
 
         var doi = "doi:10.5072/FK2/QZZSST";
-        var searchResult = getSearchResult(doi);
-        var latestVersionResult = getLatestVersion(doi, null);
-
-        Mockito.when(httpClient.execute(Mockito.any()))
-            .thenReturn(createStringResponse(searchResult))
-            .thenReturn(createStringResponse(latestVersionResult));
+        mockSearchBySwordToken(getSearchResult(doi));
+        mockGetDataset(getLatestVersion(doi, null));
 
         var result = checker.organizationalIdentifierExistsInDataset().validate(Path.of("bagdir"));
         assertEquals(RuleResult.Status.SUCCESS, result.getStatus());
@@ -155,20 +115,15 @@ class DatastationRulesImplTest {
     @Test
     void organizationalIdentifierExistsInDatasetActualIsNull() throws Exception {
 
-        var dv = createDataverseServiceSpy();
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dv, swordDepositorRoles);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles);
 
         Mockito.when(bagItMetadataReader.getSingleField(Mockito.any(), Mockito.anyString()))
             .thenReturn("is_version_of")
             .thenReturn("has_organizational_identifier");
 
         var doi = "doi:10.5072/FK2/QZZSST";
-        var searchResult = getSearchResult(doi);
-        var latestVersionResult = getLatestVersion(doi, null);
-
-        Mockito.when(httpClient.execute(Mockito.any()))
-            .thenReturn(createStringResponse(searchResult))
-            .thenReturn(createStringResponse(latestVersionResult));
+        mockSearchBySwordToken(getSearchResult(doi));
+        mockGetDataset(getLatestVersion(doi, null));
 
         var result = checker.organizationalIdentifierExistsInDataset().validate(Path.of("bagdir"));
         assertEquals(RuleResult.Status.ERROR, result.getStatus());
@@ -177,20 +132,15 @@ class DatastationRulesImplTest {
     @Test
     void organizationalIdentifierExistsInDatasetMismatch() throws Exception {
 
-        var dv = createDataverseServiceSpy();
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dv, swordDepositorRoles);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles);
 
         Mockito.when(bagItMetadataReader.getSingleField(Mockito.any(), Mockito.anyString()))
             .thenReturn("is_version_of")
             .thenReturn("has_organizational_identifier");
 
         var doi = "doi:10.5072/FK2/QZZSST";
-        var searchResult = getSearchResult(doi);
-        var latestVersionResult = getLatestVersion(doi, "some_other_organizational_identifier");
-
-        Mockito.when(httpClient.execute(Mockito.any()))
-            .thenReturn(createStringResponse(searchResult))
-            .thenReturn(createStringResponse(latestVersionResult));
+        mockSearchBySwordToken(getSearchResult(doi));
+        mockGetDataset(getLatestVersion(doi, "some_other_organizational_identifier"));
 
         var result = checker.organizationalIdentifierExistsInDataset().validate(Path.of("bagdir"));
         assertEquals(RuleResult.Status.ERROR, result.getStatus());
@@ -199,8 +149,7 @@ class DatastationRulesImplTest {
     // CREATE tests
     @Test
     void dataStationUserAccountIsAuthorizedToCreate() throws Exception {
-        var dv = createDataverseServiceSpy();
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dv, swordDepositorRoles);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles);
 
         Mockito
             .doReturn("user-account-name")
@@ -225,9 +174,7 @@ class DatastationRulesImplTest {
             + "    }\n"
             + "  ]\n"
             + "}";
-
-        Mockito.when(httpClient.execute(Mockito.any()))
-            .thenReturn(createStringResponse(assignmentResult));
+        mockGetDataverseRoleAssignments(assignmentResult);
 
         var result = checker.userIsAuthorizedToCreateDataset().validate(Path.of("bagdir"));
 
@@ -236,8 +183,7 @@ class DatastationRulesImplTest {
 
     @Test
     void dataStationUserAccountIsNotAuthorizedToCreate() throws Exception {
-        var dv = createDataverseServiceSpy();
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dv, swordDepositorRoles);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles);
 
         Mockito
             .doReturn("user-account-name")
@@ -271,8 +217,7 @@ class DatastationRulesImplTest {
             + "  ]\n"
             + "}";
 
-        Mockito.when(httpClient.execute(Mockito.any()))
-            .thenReturn(createStringResponse(assignmentResult));
+        mockGetDataverseRoleAssignments(assignmentResult);
 
         var result = checker.userIsAuthorizedToCreateDataset().validate(Path.of("bagdir"));
 
@@ -281,8 +226,7 @@ class DatastationRulesImplTest {
 
     @Test
     void dataStationUserAccountIsNotSetCreate() throws Exception {
-        var dv = createDataverseServiceSpy();
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dv, swordDepositorRoles);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles);
 
         Mockito
             .doReturn(null)
@@ -307,9 +251,7 @@ class DatastationRulesImplTest {
             + "    }\n"
             + "  ]\n"
             + "}";
-
-        Mockito.when(httpClient.execute(Mockito.any()))
-            .thenReturn(createStringResponse(assignmentResult));
+        mockGetDataverseRoleAssignments(assignmentResult);
 
         var result = checker.userIsAuthorizedToCreateDataset().validate(Path.of("bagdir"));
         assertEquals(RuleResult.Status.SKIP_DEPENDENCIES, result.getStatus());
@@ -317,8 +259,7 @@ class DatastationRulesImplTest {
 
     @Test
     void dataStationUserAccountYieldsNoSearchResultsCreate() throws Exception {
-        var dv = createDataverseServiceSpy();
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dv, swordDepositorRoles);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles);
 
         Mockito
             .doReturn("user-name")
@@ -345,9 +286,7 @@ class DatastationRulesImplTest {
             + "    }\n"
             + "  ]\n"
             + "}";
-
-        Mockito.when(httpClient.execute(Mockito.any()))
-            .thenReturn(createStringResponse(assignmentResult));
+        mockGetDataverseRoleAssignments(assignmentResult);
 
         var result = checker.userIsAuthorizedToCreateDataset().validate(Path.of("bagdir"));
 
@@ -358,16 +297,13 @@ class DatastationRulesImplTest {
 
     @Test
     void dataStationUserAccountIsAuthorizedToEdit() throws Exception {
-        var dv = createDataverseServiceSpy();
+        var dv = dataverseService;
         var checker = new DatastationRulesImpl(bagItMetadataReader, dv, swordDepositorRoles);
 
         Mockito
             .doReturn("user-account-name")
             .doReturn("urn:uuid:the_id")
             .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
-
-        var searchResult = getSearchResult("doi");
-        var latestVersionResult = getLatestVersion("doi", "otherid");
 
         var assignmentResult = "{\n"
             + "  \"status\": \"OK\",\n"
@@ -388,11 +324,10 @@ class DatastationRulesImplTest {
             + "    }\n"
             + "  ]\n"
             + "}";
-
-        Mockito.when(httpClient.execute(Mockito.any()))
-            .thenReturn(createStringResponse(searchResult))
-            .thenReturn(createStringResponse(latestVersionResult))
-            .thenReturn(createStringResponse(assignmentResult));
+        mockSearchBySwordToken(getSearchResult("doi"));
+        mockGetDataset(null);
+        mockGetDataset(getLatestVersion("doi", "otherid"));
+        mockGetDatasetRoleAssignments(assignmentResult);
 
         var result = checker.userIsAuthorizedToUpdateDataset().validate(Path.of("bagdir"));
 
@@ -403,7 +338,7 @@ class DatastationRulesImplTest {
 
     @Test
     void dataStationUserAccountIsNotAuthorizedToEdit() throws Exception {
-        var dv = createDataverseServiceSpy();
+        var dv = dataverseService;
         var checker = new DatastationRulesImpl(bagItMetadataReader, dv, swordDepositorRoles);
 
         Mockito
@@ -412,8 +347,6 @@ class DatastationRulesImplTest {
             .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
 
         // trimmed down versions of what dataverse would actually spit out
-        var searchResult = getSearchResult("doi");
-        var latestVersionResult = getLatestVersion("doi", "otherid");
         var assignmentResult = "{\n"
             + "  \"status\": \"OK\",\n"
             + "  \"data\": [\n"
@@ -433,11 +366,10 @@ class DatastationRulesImplTest {
             + "    }\n"
             + "  ]\n"
             + "}";
-
-        Mockito.when(httpClient.execute(Mockito.any()))
-            .thenReturn(createStringResponse(searchResult))
-            .thenReturn(createStringResponse(latestVersionResult))
-            .thenReturn(createStringResponse(assignmentResult));
+        mockSearchBySwordToken(getSearchResult("doi"));
+        mockGetDataset(null);
+        mockGetDataset(getLatestVersion("doi", "otherid"));
+        mockGetDatasetRoleAssignments(assignmentResult);
 
         var result = checker.userIsAuthorizedToUpdateDataset().validate(Path.of("bagdir"));
 
@@ -447,16 +379,13 @@ class DatastationRulesImplTest {
 
     @Test
     void dataStationUserAccountIsNotAuthorizedToEditButHasADifferentRole() throws Exception {
-        var dv = createDataverseServiceSpy();
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dv, swordDepositorRoles);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles);
 
         Mockito
             .doReturn("user-account-name")
             .doReturn("urn:uuid:the_id")
             .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
 
-        var searchResult = getSearchResult("doi");
-        var latestVersionResult = getLatestVersion("doi", "otherid");
         var assignmentResult = "{\n"
             + "  \"status\": \"OK\",\n"
             + "  \"data\": [\n"
@@ -476,32 +405,28 @@ class DatastationRulesImplTest {
             + "    }\n"
             + "  ]\n"
             + "}";
-
-        Mockito.when(httpClient.execute(Mockito.any()))
-            .thenReturn(createStringResponse(searchResult))
-            .thenReturn(createStringResponse(latestVersionResult))
-            .thenReturn(createStringResponse(assignmentResult));
+        mockSearchBySwordToken(getSearchResult("doi"));
+        mockGetDataset(getLatestVersion("doi", "dans-other-id"));
+        mockGetDatasetRoleAssignments(assignmentResult);
 
         var result = checker.userIsAuthorizedToUpdateDataset().validate(Path.of("bagdir"));
 
         assertEquals(RuleResult.Status.ERROR, result.getStatus());
-        assertTrue(result.getErrorMessages().get(0).contains("user-account-name"));
-        assertTrue(result.getErrorMessages().get(0).contains("expected: dataseteditor"));
-        assertTrue(result.getErrorMessages().get(0).contains("readonly"));
-
+        String firstMsg = result.getErrorMessages().get(0);
+        assertTrue(firstMsg.contains("user-account-name"), firstMsg);
+        assertTrue(firstMsg.contains("expected: dataseteditor"), firstMsg);
+        assertTrue(firstMsg.contains("readonly"), firstMsg);
     }
 
     @Test
     void dataStationUserAccountIsNotSetEdit() throws Exception {
-        var dv = createDataverseServiceSpy();
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dv, swordDepositorRoles);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles);
 
         Mockito
             .doReturn(null)
             .doReturn("urn:uuid:the_id")
             .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
 
-        var searchResult = getSearchResult("doi");
         var assignmentResult = "{\n"
             + "  \"status\": \"OK\",\n"
             + "  \"data\": [\n"
@@ -521,20 +446,17 @@ class DatastationRulesImplTest {
             + "    }\n"
             + "  ]\n"
             + "}";
-
-        Mockito.when(httpClient.execute(Mockito.any()))
-            .thenReturn(createStringResponse(searchResult))
-            .thenReturn(createStringResponse(assignmentResult));
+        mockSearchBySwordToken(getEmptySearchResult());
+        mockSearchBySwordToken(getSearchResult("doi"));
+        mockGetDataverseRoleAssignments(assignmentResult);
 
         var result = checker.userIsAuthorizedToUpdateDataset().validate(Path.of("bagdir"));
         assertEquals(RuleResult.Status.SKIP_DEPENDENCIES, result.getStatus());
-
     }
 
     @Test
     void dataStationUserAccountYieldsNoSearchResultsEdit() throws Exception {
-        var dv = createDataverseServiceSpy();
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dv, swordDepositorRoles);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles);
 
         Mockito
             .doReturn("user-name")
@@ -542,8 +464,6 @@ class DatastationRulesImplTest {
             .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
 
         // trimmed down versions of what dataverse would actually spit out
-        var searchResult = getEmptySearchResult();
-
         var assignmentResult = "{\n"
             + "  \"status\": \"OK\",\n"
             + "  \"data\": [\n"
@@ -564,14 +484,34 @@ class DatastationRulesImplTest {
             + "  ]\n"
             + "}";
 
-        Mockito.when(httpClient.execute(Mockito.any()))
-            .thenReturn(createStringResponse(searchResult))
-            .thenReturn(createStringResponse(assignmentResult));
+        mockSearchBySwordToken(getEmptySearchResult());
+        mockGetDataset("doi");
+        mockGetDataverseRoleAssignments(assignmentResult);
 
         var result = checker.userIsAuthorizedToUpdateDataset().validate(Path.of("bagdir"));
 
         assertTrue(result.getErrorMessages().get(0).contains("it must be a valid SWORD token in the data station"));
         assertEquals(RuleResult.Status.ERROR, result.getStatus());
+    }
+
+    private void mockGetDataset(String json) throws IOException, DataverseException {
+        var response = new MockedDataverseResponse<>(json, DatasetLatestVersion.class);
+        Mockito.doReturn(response).when(dataverseService).getDataset(Mockito.anyString());
+    }
+
+    private void mockSearchBySwordToken(String json) throws IOException, DataverseException {
+        var response = new MockedDataverseResponse<>(json, SearchResult.class);
+        Mockito.doReturn(response).when(dataverseService).searchBySwordToken(Mockito.any());
+    }
+
+    private void mockGetDataverseRoleAssignments(String json) throws IOException, DataverseException {
+        var response = new MockedDataverseResponse<>(json, List.class, RoleAssignmentReadOnly.class);
+        Mockito.doReturn(response).when(dataverseService).getDataverseRoleAssignments(Mockito.any());
+    }
+
+    private void mockGetDatasetRoleAssignments(String json) throws IOException, DataverseException {
+        var response = new MockedDataverseResponse<>(json, List.class, RoleAssignmentReadOnly.class);
+        Mockito.doReturn(response).when(dataverseService).getDatasetRoleAssignments(Mockito.any());
     }
 
     String getSearchResult(String globalId) {

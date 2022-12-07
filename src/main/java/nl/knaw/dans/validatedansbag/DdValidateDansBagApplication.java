@@ -21,8 +21,6 @@ import io.dropwizard.forms.MultiPartBundle;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import nl.knaw.dans.validatedansbag.core.engine.RuleEngineImpl;
-import nl.knaw.dans.validatedansbag.health.DataverseHealthCheck;
-import nl.knaw.dans.validatedansbag.health.XmlSchemaHealthCheck;
 import nl.knaw.dans.validatedansbag.core.rules.BagRulesImpl;
 import nl.knaw.dans.validatedansbag.core.rules.DatastationRulesImpl;
 import nl.knaw.dans.validatedansbag.core.rules.FilesXmlRulesImpl;
@@ -39,6 +37,8 @@ import nl.knaw.dans.validatedansbag.core.validator.IdentifierValidatorImpl;
 import nl.knaw.dans.validatedansbag.core.validator.LicenseValidatorImpl;
 import nl.knaw.dans.validatedansbag.core.validator.OrganizationIdentifierPrefixValidatorImpl;
 import nl.knaw.dans.validatedansbag.core.validator.PolygonListValidatorImpl;
+import nl.knaw.dans.validatedansbag.health.DataverseHealthCheck;
+import nl.knaw.dans.validatedansbag.health.XmlSchemaHealthCheck;
 import nl.knaw.dans.validatedansbag.resources.IllegalArgumentExceptionMapper;
 import nl.knaw.dans.validatedansbag.resources.ValidateOkDtoYamlMessageBodyWriter;
 import nl.knaw.dans.validatedansbag.resources.ValidateResource;
@@ -77,7 +77,7 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
 
         var xmlSchemaValidator = new XmlSchemaValidatorImpl(configuration.getValidationConfig().getXmlSchemas().buildMap());
 
-        var dataverseService = new DataverseServiceImpl(configuration.getDataverseConfig());
+        var dataverseService = new DataverseServiceImpl(configuration.getDataverse().build());
 
         var organizationIdentifierPrefixValidator = new OrganizationIdentifierPrefixValidatorImpl(configuration.getValidationConfig().getOtherIdPrefixes());
 
