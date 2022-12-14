@@ -18,12 +18,16 @@ package nl.knaw.dans.validatedansbag.resources;
 import com.fasterxml.jackson.databind.exc.ValueInstantiationException;
 import io.dropwizard.jersey.errors.ErrorMessage;
 import org.glassfish.jersey.media.multipart.FormDataParamException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 
 public class IllegalArgumentExceptionMapper implements ExceptionMapper<FormDataParamException> {
+
+    private static final Logger log = LoggerFactory.getLogger(ValidateResource.class);
 
     @Override
     public Response toResponse(FormDataParamException e) {
@@ -33,6 +37,9 @@ public class IllegalArgumentExceptionMapper implements ExceptionMapper<FormDataP
         if (valueInstantiationError != null) {
             message = valueInstantiationError.getMessage();
         }
+
+        log.error("Error reading form data: name={}, type={}",
+            e.getParameterName(), e.getParameterType(), e);
 
         return Response.status(Response.Status.BAD_REQUEST)
             .type(MediaType.APPLICATION_JSON_TYPE)
