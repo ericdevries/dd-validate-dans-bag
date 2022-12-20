@@ -40,7 +40,7 @@ import nl.knaw.dans.validatedansbag.core.validator.PolygonListValidatorImpl;
 import nl.knaw.dans.validatedansbag.health.DataverseHealthCheck;
 import nl.knaw.dans.validatedansbag.health.XmlSchemaHealthCheck;
 import nl.knaw.dans.validatedansbag.resources.IllegalArgumentExceptionMapper;
-import nl.knaw.dans.validatedansbag.resources.ValidateOkDtoYamlMessageBodyWriter;
+import nl.knaw.dans.validatedansbag.resources.ValidateOkYamlMessageBodyWriter;
 import nl.knaw.dans.validatedansbag.resources.ValidateResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -94,7 +94,7 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
 
         environment.jersey().register(new IllegalArgumentExceptionMapper());
         environment.jersey().register(new ValidateResource(ruleEngineService, fileService));
-        environment.jersey().register(new ValidateOkDtoYamlMessageBodyWriter());
+        environment.jersey().register(new ValidateOkYamlMessageBodyWriter());
 
         environment.healthChecks().register("xml-schemas", new XmlSchemaHealthCheck(xmlSchemaValidator));
         environment.healthChecks().register("dataverse", new DataverseHealthCheck(dataverseService));

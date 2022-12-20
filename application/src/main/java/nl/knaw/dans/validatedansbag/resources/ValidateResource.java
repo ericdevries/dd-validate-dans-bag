@@ -15,9 +15,9 @@
  */
 package nl.knaw.dans.validatedansbag.resources;
 
-import nl.knaw.dans.validatedansbag.api.ValidateCommandDto;
-import nl.knaw.dans.validatedansbag.api.ValidateOkDto;
-import nl.knaw.dans.validatedansbag.api.ValidateOkRuleViolationsDto;
+import nl.knaw.dans.validatedansbag.api.ValidateCommand;
+import nl.knaw.dans.validatedansbag.api.ValidateOk;
+import nl.knaw.dans.validatedansbag.api.ValidateOkRuleViolations;
 import nl.knaw.dans.validatedansbag.core.BagNotFoundException;
 import nl.knaw.dans.validatedansbag.core.engine.DepositType;
 import nl.knaw.dans.validatedansbag.core.engine.RuleValidationResult;
@@ -59,8 +59,8 @@ public class ValidateResource {
     @POST
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Produces({MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN})
-    public ValidateOkDto validateFormData(
-        @Valid @NotNull @FormDataParam(value = "command") ValidateCommandDto command,
+    public ValidateOk validateFormData(
+        @Valid @NotNull @FormDataParam(value = "command") ValidateCommand command,
         @FormDataParam(value = "zip") InputStream zipInputStream
     ) {
         var location = command.getBagLocation();
@@ -70,7 +70,7 @@ public class ValidateResource {
         log.info("Received request to validate bag: {}", command);
 
         try {
-            ValidateOkDto validateResult;
+            ValidateOk validateResult;
 
             if (location == null) {
                 validateResult = validateInputStream(zipInputStream, depositType, validationLevel);
@@ -98,7 +98,7 @@ public class ValidateResource {
     @POST
     @Consumes({ "application/zip" })
     @Produces({ MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN })
-    public ValidateOkDto validateZip(InputStream inputStream, @QueryParam("level") ValidationLevel level) {
+    public ValidateOk validateZip(InputStream inputStream, @QueryParam("level") ValidationLevel level) {
         try {
             log.info("Received request to validate zip file with level = {}", level);
             return validateInputStream(inputStream, DepositType.DEPOSIT, level == null ? ValidationLevel.WITH_DATA_STATION_CONTEXT : level);
@@ -113,7 +113,7 @@ public class ValidateResource {
         }
     }
 
-    ValidateOkDto validateInputStream(InputStream inputStream, DepositType depositType, ValidationLevel validationLevel) throws Exception {
+    ValidateOk validateInputStream(InputStream inputStream, DepositType depositType, ValidationLevel validationLevel) throws Exception {
         var tempPath = fileService.extractZipFile(inputStream);
 
         try {
@@ -133,11 +133,11 @@ public class ValidateResource {
 
     }
 
-    ValidateOkDto validatePath(java.nio.file.Path bagDir, DepositType depositType, ValidationLevel validationLevel) throws Exception {
+    ValidateOk validatePath(java.nio.file.Path bagDir, DepositType depositType, ValidationLevel validationLevel) throws Exception {
         var results = ruleEngineService.validateBag(bagDir, depositType, validationLevel);
         var isValid = results.stream().noneMatch(r -> r.getStatus().equals(RuleValidationResult.RuleValidationResultStatus.FAILURE));
 
-        var result = new ValidateOkDto();
+        var result = new ValidateOk();
         result.setBagLocation(null);
         result.setIsCompliant(isValid);
         result.setName(bagDir.getFileName().toString());
@@ -147,7 +147,7 @@ public class ValidateResource {
         result.setRuleViolations(results.stream()
             .filter(r -> r.getStatus().equals(RuleValidationResult.RuleValidationResultStatus.FAILURE))
             .map(rule -> {
-                var ret = new ValidateOkRuleViolationsDto();
+                var ret = new ValidateOkRuleViolations();
                 ret.setRule(rule.getNumber());
 
                 var message = new StringBuilder();
@@ -166,31 +166,31 @@ public class ValidateResource {
         return result;
     }
 
-    DepositType toDepositType(ValidateCommandDto.PackageTypeEnum value) {
-        if (ValidateCommandDto.PackageTypeEnum.MIGRATION.equals(value)) {
+    DepositType toDepositType(ValidateCommand.PackageTypeEnum value) {
+        if (ValidateCommand.PackageTypeEnum.MIGRATION.equals(value)) {
             return DepositType.MIGRATION;
         }
         return DepositType.DEPOSIT;
     }
 
-    ValidationLevel toValidationLevel(ValidateCommandDto.LevelEnum value) {
-        if (ValidateCommandDto.LevelEnum.WITH_DATA_STATION_CONTEXT.equals(value)) {
+    ValidationLevel toValidationLevel(ValidateCommand.LevelEnum value) {
+        if (ValidateCommand.LevelEnum.WITH_DATA_STATION_CONTEXT.equals(value)) {
             return ValidationLevel.WITH_DATA_STATION_CONTEXT;
         }
         return ValidationLevel.STAND_ALONE;
     }
 
-    ValidateOkDto.InformationPackageTypeEnum toInfoPackageType(DepositType value) {
+    ValidateOk.InformationPackageTypeEnum toInfoPackageType(DepositType value) {
         if (DepositType.MIGRATION.equals(value)) {
-            return ValidateOkDto.InformationPackageTypeEnum.MIGRATION;
+            return ValidateOk.InformationPackageTypeEnum.MIGRATION;
         }
-        return ValidateOkDto.InformationPackageTypeEnum.DEPOSIT;
+        return ValidateOk.InformationPackageTypeEnum.DEPOSIT;
     }
 
-    ValidateOkDto.LevelEnum toLevel(ValidationLevel value) {
+    ValidateOk.LevelEnum toLevel(ValidationLevel value) {
         if (ValidationLevel.WITH_DATA_STATION_CONTEXT.equals(value)) {
-            return ValidateOkDto.LevelEnum.WITH_DATA_STATION_CONTEXT;
+            return ValidateOk.LevelEnum.WITH_DATA_STATION_CONTEXT;
         }
-        return ValidateOkDto.LevelEnum.STAND_ALONE;
+        return ValidateOk.LevelEnum.STAND_ALONE;
     }
 }

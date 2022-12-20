@@ -78,7 +78,6 @@
                             <generateModelTests>false</generateModelTests>
                             <generateApiTests>false</generateApiTests>
                             <generateApis>false</generateApis>
-                            <modelNameSuffix>Dto</modelNameSuffix>
                             <configOptions>
                                 <modelPackage>nl.knaw.dans.validatedansbag.api</modelPackage>
                                 <sourceFolder>src/gen/java/main</sourceFolder>
