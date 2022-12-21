@@ -7,6 +7,7 @@
 /release.properties
 /dependency-reduced-pom.xml
 /buildNumber.properties
+/*.iml
 
 /*/pom.xml.tag
 /*/pom.xml.releaseBackup
@@ -15,11 +16,12 @@
 /*/release.properties
 /*/dependency-reduced-pom.xml
 /*/buildNumber.properties
+/*/*.iml
+
 /init-project.sh
 *~
 *.swp
 *.sc
-/*.iml
 /.idea/
 .DS_Store
 /site
