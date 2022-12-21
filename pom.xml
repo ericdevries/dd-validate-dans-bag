@@ -21,7 +21,7 @@
 
     <groupId>nl.knaw.dans</groupId>
     <artifactId>dd-validate-dans-bag-build</artifactId>
-    <version>0.9.0</version>
+    <version>0.9.1-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>DD Validate Dans Bag Build</name>
@@ -35,7 +35,7 @@
 
     <scm>
         <developerConnection>scm:git:ssh://github.com/DANS-KNAW/dd-validate-dans-bag</developerConnection>
-        <tag>v0.9.0</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <build>
