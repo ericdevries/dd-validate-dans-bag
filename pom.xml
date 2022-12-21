@@ -29,10 +29,6 @@
     <description>Validates whether a given bag complies with the DANS BagIt Profile v1</description>
     <inceptionYear>2022</inceptionYear>
 
-    <properties>
-        <main-class>nl.knaw.dans.validatedansbag.DdValidateDansBagApplication</main-class>
-    </properties>
-
     <scm>
         <developerConnection>scm:git:ssh://github.com/DANS-KNAW/dd-validate-dans-bag</developerConnection>
         <tag>HEAD</tag>
