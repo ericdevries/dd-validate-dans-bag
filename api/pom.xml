@@ -20,7 +20,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <artifactId>dans-dropwizard-project</artifactId>
+        <artifactId>dans-java11-project</artifactId>
         <groupId>nl.knaw.dans.shared</groupId>
         <version>9.5.0</version>
         <relativePath />
