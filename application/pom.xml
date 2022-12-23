@@ -20,13 +20,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <artifactId>dans-dropwizard-project</artifactId>
-        <groupId>nl.knaw.dans.shared</groupId>
-        <version>9.5.0</version>
+        <artifactId>dd-parent-service</artifactId>
+        <groupId>nl.knaw.dans</groupId>
+        <version>0.1.2-SNAPSHOT</version>
         <relativePath />
     </parent>
 
-    <groupId>nl.knaw.dans</groupId>
     <artifactId>dd-validate-dans-bag</artifactId>
     <version>0.12.1-SNAPSHOT</version>
 
@@ -157,14 +156,6 @@
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>rpm-maven-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>attach-rpm</id>
-                                <goals>
-                                    <goal>attached-rpm</goal>
-                                </goals>
-                            </execution>
-                        </executions>
                     </plugin>
                 </plugins>
             </build>

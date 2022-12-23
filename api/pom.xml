@@ -20,13 +20,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <artifactId>dans-java11-project</artifactId>
-        <groupId>nl.knaw.dans.shared</groupId>
-        <version>9.5.0</version>
+        <groupId>nl.knaw.dans</groupId>
+        <artifactId>dd-parent</artifactId>
+        <version>0.1.2-SNAPSHOT</version>
         <relativePath />
     </parent>
 
-    <groupId>nl.knaw.dans</groupId>
     <artifactId>dd-validate-dans-bag-api</artifactId>
     <version>0.12.1-SNAPSHOT</version>
 
