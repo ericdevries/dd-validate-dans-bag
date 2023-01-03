@@ -20,13 +20,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <artifactId>dans-dropwizard-project</artifactId>
-        <groupId>nl.knaw.dans.shared</groupId>
-        <version>9.5.0</version>
+        <groupId>nl.knaw.dans</groupId>
+        <artifactId>dd-parent</artifactId>
+        <version>0.10.0</version>
         <relativePath />
     </parent>
 
-    <groupId>nl.knaw.dans</groupId>
     <artifactId>dd-validate-dans-bag</artifactId>
     <version>0.12.1-SNAPSHOT</version>
 
@@ -143,6 +142,29 @@
         </repository>
     </repositories>
 
+    <pluginRepositories>
+        <pluginRepository>
+            <id>dans-releases</id>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <url>https://maven.dans.knaw.nl/releases/</url>
+        </pluginRepository>
+        <pluginRepository>
+            <id>dans-snapshots</id>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+            <url>https://maven.dans.knaw.nl/snapshots/</url>
+        </pluginRepository>
+    </pluginRepositories>
+
     <profiles>
         <profile>
             <id>rpm</id>
@@ -157,17 +179,21 @@
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>rpm-maven-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>attach-rpm</id>
-                                <goals>
-                                    <goal>attached-rpm</goal>
-                                </goals>
-                            </execution>
-                        </executions>
+                    </plugin>
+                    <plugin>
+                        <!-- Do not deploy to Maven, but instead to YUM repo with dans-nexus-maven-plugin -->
+                        <artifactId>maven-deploy-plugin</artifactId>
+                        <configuration>
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>nl.knaw.dans</groupId>
+                        <artifactId>dans-nexus-maven-plugin</artifactId>
                     </plugin>
                 </plugins>
             </build>
         </profile>
     </profiles>
+
 </project>
