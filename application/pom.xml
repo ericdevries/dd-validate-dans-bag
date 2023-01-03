@@ -20,9 +20,9 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <artifactId>dd-parent-service</artifactId>
         <groupId>nl.knaw.dans</groupId>
-        <version>0.1.2-SNAPSHOT</version>
+        <artifactId>dd-parent</artifactId>
+        <version>0.10.0</version>
         <relativePath />
     </parent>
 
@@ -142,6 +142,29 @@
         </repository>
     </repositories>
 
+    <pluginRepositories>
+        <pluginRepository>
+            <id>dans-releases</id>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <url>https://maven.dans.knaw.nl/releases/</url>
+        </pluginRepository>
+        <pluginRepository>
+            <id>dans-snapshots</id>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+            <url>https://maven.dans.knaw.nl/snapshots/</url>
+        </pluginRepository>
+    </pluginRepositories>
+
     <profiles>
         <profile>
             <id>rpm</id>
@@ -157,8 +180,20 @@
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>rpm-maven-plugin</artifactId>
                     </plugin>
+                    <plugin>
+                        <!-- Do not deploy to Maven, but instead to YUM repo with dans-nexus-maven-plugin -->
+                        <artifactId>maven-deploy-plugin</artifactId>
+                        <configuration>
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>nl.knaw.dans</groupId>
+                        <artifactId>dans-nexus-maven-plugin</artifactId>
+                    </plugin>
                 </plugins>
             </build>
         </profile>
     </profiles>
+
 </project>
