@@ -1,7 +1,7 @@
 <ddm:DDM
         xmlns:dc="http://purl.org/dc/elements/1.1/"
         xmlns:dcx-dai="http://easy.dans.knaw.nl/schemas/dcx/dai/"
-        xmlns:ddm="http://easy.dans.knaw.nl/schemas/md/ddm/"
+        xmlns:ddm="http://schemas.dans.knaw.nl/dataset/ddm-v2/"
         xmlns:dcterms="http://purl.org/dc/terms/"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xmlns:id-type="http://easy.dans.knaw.nl/schemas/vocab/identifier-type/">
