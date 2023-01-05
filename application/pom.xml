@@ -16,19 +16,18 @@
     limitations under the License.
 
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
         <groupId>nl.knaw.dans</groupId>
         <artifactId>dd-parent</artifactId>
         <version>0.12.0</version>
-        <relativePath/>
+        <relativePath />
     </parent>
 
     <artifactId>dd-validate-dans-bag</artifactId>
-    <version>0.13.1-SNAPSHOT</version>
+    <version>0.14.0</version>
 
     <name>DD Validate Dans Bag Service</name>
     <url>https://github.com/DANS-KNAW/dd-validate-dans-bag</url>
@@ -41,7 +40,7 @@
 
     <scm>
         <developerConnection>scm:git:ssh://github.com/DANS-KNAW/${project.artifactId}</developerConnection>
-        <tag>HEAD</tag>
+        <tag>v0.14.0</tag>
     </scm>
 
     <dependencies>
