@@ -821,7 +821,7 @@ public class BagRulesImpl implements BagRules {
     }
 
     private Optional<String> getRightsHolderInElement(Document document) throws XPathExpressionException {
-        return xmlReader.xpathToStreamOfStrings(document, "//ddm:dcmiMetadata//dcterms:rightsHolder")
+        return xmlReader.xpathToStreamOfStrings(document, "/ddm:DDM/ddm:dcmiMetadata//dcterms:rightsHolder")
             .filter(Objects::nonNull)
             .map(String::trim)
             .filter(s -> !s.isEmpty())
