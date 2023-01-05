@@ -430,7 +430,7 @@ public class BagRulesImpl implements BagRules {
     public BagValidatorRule ddmMayContainDctermsLicenseFromList() {
         return (path) -> {
             var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
-            var expr = "//ddm:dcmiMetadata/dcterms:license[@xsi:type]";
+            var expr = "/ddm:DDM/ddm:dcmiMetadata/dcterms:license[@xsi:type]";
 
             var nodes = xmlReader.xpathToStream(document, expr).collect(Collectors.toList());
 
@@ -469,7 +469,7 @@ public class BagRulesImpl implements BagRules {
     public BagValidatorRule ddmDoiIdentifiersAreValid() {
         return (path) -> {
             var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
-            var expr = "//dcterms:identifier[@xsi:type=\"id-type:DOI\"]";
+            var expr = "/ddm:DDM/ddm:dcmiMetadata/dcterms:identifier[@xsi:type=\"id-type:DOI\"]";
 
             var nodes = xmlReader.xpathToStreamOfStrings(document, expr);
             var match = nodes
@@ -693,7 +693,7 @@ public class BagRulesImpl implements BagRules {
             var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
 
             // points
-            var expr = "//dcterms:identifier[@xsi:type = 'id-type:ARCHIS-ZAAK-IDENTIFICATIE']";
+            var expr = "/ddm:DDM/ddm:dcmiMetadata/dcterms:identifier[@xsi:type = 'id-type:ARCHIS-ZAAK-IDENTIFICATIE']";
             var match = xmlReader.xpathToStreamOfStrings(document, expr)
                 .filter(Objects::nonNull)
                 .peek(text -> {
