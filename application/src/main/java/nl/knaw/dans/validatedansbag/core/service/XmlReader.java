@@ -30,7 +30,7 @@ public interface XmlReader {
 
     String NAMESPACE_DC = "http://purl.org/dc/elements/1.1/";
     String NAMESPACE_DCX_DAI = "http://easy.dans.knaw.nl/schemas/dcx/dai/";
-    String NAMESPACE_DDM = "http://easy.dans.knaw.nl/schemas/md/ddm/";
+    String NAMESPACE_DDM = "http://schemas.dans.knaw.nl/dataset/ddm-v2/";
     String NAMESPACE_DCTERMS = "http://purl.org/dc/terms/";
     String NAMESPACE_XSI = "http://www.w3.org/2001/XMLSchema-instance";
     String NAMESPACE_ID_TYPE = "http://easy.dans.knaw.nl/schemas/vocab/identifier-type/";

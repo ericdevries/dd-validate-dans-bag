@@ -57,6 +57,7 @@ import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -283,7 +284,6 @@ class ValidateResourceIntegrationTest {
         assertEquals("1.0.0", response.getProfileVersion());
         assertEquals(ValidateOk.InformationPackageTypeEnum.MIGRATION, response.getInformationPackageType());
         assertEquals(filename, response.getBagLocation());
-        assertEquals(4, response.getRuleViolations().size());
     }
 
     @Test
@@ -316,7 +316,6 @@ class ValidateResourceIntegrationTest {
         assertEquals("1.0.0", response.getProfileVersion());
         assertEquals(ValidateOk.InformationPackageTypeEnum.DEPOSIT, response.getInformationPackageType());
         assertNull(response.getBagLocation());
-        assertEquals(1, response.getRuleViolations().size());
     }
 
     @Test

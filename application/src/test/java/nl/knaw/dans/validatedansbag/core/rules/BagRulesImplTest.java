@@ -357,7 +357,7 @@ class BagRulesImplTest {
         final String xml = "<ddm:DDM\n"
             + "        xmlns:dc=\"http://purl.org/dc/elements/1.1/\"\n"
             + "        xmlns:dcx-dai=\"http://easy.dans.knaw.nl/schemas/dcx/dai/\"\n"
-            + "        xmlns:ddm=\"http://easy.dans.knaw.nl/schemas/md/ddm/\"\n"
+            + "        xmlns:ddm=\"http://schemas.dans.knaw.nl/dataset/ddm-v2/\"\n"
             + "        xmlns:dcterms=\"http://purl.org/dc/terms/\"\n"
             + "        xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
             + "        xmlns:id-type=\"http://easy.dans.knaw.nl/schemas/vocab/identifier-type/\">\n"
@@ -383,7 +383,7 @@ class BagRulesImplTest {
         final String xml = "<ddm:DDM\n"
             + "        xmlns:dc=\"http://purl.org/dc/elements/1.1/\"\n"
             + "        xmlns:dcx-dai=\"http://easy.dans.knaw.nl/schemas/dcx/dai/\"\n"
-            + "        xmlns:ddm=\"http://easy.dans.knaw.nl/schemas/md/ddm/\"\n"
+            + "        xmlns:ddm=\"http://schemas.dans.knaw.nl/dataset/ddm-v2/\"\n"
             + "        xmlns:dcterms=\"http://purl.org/dc/terms/\"\n"
             + "        xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
             + "        xmlns:id-type=\"http://easy.dans.knaw.nl/schemas/vocab/identifier-type/\">\n"
@@ -409,7 +409,7 @@ class BagRulesImplTest {
         final String xml = "<ddm:DDM\n"
             + "        xmlns:dc=\"http://purl.org/dc/elements/1.1/\"\n"
             + "        xmlns:dcx-dai=\"http://easy.dans.knaw.nl/schemas/dcx/dai/\"\n"
-            + "        xmlns:ddm=\"http://easy.dans.knaw.nl/schemas/md/ddm/\"\n"
+            + "        xmlns:ddm=\"http://schemas.dans.knaw.nl/dataset/ddm-v2/\"\n"
             + "        xmlns:dcterms=\"http://purl.org/dc/terms/\"\n"
             + "        xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
             + "        xmlns:id-type=\"http://easy.dans.knaw.nl/schemas/vocab/identifier-type/\">\n"
@@ -444,7 +444,7 @@ class BagRulesImplTest {
         final String xml = "<ddm:DDM\n"
             + "        xmlns:dc=\"http://purl.org/dc/elements/1.1/\"\n"
             + "        xmlns:dcx-dai=\"http://easy.dans.knaw.nl/schemas/dcx/dai/\"\n"
-            + "        xmlns:ddm=\"http://easy.dans.knaw.nl/schemas/md/ddm/\"\n"
+            + "        xmlns:ddm=\"http://schemas.dans.knaw.nl/dataset/ddm-v2/\"\n"
             + "        xmlns:dcterms=\"http://purl.org/dc/terms/\"\n"
             + "        xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
             + "        xmlns:id-type=\"http://easy.dans.knaw.nl/schemas/vocab/identifier-type/\">\n"
@@ -476,7 +476,7 @@ class BagRulesImplTest {
         final String xml = "<ddm:DDM\n"
             + "        xmlns:dc=\"http://purl.org/dc/elements/1.1/\"\n"
             + "        xmlns:dcx-dai=\"http://easy.dans.knaw.nl/schemas/dcx/dai/\"\n"
-            + "        xmlns:ddm=\"http://easy.dans.knaw.nl/schemas/md/ddm/\"\n"
+            + "        xmlns:ddm=\"http://schemas.dans.knaw.nl/dataset/ddm-v2/\"\n"
             + "        xmlns:dcterms=\"http://purl.org/dc/terms/\"\n"
             + "        xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
             + "        xmlns:id-type=\"http://easy.dans.knaw.nl/schemas/vocab/identifier-type/\">\n"
@@ -501,7 +501,7 @@ class BagRulesImplTest {
         var xml = "<ddm:DDM\n"
             + "        xmlns:dc=\"http://purl.org/dc/elements/1.1/\"\n"
             + "        xmlns:dcx-dai=\"http://easy.dans.knaw.nl/schemas/dcx/dai/\"\n"
-            + "        xmlns:ddm=\"http://easy.dans.knaw.nl/schemas/md/ddm/\"\n"
+            + "        xmlns:ddm=\"http://schemas.dans.knaw.nl/dataset/ddm-v2/\"\n"
             + "        xmlns:dcterms=\"http://purl.org/dc/terms/\"\n"
             + "        xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
             + "        xmlns:dcx-gml=\"http://easy.dans.knaw.nl/schemas/dcx/gml/\"\n"
@@ -551,7 +551,7 @@ class BagRulesImplTest {
         var xml = "<ddm:DDM\n"
             + "        xmlns:dc=\"http://purl.org/dc/elements/1.1/\"\n"
             + "        xmlns:dcx-dai=\"http://easy.dans.knaw.nl/schemas/dcx/dai/\"\n"
-            + "        xmlns:ddm=\"http://easy.dans.knaw.nl/schemas/md/ddm/\"\n"
+            + "        xmlns:ddm=\"http://schemas.dans.knaw.nl/dataset/ddm-v2/\"\n"
             + "        xmlns:dcterms=\"http://purl.org/dc/terms/\"\n"
             + "        xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
             + "        xmlns:dcx-gml=\"http://easy.dans.knaw.nl/schemas/dcx/gml/\"\n"
@@ -601,7 +601,7 @@ class BagRulesImplTest {
         var xml = "<ddm:DDM\n"
             + "        xmlns:dc=\"http://purl.org/dc/elements/1.1/\"\n"
             + "        xmlns:dcx-dai=\"http://easy.dans.knaw.nl/schemas/dcx/dai/\"\n"
-            + "        xmlns:ddm=\"http://easy.dans.knaw.nl/schemas/md/ddm/\"\n"
+            + "        xmlns:ddm=\"http://schemas.dans.knaw.nl/dataset/ddm-v2/\"\n"
             + "        xmlns:dcterms=\"http://purl.org/dc/terms/\"\n"
             + "        xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
             + "        xmlns:dcx-gml=\"http://easy.dans.knaw.nl/schemas/dcx/gml/\"\n"
@@ -641,7 +641,7 @@ class BagRulesImplTest {
         var xml = "<ddm:DDM\n"
             + "        xmlns:dc=\"http://purl.org/dc/elements/1.1/\"\n"
             + "        xmlns:dcx-dai=\"http://easy.dans.knaw.nl/schemas/dcx/dai/\"\n"
-            + "        xmlns:ddm=\"http://easy.dans.knaw.nl/schemas/md/ddm/\"\n"
+            + "        xmlns:ddm=\"http://schemas.dans.knaw.nl/dataset/ddm-v2/\"\n"
             + "        xmlns:dcterms=\"http://purl.org/dc/terms/\"\n"
             + "        xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
             + "        xmlns:dcx-gml=\"http://easy.dans.knaw.nl/schemas/dcx/gml/\"\n"
@@ -681,7 +681,7 @@ class BagRulesImplTest {
         var xml = "<ddm:DDM\n"
             + "        xmlns:dc=\"http://purl.org/dc/elements/1.1/\"\n"
             + "        xmlns:dcx-dai=\"http://easy.dans.knaw.nl/schemas/dcx/dai/\"\n"
-            + "        xmlns:ddm=\"http://easy.dans.knaw.nl/schemas/md/ddm/\"\n"
+            + "        xmlns:ddm=\"http://schemas.dans.knaw.nl/dataset/ddm-v2/\"\n"
             + "        xmlns:dcterms=\"http://purl.org/dc/terms/\"\n"
             + "        xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
             + "        xmlns:dcx-gml=\"http://easy.dans.knaw.nl/schemas/dcx/gml/\"\n"
@@ -723,7 +723,7 @@ class BagRulesImplTest {
         var xml = "<ddm:DDM\n"
             + "        xmlns:dc=\"http://purl.org/dc/elements/1.1/\"\n"
             + "        xmlns:dcx-dai=\"http://easy.dans.knaw.nl/schemas/dcx/dai/\"\n"
-            + "        xmlns:ddm=\"http://easy.dans.knaw.nl/schemas/md/ddm/\"\n"
+            + "        xmlns:ddm=\"http://schemas.dans.knaw.nl/dataset/ddm-v2/\"\n"
             + "        xmlns:dct=\"http://purl.org/dc/terms/\"\n"
             + "        xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
             + "        xmlns:dcx-gml=\"http://easy.dans.knaw.nl/schemas/dcx/gml/\"\n"
@@ -759,12 +759,12 @@ class BagRulesImplTest {
 
     @Test
     void archisIdentifiersHaveAtMost10Characters() throws Exception {
-        var xml = "<ddm:DDM xmlns:ddm=\"http://easy.dans.knaw.nl/schemas/md/ddm/\"\n"
+        var xml = "<ddm:DDM xmlns:ddm=\"http://schemas.dans.knaw.nl/dataset/ddm-v2/\"\n"
             + "         xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
             + "         xmlns:dc=\"http://purl.org/dc/elements/1.1/\"\n"
             + "         xmlns:dct=\"http://purl.org/dc/terms/\"\n"
             + "         xmlns:dcx-dai=\"http://easy.dans.knaw.nl/schemas/dcx/dai/\"\n"
-            + "         xsi:schemaLocation=\"http://easy.dans.knaw.nl/schemas/md/ddm/ http://easy.dans.knaw.nl/schemas/md/2017/09/ddm.xsd\">\n"
+            + "         xsi:schemaLocation=\"http://schemas.dans.knaw.nl/dataset/ddm-v2/ http://easy.dans.knaw.nl/schemas/md/2017/09/ddm.xsd\">\n"
             + "    <ddm:dcmiMetadata>\n"
             + "        <dct:license xsi:type=\"dct:URI\">http://creativecommons.org/licenses/by-sa/4.0</dct:license>\n"
             + "        <dct:rightsHolder>Mr. Rights</dct:rightsHolder>\n"
@@ -786,12 +786,12 @@ class BagRulesImplTest {
 
     @Test
     void archisIdentifiersHaveAtMost10CharactersButTheValuesAreLarger() throws Exception {
-        var xml = "<ddm:DDM xmlns:ddm=\"http://easy.dans.knaw.nl/schemas/md/ddm/\"\n"
+        var xml = "<ddm:DDM xmlns:ddm=\"http://schemas.dans.knaw.nl/dataset/ddm-v2/\"\n"
             + "         xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
             + "         xmlns:dc=\"http://purl.org/dc/elements/1.1/\"\n"
             + "         xmlns:dct=\"http://purl.org/dc/terms/\"\n"
             + "         xmlns:dcx-dai=\"http://easy.dans.knaw.nl/schemas/dcx/dai/\"\n"
-            + "         xsi:schemaLocation=\"http://easy.dans.knaw.nl/schemas/md/ddm/ http://easy.dans.knaw.nl/schemas/md/2017/09/ddm.xsd\">\n"
+            + "         xsi:schemaLocation=\"http://schemas.dans.knaw.nl/dataset/ddm-v2/ http://easy.dans.knaw.nl/schemas/md/2017/09/ddm.xsd\">\n"
             + "    <ddm:dcmiMetadata>\n"
             + "        <dct:license xsi:type=\"dct:URI\">http://creativecommons.org/licenses/by-sa/4.0</dct:license>\n"
             + "        <dct:rightsHolder>Mr. Rights</dct:rightsHolder>\n"
@@ -818,7 +818,7 @@ class BagRulesImplTest {
     @Test
     void allUrlsAreValid() throws Exception {
         var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n"
-            + "<ddm:DDM xmlns:ddm=\"http://easy.dans.knaw.nl/schemas/md/ddm/\" xmlns=\"http://easy.dans.knaw.nl/schemas/bag/metadata/files/\" xmlns:abr=\"http://www.den.nl/standaard/166/Archeologisch-Basisregister/\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:dcterms=\"http://purl.org/dc/terms/\" xmlns:dcx-dai=\"http://easy.dans.knaw.nl/schemas/dcx/dai/\" xmlns:dcx-gml=\"http://easy.dans.knaw.nl/schemas/dcx/gml/\" xmlns:id-type=\"http://easy.dans.knaw.nl/schemas/vocab/identifier-type/\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://easy.dans.knaw.nl/schemas/md/ddm/ https://easy.dans.knaw.nl/schemas/md/ddm/ddm.xsd\">\n"
+            + "<ddm:DDM xmlns:ddm=\"http://schemas.dans.knaw.nl/dataset/ddm-v2/\" xmlns=\"http://easy.dans.knaw.nl/schemas/bag/metadata/files/\" xmlns:abr=\"http://www.den.nl/standaard/166/Archeologisch-Basisregister/\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:dcterms=\"http://purl.org/dc/terms/\" xmlns:dcx-dai=\"http://easy.dans.knaw.nl/schemas/dcx/dai/\" xmlns:dcx-gml=\"http://easy.dans.knaw.nl/schemas/dcx/gml/\" xmlns:id-type=\"http://easy.dans.knaw.nl/schemas/vocab/identifier-type/\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://schemas.dans.knaw.nl/dataset/ddm-v2/ https://easy.dans.knaw.nl/schemas/md/ddm/ddm.xsd\">\n"
             + "    <ddm:profile>\n"
             + "        <dc:title>PAN-00008136 - knobbed sickle</dc:title>\n"
             + "        <dcterms:description xml:lang=\"en\">This find is registered at Portable Antiquities of the Netherlands with number PAN-00008136</dcterms:description>\n"
@@ -883,7 +883,7 @@ class BagRulesImplTest {
     @Test
     void validateUrlsButSomeAreInvalid() throws Exception {
         var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n"
-            + "<ddm:DDM xmlns:ddm=\"http://easy.dans.knaw.nl/schemas/md/ddm/\" xmlns=\"http://easy.dans.knaw.nl/schemas/bag/metadata/files/\" xmlns:abr=\"http://www.den.nl/standaard/166/Archeologisch-Basisregister/\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:dcterms=\"http://purl.org/dc/terms/\" xmlns:dcx-dai=\"http://easy.dans.knaw.nl/schemas/dcx/dai/\" xmlns:dcx-gml=\"http://easy.dans.knaw.nl/schemas/dcx/gml/\" xmlns:id-type=\"http://easy.dans.knaw.nl/schemas/vocab/identifier-type/\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://easy.dans.knaw.nl/schemas/md/ddm/ https://easy.dans.knaw.nl/schemas/md/ddm/ddm.xsd\">\n"
+            + "<ddm:DDM xmlns:ddm=\"http://schemas.dans.knaw.nl/dataset/ddm-v2/\" xmlns=\"http://easy.dans.knaw.nl/schemas/bag/metadata/files/\" xmlns:abr=\"http://www.den.nl/standaard/166/Archeologisch-Basisregister/\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:dcterms=\"http://purl.org/dc/terms/\" xmlns:dcx-dai=\"http://easy.dans.knaw.nl/schemas/dcx/dai/\" xmlns:dcx-gml=\"http://easy.dans.knaw.nl/schemas/dcx/gml/\" xmlns:id-type=\"http://easy.dans.knaw.nl/schemas/vocab/identifier-type/\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://schemas.dans.knaw.nl/dataset/ddm-v2/ https://easy.dans.knaw.nl/schemas/md/ddm/ddm.xsd\">\n"
             + "    <ddm:profile>\n"
             + "        <dc:title>PAN-00008136 - knobbed sickle</dc:title>\n"
             + "        <dcterms:description xml:lang=\"en\">This find is registered at Portable Antiquities of the Netherlands with number PAN-00008136</dcterms:description>\n"
@@ -941,12 +941,12 @@ class BagRulesImplTest {
 
     @Test
     void ddmMustHaveRightsHolderDeposit() throws Exception {
-        var xml = "<ddm:DDM xmlns:ddm=\"http://easy.dans.knaw.nl/schemas/md/ddm/\"\n"
+        var xml = "<ddm:DDM xmlns:ddm=\"http://schemas.dans.knaw.nl/dataset/ddm-v2/\"\n"
             + "         xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
             + "         xmlns:dc=\"http://purl.org/dc/elements/1.1/\"\n"
             + "         xmlns:dct=\"http://purl.org/dc/terms/\"\n"
             + "         xmlns:dcx-dai=\"http://easy.dans.knaw.nl/schemas/dcx/dai/\"\n"
-            + "         xsi:schemaLocation=\"http://easy.dans.knaw.nl/schemas/md/ddm/ http://easy.dans.knaw.nl/schemas/md/2017/09/ddm.xsd\">\n"
+            + "         xsi:schemaLocation=\"http://schemas.dans.knaw.nl/dataset/ddm-v2/ http://easy.dans.knaw.nl/schemas/md/2017/09/ddm.xsd\">\n"
             + "    <ddm:profile>\n"
             + "        <dcx-dai:creatorDetails>\n"
             + "            <dcx-dai:author>\n"
@@ -974,12 +974,12 @@ class BagRulesImplTest {
 
     @Test
     void ddmMustHaveRightsHolderDepositButItDoesntExist() throws Exception {
-        var xml = "<ddm:DDM xmlns:ddm=\"http://easy.dans.knaw.nl/schemas/md/ddm/\"\n"
+        var xml = "<ddm:DDM xmlns:ddm=\"http://schemas.dans.knaw.nl/dataset/ddm-v2/\"\n"
             + "         xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
             + "         xmlns:dc=\"http://purl.org/dc/elements/1.1/\"\n"
             + "         xmlns:dct=\"http://purl.org/dc/terms/\"\n"
             + "         xmlns:dcx-dai=\"http://easy.dans.knaw.nl/schemas/dcx/dai/\"\n"
-            + "         xsi:schemaLocation=\"http://easy.dans.knaw.nl/schemas/md/ddm/ http://easy.dans.knaw.nl/schemas/md/2017/09/ddm.xsd\">\n"
+            + "         xsi:schemaLocation=\"http://schemas.dans.knaw.nl/dataset/ddm-v2/ http://easy.dans.knaw.nl/schemas/md/2017/09/ddm.xsd\">\n"
             + "    <ddm:profile>\n"
             + "        <dcx-dai:creatorDetails>\n"
             + "            <dcx-dai:author>\n"
@@ -1006,12 +1006,12 @@ class BagRulesImplTest {
 
     @Test
     void ddmMustHaveRightsHolderMigration() throws Exception {
-        var xml = "<ddm:DDM xmlns:ddm=\"http://easy.dans.knaw.nl/schemas/md/ddm/\"\n"
+        var xml = "<ddm:DDM xmlns:ddm=\"http://schemas.dans.knaw.nl/dataset/ddm-v2/\"\n"
             + "         xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
             + "         xmlns:dc=\"http://purl.org/dc/elements/1.1/\"\n"
             + "         xmlns:dct=\"http://purl.org/dc/terms/\"\n"
             + "         xmlns:dcx-dai=\"http://easy.dans.knaw.nl/schemas/dcx/dai/\"\n"
-            + "         xsi:schemaLocation=\"http://easy.dans.knaw.nl/schemas/md/ddm/ http://easy.dans.knaw.nl/schemas/md/2017/09/ddm.xsd\">\n"
+            + "         xsi:schemaLocation=\"http://schemas.dans.knaw.nl/dataset/ddm-v2/ http://easy.dans.knaw.nl/schemas/md/2017/09/ddm.xsd\">\n"
             + "    <ddm:profile>\n"
             + "        <dcx-dai:creatorDetails>\n"
             + "            <dcx-dai:author>\n"
@@ -1038,12 +1038,12 @@ class BagRulesImplTest {
 
     @Test
     void ddmMustHaveRightsHolderMigrationButItDoesntExist() throws Exception {
-        var xml = "<ddm:DDM xmlns:ddm=\"http://easy.dans.knaw.nl/schemas/md/ddm/\"\n"
+        var xml = "<ddm:DDM xmlns:ddm=\"http://schemas.dans.knaw.nl/dataset/ddm-v2/\"\n"
             + "         xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
             + "         xmlns:dc=\"http://purl.org/dc/elements/1.1/\"\n"
             + "         xmlns:dct=\"http://purl.org/dc/terms/\"\n"
             + "         xmlns:dcx-dai=\"http://easy.dans.knaw.nl/schemas/dcx/dai/\"\n"
-            + "         xsi:schemaLocation=\"http://easy.dans.knaw.nl/schemas/md/ddm/ http://easy.dans.knaw.nl/schemas/md/2017/09/ddm.xsd\">\n"
+            + "         xsi:schemaLocation=\"http://schemas.dans.knaw.nl/dataset/ddm-v2/ http://easy.dans.knaw.nl/schemas/md/2017/09/ddm.xsd\">\n"
             + "    <ddm:profile>\n"
             + "        <dcx-dai:creatorDetails>\n"
             + "            <dcx-dai:author>\n"

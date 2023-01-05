@@ -234,7 +234,7 @@ public class DatastationRulesImpl implements DatastationRules {
         return (path) -> {
             var months = Integer.parseInt(dataverseService.getMaxEmbargoDurationInMonths().getData().getMessage());
             var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
-            var expr = "//ddm:profile/ddm:available";
+            var expr = "/ddm:DDM/ddm:profile/ddm:available";
 
             var nodes = xmlReader.xpathToStream(document, expr).collect(Collectors.toList());
             if (nodes.isEmpty())
