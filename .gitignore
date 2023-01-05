@@ -1,5 +1,4 @@
 /target/
-/*/target
 /pom.xml.tag
 /pom.xml.releaseBackup
 /pom.xml.versionsBackup
@@ -8,15 +7,6 @@
 /dependency-reduced-pom.xml
 /buildNumber.properties
 /*.iml
-
-/*/pom.xml.tag
-/*/pom.xml.releaseBackup
-/*/pom.xml.versionsBackup
-/*/pom.xml.next
-/*/release.properties
-/*/dependency-reduced-pom.xml
-/*/buildNumber.properties
-/*/*.iml
 
 /init-project.sh
 *~

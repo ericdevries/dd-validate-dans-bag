@@ -1,6 +1,3 @@
-/etc/
-/data/
-/data-*/
 /target/
 /pom.xml.tag
 /pom.xml.releaseBackup
