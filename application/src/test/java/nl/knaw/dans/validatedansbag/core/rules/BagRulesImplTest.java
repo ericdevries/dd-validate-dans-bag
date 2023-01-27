@@ -496,6 +496,7 @@ class BagRulesImplTest {
         var result = checker.ddmMayContainDctermsLicenseFromList().validate(Path.of("bagdir"));
         assertEquals(RuleResult.Status.ERROR, result.getStatus());
     }
+
     @Test
     void ddmGmlPolygonPosListIsWellFormed() throws Exception {
         var xml = "<ddm:DDM\n"
@@ -899,12 +900,17 @@ class BagRulesImplTest {
             + "    <ddm:dcmiMetadata>\n"
             + "        <dcterms:spatial>Overbetuwe</dcterms:spatial>\n"
             + "        <dcterms:isFormatOf>PAN-00008136</dcterms:isFormatOf>\n"
+            // INVALID
+            + "        <ddm:relation href=\"dx.doi.org/10.17026/dans-xrt-q9cp\">Thematische collectie: COOL5-18, Pre-COOL en COOLspeciaal</ddm:relation>"
+            // INVALID
             + "        <ddm:references href=\"xttps://www.portable-antiquities.nl/pan/#/object/public/8136\">Portable Antiquities of The Netherlands</ddm:references>\n"
+            // INVALID
             + "        <ddm:references scheme=\"URL\">xttp://abc.def</ddm:references>\n"
             + "        <ddm:references scheme=\"DOI\">99.1234.abc</ddm:references>\n"
             + "        <ddm:references scheme=\"URN\">uuid:6e8bc430-9c3a-11d9-9669-0800200c9a66</ddm:references>\n"
             + "        <ddm:isFormatOf scheme=\"id-type:DOI\">joopajoo</ddm:isFormatOf>\n"
             + "        <ddm:isFormatOf scheme=\"id-type:URN\">niinpä</ddm:isFormatOf>\n"
+            // INVALID 2x
             + "        <ddm:subject schemeURI=\"xttps://data.cultureelerfgoed.nl/term/id/pan/PAN\" subjectScheme=\"PAN thesaurus ideaaltypes\" valueURI=\"xttps://data.cultureelerfgoed.nl/term/id/pan/17-01-01\" xml:lang=\"en\">knobbed sickle</ddm:subject>\n"
             + "        <ddm:subject schemeURI=\"http://vocab.getty.edu/aat/\" subjectScheme=\"Art and Architecture Thesaurus\" valueURI=\"http://vocab.getty.edu/aat/300264860\" xml:lang=\"en\">Unknown</ddm:subject>\n"
             + "        <dc:subject>metaal</dc:subject>\n"
@@ -918,6 +924,7 @@ class BagRulesImplTest {
             + "        <dc:type xsi:type=\"dcterms:DCMIType\" xmlns:dc=\"http://purl.org/dc/terms/\">Dataset</dc:type>\n"
             + "        <dc:format xsi:type=\"dcterms:IMT\">image/jpeg</dc:format>\n"
             + "        <dc:format xsi:type=\"dcterms:IMT\">application/xml</dc:format>\n"
+            // INVALID
             + "        <dcterms:license xsi:type=\"dcterms:URI\">ettp://creativecommons.org/licenses/by-nc-sa/4.0/</dcterms:license>\n"
             + "        <dcterms:rightsHolder>Vrije Universiteit Amsterdam</dcterms:rightsHolder>\n"
             + "        <dcterms:identifier xsi:type=\"id-type:DOI\">10.1234/fantasy-doi-id</dcterms:identifier>\n"
@@ -934,7 +941,7 @@ class BagRulesImplTest {
 
         var result = checker.allUrlsAreValid().validate(Path.of("bagdir"));
         assertEquals(RuleResult.Status.ERROR, result.getStatus());
-        assertEquals(4, result.getErrorMessages().size());
+        assertEquals(6, result.getErrorMessages().size());
     }
 
     @Test
@@ -1318,6 +1325,7 @@ class BagRulesImplTest {
 
         assertEquals(RuleResult.Status.ERROR, result.getStatus());
     }
+
     @Test
     void isOriginalFilepathsFileCompleteSkipped() throws Exception {
         Mockito.when(originalFilepathsService.exists(Mockito.any())).thenReturn(false);

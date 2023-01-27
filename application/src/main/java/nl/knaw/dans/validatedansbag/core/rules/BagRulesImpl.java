@@ -721,7 +721,7 @@ public class BagRulesImpl implements BagRules {
         return (path) -> {
             var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
 
-            var hrefNodes = xmlReader.xpathToStreamOfStrings(document, "*/@href");
+            var hrefNodes = xmlReader.xpathToStreamOfStrings(document, "//*/@href");
             var schemeURINodes = xmlReader.xpathToStreamOfStrings(document, "//ddm:subject/@schemeURI");
             var valueURINodes = xmlReader.xpathToStreamOfStrings(document, "//ddm:subject/@valueURI");
 
@@ -746,7 +746,7 @@ public class BagRulesImpl implements BagRules {
                     try {
                         var uri = new URI(value);
 
-                        if (!List.of("http", "https").contains(uri.getScheme().toLowerCase(Locale.ROOT))) {
+                        if (uri.getScheme() == null || !List.of("http", "https").contains(uri.getScheme().toLowerCase(Locale.ROOT))) {
                             return String.format(
                                 "dataset.xml: protocol '%s' in uri '%s' is not one of the accepted protocols [http, https]", uri.getScheme(), uri
                             );
