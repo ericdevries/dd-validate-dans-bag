@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class IdentifierValidatorImplTest {
 
     @Test
-    void validateDai() {
+    void validateDai_should_validate_correctly() {
         var c = new IdentifierValidatorImpl();
         assertTrue(c.validateDai("12345678900"));
         assertTrue(c.validateDai("124398545"));
@@ -34,6 +34,11 @@ class IdentifierValidatorImplTest {
         assertTrue(c.validateDai("98534424"));
         assertTrue(c.validateDai("68391218"));
 
+    }
+
+    @Test
+    void validateDai_should_not_validate() {
+        var c = new IdentifierValidatorImpl();
         // invalid strings
         assertFalse(c.validateDai("12345678901"));
         assertFalse(c.validateDai("124398546"));
@@ -44,34 +49,36 @@ class IdentifierValidatorImplTest {
     }
 
     @Test
-    void validateOrcid() {
-
+    void validateOrcid_should_return_true_for_valid_orcids() {
+        var identifierValidator = new IdentifierValidatorImpl();
         var validIds = List.of(
             "https://orcid.org/0000-0003-1415-9269",
             "https://orcid.org/0000-0002-1825-0097",
             "http://orcid.org/0000-0002-1825-0097"
         );
 
+        for (var id : validIds) {
+            assertTrue(identifierValidator.validateOrcid(id));
+        }
+    }
+
+    @Test
+    void validateOrcid_should_return_false_for_invalid_orcids() {
+        var identifierValidator = new IdentifierValidatorImpl();
         var invalidIds = List.of(
             "https://orcid.org/0000-0003-1415-926X",
             "https://orcid.org/0002-1825-0097",
             "https://dans.knaw.nl/0000-0002-1825-0097"
         );
 
-        var c = new IdentifierValidatorImpl();
-
-        for (var id: validIds) {
-            assertTrue(c.validateOrcid(id));
-        }
-
-        for (var id: invalidIds) {
-            assertFalse(c.validateOrcid(id));
+        for (var id : invalidIds) {
+            assertFalse(identifierValidator.validateOrcid(id));
         }
     }
 
-
     @Test
-    void validatorIsni() {
+    void validateIsni_should_return_true_for_valid_isni() {
+        var identifierValidator = new IdentifierValidatorImpl();
         var validIds = List.of(
             "0000000114559647",
             "https://isni.org/isni/0000-0002-1825-0097",
@@ -81,19 +88,20 @@ class IdentifierValidatorImplTest {
             "0000 0001 2281 955X"
         );
 
+        for (var id : validIds) {
+            assertTrue(identifierValidator.validateIsni(id));
+        }
+    }
+
+    @Test
+    void validateIsni_should_return_false_for_invalid_isni() {
+        var identifierValidator = new IdentifierValidatorImpl();
         var invalidIds = List.of(
             "1234",
             "https://isni.org/isni/0000-0002-1825-0098"
         );
-
-        var c = new IdentifierValidatorImpl();
-
-        for (var id: validIds) {
-            assertTrue(c.validateIsni(id));
-        }
-
-        for (var id: invalidIds) {
-            assertFalse(c.validateIsni(id));
+        for (var id : invalidIds) {
+            assertFalse(identifierValidator.validateIsni(id));
         }
     }
 }

@@ -16,9 +16,11 @@
 package nl.knaw.dans.validatedansbag.core.config;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.dropwizard.client.HttpClientConfiguration;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
+import java.net.URL;
 import java.util.List;
 
 @Valid
@@ -26,14 +28,28 @@ public class ValidationConfig {
 
     @NotNull
     @JsonProperty("licenses")
+    @Valid
     private LicenseConfig licenseConfig;
-    @NotNull
-    private SwordDepositorRoles swordDepositorRoles;
-    @NotNull
-    private List<OtherIdPrefix> otherIdPrefixes;
 
     @NotNull
+    @Valid
+    private SwordDepositorRoles swordDepositorRoles;
+
+    @NotNull
+    @Valid
+    private List<OtherIdPrefix> otherIdPrefixes;
+
+    @Valid
+    @NotNull
     private XmlSchemaConfig xmlSchemas;
+
+    @Valid
+    private URL passwordDelegate;
+    @Valid
+    private String passwordRealm;
+
+    @Valid
+    private HttpClientConfiguration httpClient = new HttpClientConfiguration();
 
     public LicenseConfig getLicenseConfig() {
         return licenseConfig;
@@ -65,5 +81,31 @@ public class ValidationConfig {
 
     public void setXmlSchemas(XmlSchemaConfig xmlSchemas) {
         this.xmlSchemas = xmlSchemas;
+    }
+
+    public URL getPasswordDelegate() {
+        return passwordDelegate;
+    }
+
+    public void setPasswordDelegate(URL passwordDelegate) {
+        this.passwordDelegate = passwordDelegate;
+    }
+
+    public String getPasswordRealm() {
+        return passwordRealm;
+    }
+
+    public void setPasswordRealm(String passwordRealm) {
+        this.passwordRealm = passwordRealm;
+    }
+
+    @JsonProperty("httpClient")
+    public HttpClientConfiguration getHttpClientConfiguration() {
+        return httpClient;
+    }
+
+    @JsonProperty("httpClient")
+    public void setHttpClientConfiguration(HttpClientConfiguration httpClient) {
+        this.httpClient = httpClient;
     }
 }

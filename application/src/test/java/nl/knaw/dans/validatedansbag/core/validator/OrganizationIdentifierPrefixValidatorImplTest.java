@@ -31,21 +31,21 @@ class OrganizationIdentifierPrefixValidatorImplTest {
     );
 
     @Test
-    void hasValidPrefix() {
+    void hasValidPrefix_should_return_true_if_prefixes_match() {
         var validator = new OrganizationIdentifierPrefixValidatorImpl(prefixes);
         assertTrue(validator.hasValidPrefix("user001", "user1-123"));
         assertTrue(validator.hasValidPrefix("user002", "U2:123456"));
     }
 
     @Test
-    void hasInvalidPrefix() {
+    void hasValidPrefix_should_return_false_if_prefixes_do_not_match() {
         var validator = new OrganizationIdentifierPrefixValidatorImpl(prefixes);
         assertFalse(validator.hasValidPrefix("user001", "random"));
         assertFalse(validator.hasValidPrefix("user002", "user1-test"));
     }
 
     @Test
-    void userDoesNotExistInConfig() {
+    void hasValidPrefix_should_return_false_if_user_is_not_in_config_list() {
         var validator = new OrganizationIdentifierPrefixValidatorImpl(prefixes);
         assertFalse(validator.hasValidPrefix("user003", "U2:123"));
     }

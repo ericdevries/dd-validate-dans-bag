@@ -15,15 +15,22 @@
  */
 package nl.knaw.dans.validatedansbag.resources;
 
+import io.dropwizard.auth.AuthDynamicFeature;
+import io.dropwizard.auth.AuthValueFactoryProvider;
+import io.dropwizard.auth.basic.BasicCredentialAuthFilter;
 import io.dropwizard.testing.junit5.DropwizardExtensionsSupport;
 import io.dropwizard.testing.junit5.ResourceExtension;
 import nl.knaw.dans.validatedansbag.api.ValidateCommand;
+import nl.knaw.dans.validatedansbag.api.ValidateOk;
+import nl.knaw.dans.validatedansbag.api.ValidateOk.InformationPackageTypeEnum;
+import nl.knaw.dans.validatedansbag.api.ValidateOk.LevelEnum;
 import nl.knaw.dans.validatedansbag.core.BagNotFoundException;
+import nl.knaw.dans.validatedansbag.core.auth.SwordUser;
 import nl.knaw.dans.validatedansbag.core.service.FileService;
 import nl.knaw.dans.validatedansbag.core.service.RuleEngineService;
+import nl.knaw.dans.validatedansbag.resources.util.MockAuthorization;
 import org.glassfish.jersey.media.multipart.FormDataMultiPart;
 import org.glassfish.jersey.media.multipart.MultiPartFeature;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,13 +45,21 @@ import java.nio.file.Path;
 import java.util.Optional;
 import java.util.zip.ZipError;
 
+import static nl.knaw.dans.validatedansbag.resources.util.TestUtil.basicUsernamePassword;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 @ExtendWith(DropwizardExtensionsSupport.class)
 class ValidateResourceTest {
     private final RuleEngineService ruleEngineService = Mockito.mock(RuleEngineService.class);
     private final FileService fileService = Mockito.mock(FileService.class);
     public final ResourceExtension EXT = ResourceExtension.builder()
         .addProvider(MultiPartFeature.class)
+        .addProvider(new AuthDynamicFeature(new BasicCredentialAuthFilter.Builder<SwordUser>()
+            .setAuthenticator(new MockAuthorization())
+            .setRealm("DANS")
+            .buildAuthFilter()))
         .addResource(new ValidateResource(ruleEngineService, fileService))
+        .addProvider(new AuthValueFactoryProvider.Binder<>(SwordUser.class))
         .build();
 
     @BeforeEach
@@ -54,7 +69,7 @@ class ValidateResourceTest {
     }
 
     @Test
-    void validateFormData() {
+    void validateFormData_should_have_no_interactions_with_fileService_and_match_properties() {
         var data = new ValidateCommand();
         data.setBagLocation("it/is/here");
         data.setPackageType(ValidateCommand.PackageTypeEnum.DEPOSIT);
@@ -65,13 +80,18 @@ class ValidateResourceTest {
         var response = EXT.target("/validate")
             .register(MultiPartFeature.class)
             .request()
-            .post(Entity.entity(multipart, multipart.getMediaType()), String.class);
+            .post(Entity.entity(multipart, multipart.getMediaType()), ValidateOk.class);
 
-        Mockito.verifyNoInteractions(fileService);//.extractZipFile(Mockito.any(Path.class));
+        Mockito.verifyNoInteractions(fileService);
+
+        assertEquals("it/is/here", response.getBagLocation());
+        assertEquals("here", response.getName());
+        assertEquals(InformationPackageTypeEnum.DEPOSIT, response.getInformationPackageType());
+        assertEquals(LevelEnum.STAND_ALONE, response.getLevel());
     }
 
     @Test
-    void validateFormDataWithZipFile() throws Exception {
+    void validateFormData_should_create_zipFile_on_disk() throws Exception {
         var data = new ValidateCommand();
         data.setBagLocation(null);
         data.setPackageType(ValidateCommand.PackageTypeEnum.DEPOSIT);
@@ -81,38 +101,25 @@ class ValidateResourceTest {
             .field("zip", new ByteArrayInputStream(new byte[4]), MediaType.valueOf("application/zip"));
 
         Mockito.doReturn(Path.of("/tmp/bag-1"))
-            .when(fileService).extractZipFile(Mockito.any(InputStream.class));
+            .when(fileService)
+            .extractZipFile(Mockito.any(InputStream.class));
 
         Mockito.doReturn(Optional.of(Path.of("bagdir")))
-            .when(fileService).getFirstDirectory(Mockito.any());
+            .when(fileService)
+            .getFirstDirectory(Mockito.any());
 
         var response = EXT.target("/validate")
             .register(MultiPartFeature.class)
             .request()
-            .post(Entity.entity(multipart, multipart.getMediaType()), String.class);
+            .post(Entity.entity(multipart, multipart.getMediaType()), ValidateOk.class);
 
-        Mockito.verify(fileService).extractZipFile(Mockito.any(InputStream.class));//.extractZipFile(Mockito.any(Path.class));
+        Mockito.verify(fileService).extractZipFile(Mockito.any(InputStream.class));
+
+        assertEquals("bagdir", response.getName());
     }
 
     @Test
-    void validateZipFile() throws Exception {
-        var zip = Entity.entity(new ByteArrayInputStream(new byte[4]), MediaType.valueOf("application/zip"));
-
-        Mockito.doReturn(Path.of("/tmp/bag-1"))
-            .when(fileService).extractZipFile(Mockito.any(InputStream.class));
-
-        Mockito.doReturn(Optional.of(Path.of("bagdir")))
-            .when(fileService).getFirstDirectory(Mockito.any());
-
-        var response = EXT.target("/validate")
-            .request()
-            .post(zip, String.class);
-
-        Mockito.verify(fileService).extractZipFile(Mockito.any(InputStream.class));//.extractZipFile(Mockito.any(Path.class));
-    }
-
-    @Test
-    void validateMultipartFileButTheFileDoesNotExist() throws Exception {
+    void validateFormData_should_return_400_when_file_does_not_exist() throws Exception {
         var data = new ValidateCommand();
         data.setBagLocation("some/path");
         data.setPackageType(ValidateCommand.PackageTypeEnum.DEPOSIT);
@@ -121,30 +128,76 @@ class ValidateResourceTest {
             .field("command", data, MediaType.APPLICATION_JSON_TYPE);
 
         Mockito.doThrow(BagNotFoundException.class)
-            .when(ruleEngineService).validateBag(Mockito.any(), Mockito.any(), Mockito.any());
+            .when(ruleEngineService)
+            .validateBag(Mockito.any(), Mockito.any(), Mockito.any());
 
         try (var response = EXT.target("/validate")
             .register(MultiPartFeature.class)
             .request()
             .post(Entity.entity(multipart, multipart.getMediaType()), Response.class)) {
 
-            Assertions.assertEquals(400, response.getStatus());
+            assertEquals(400, response.getStatus());
         }
     }
 
     @Test
-    void validateZipButItIsNotAValidZip() throws Exception {
+    void validateZipFile_should_interact_with_fileService() throws Exception {
+        var zip = Entity.entity(new ByteArrayInputStream(new byte[4]), MediaType.valueOf("application/zip"));
+
+        Mockito.doReturn(Path.of("/tmp/bag-1"))
+            .when(fileService)
+            .extractZipFile(Mockito.any(InputStream.class));
+
+        Mockito.doReturn(Optional.of(Path.of("bagdir")))
+            .when(fileService)
+            .getFirstDirectory(Mockito.any());
+
+        var response = EXT.target("/validate")
+            .request()
+            .header("Authorization", basicUsernamePassword("user001", "user001"))
+            .post(zip, ValidateOk.class);
+
+        Mockito.verify(fileService).extractZipFile(Mockito.any(InputStream.class));
+
+        assertEquals("bagdir", response.getName());
+    }
+
+    @Test
+    void validateZipFile_should_return_401_with_wrong_credentials() throws Exception {
+        var zip = Entity.entity(new ByteArrayInputStream(new byte[4]), MediaType.valueOf("application/zip"));
+
+        Mockito.doReturn(Path.of("/tmp/bag-1"))
+            .when(fileService)
+            .extractZipFile(Mockito.any(InputStream.class));
+
+        Mockito.doReturn(Optional.of(Path.of("bagdir")))
+            .when(fileService)
+            .getFirstDirectory(Mockito.any());
+
+        try (var response = EXT.target("/validate")
+            .request()
+            .header("Authorization", basicUsernamePassword("unknown", "unknown"))
+            .post(zip, Response.class)) {
+
+            assertEquals(401, response.getStatus());
+        }
+    }
+
+    @Test
+    void validateZipFile_should_return_500_when_file_is_invalid() throws Exception {
         var zip = Entity.entity(new ByteArrayInputStream(new byte[4]), MediaType.valueOf("application/zip"));
 
         Mockito.doThrow(ZipError.class)
-            .when(fileService).extractZipFile(Mockito.any(InputStream.class));
+            .when(fileService)
+            .extractZipFile(Mockito.any(InputStream.class));
 
         try (var response = EXT.target("/validate")
             .register(MultiPartFeature.class)
             .request()
+            .header("Authorization", basicUsernamePassword("user001", "user001"))
             .post(zip, Response.class)) {
 
-            Assertions.assertEquals(500, response.getStatus());
+            assertEquals(500, response.getStatus());
         }
     }
 }
