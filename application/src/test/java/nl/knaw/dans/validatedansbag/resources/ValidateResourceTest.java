@@ -166,17 +166,21 @@ class ValidateResourceTest {
     void validateZipFile_should_return_401_with_wrong_credentials() throws Exception {
         var zip = Entity.entity(new ByteArrayInputStream(new byte[4]), MediaType.valueOf("application/zip"));
 
-        Mockito.doReturn(Path.of("/tmp/bag-1"))
-            .when(fileService)
-            .extractZipFile(Mockito.any(InputStream.class));
-
-        Mockito.doReturn(Optional.of(Path.of("bagdir")))
-            .when(fileService)
-            .getFirstDirectory(Mockito.any());
-
         try (var response = EXT.target("/validate")
             .request()
             .header("Authorization", basicUsernamePassword("unknown", "unknown"))
+            .post(zip, Response.class)) {
+
+            assertEquals(401, response.getStatus());
+        }
+    }
+
+    @Test
+    void validateZipFile_should_return_401_with_missing_credentials() throws Exception {
+        var zip = Entity.entity(new ByteArrayInputStream(new byte[4]), MediaType.valueOf("application/zip"));
+
+        try (var response = EXT.target("/validate")
+            .request()
             .post(zip, Response.class)) {
 
             assertEquals(401, response.getStatus());
