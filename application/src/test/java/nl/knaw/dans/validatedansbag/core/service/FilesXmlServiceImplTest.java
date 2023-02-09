@@ -68,7 +68,7 @@ class FilesXmlServiceImplTest {
     }
 
     @Test
-    void readFilepathsWithoutNamespace() throws Exception {
+    void readFilepaths_should_work_without_files_namespace() throws Exception {
         var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
             + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
             + "    <file filepath=\"data/random images/image01.png\">\n"
@@ -99,7 +99,7 @@ class FilesXmlServiceImplTest {
     }
 
     @Test
-    void readFilepathsWithMissingAttributes() throws Exception {
+    void readFilepaths_should_ignore_item_without_filepath_attribute() throws Exception {
         var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
             + "<files xmlns:dcterms=\"http://purl.org/dc/terms/\">\n"
             + "    <file filepath=\"data/random images/image01.png\">\n"

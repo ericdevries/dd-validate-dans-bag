@@ -36,7 +36,7 @@ class OriginalFilepathsServiceImplTest {
     }
 
     @Test
-    void getMapping() throws Exception {
+    void getMapping_should_map_files_to_original_paths_based_on_txt() throws Exception {
         var contents = "data/12.txt data/leeg.txt\n"
             + "data/13.txt data/sub/leeg2.txt\n"
             + "data/14.txt data/sub/sub/vacio.txt\n";
@@ -57,7 +57,7 @@ class OriginalFilepathsServiceImplTest {
     }
 
     @Test
-    void getMappingWithOnlyOneItemOnARow() throws Exception {
+    void getMapping_should_ignore_row_with_1_item() throws Exception {
         var contents = "data/12.txt data/leeg.txt\n"
             + "data/13.txt data/sub/leeg2.txt\n"
             + "singleitem\n";
@@ -77,7 +77,7 @@ class OriginalFilepathsServiceImplTest {
     }
 
     @Test
-    void fileDoesNotExist() throws Exception {
+    void getMapping_should_return_empty_result_if_original_filepaths_txt_does_not_exist() throws Exception {
         Mockito.when(fileService.readFileContents(Mockito.eq(Path.of("bagdir/original-filepaths.txt"))))
             .thenThrow(new FileNotFoundException("file not found"));
 
