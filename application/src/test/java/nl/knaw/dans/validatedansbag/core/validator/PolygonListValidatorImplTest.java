@@ -25,13 +25,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class PolygonListValidatorImplTest {
 
     @Test
-    void validateValid() {
+    void validatePolygonList_should_not_throw_with_even_number() {
+        // this is an even number of numbers
         var msg = "1 2 3 4 5 6 7 8 1 2";
         assertDoesNotThrow(() -> new PolygonListValidatorImpl().validatePolygonList(msg));
     }
 
     @Test
-    void validateTooShort() {
+    void validatePolygonList_should_not_validate_with_less_than_8_items() {
         var msg = "1 2 1 2";
         var result = new PolygonListValidatorImpl().validatePolygonList(msg);
         assertFalse(result.isValid());
@@ -39,7 +40,8 @@ class PolygonListValidatorImplTest {
     }
 
     @Test
-    void validateUnEvenLength() {
+    void validatePolygonList_should_not_validate_with_odd_number() {
+        // this is an odd number of numbers
         var msg = "1 2 3 4 5 6 7 1 2";
         var result = new PolygonListValidatorImpl().validatePolygonList(msg);
         assertFalse(result.isValid());
@@ -47,7 +49,7 @@ class PolygonListValidatorImplTest {
     }
 
     @Test
-    void validateEndingDoesntEqualBegin() {
+    void validatePolygonList_should_not_validate_if_last_2_numbers_dont_match_first_2_numbers() {
         var msg = "1 2 3 4 5 6 7 8";
         var result = new PolygonListValidatorImpl().validatePolygonList(msg);
         assertFalse(result.isValid());
@@ -55,37 +57,37 @@ class PolygonListValidatorImplTest {
     }
 
     @Test
-    void validateEvenSize() {
+    void validateEvenSize_should_not_throw_with_even_number() {
         var data = new String[] { "1", "2", "3", "4" };
         assertDoesNotThrow(() -> new PolygonListValidatorImpl().validateEvenSize(data));
     }
 
     @Test
-    void validateUnEvenSize() {
+    void validateEvenSize_should_throw_with_uneven_number() {
         var data = new String[] { "1", "2", "3", "4", "5" };
         assertThrows(PolygonListValidator.PolygonValidationException.class, () -> new PolygonListValidatorImpl().validateEvenSize(data));
     }
 
     @Test
-    void validateMinLength() {
+    void validateMinLength_should_not_throw_with_8_parameters() {
         var data = new String[] { "1", "2", "3", "4", "5", "6", "7", "8" };
         assertDoesNotThrow(() -> new PolygonListValidatorImpl().validateMinLength(data));
     }
 
     @Test
-    void validateMinLengthIsTooLow() {
+    void validateMinLength_should_throw_with_7_parameters() {
         var data = new String[] { "2", "3", "4", "5", "6", "7", "8" };
         assertThrows(PolygonListValidator.PolygonValidationException.class, () -> new PolygonListValidatorImpl().validateMinLength(data));
     }
 
     @Test
-    void validateEndEqualsBegin() {
+    void validateEndEqualsBegin_should_not_throw_if_first_2_items_match_last_2_items() {
         var data = new String[] { "1", "2", "3", "4", "5", "6", "7", "8", "1", "2" };
         assertDoesNotThrow(() -> new PolygonListValidatorImpl().validateEndEqualsBegin(data));
     }
 
     @Test
-    void validateEndDoesNotEqualsBegin() {
+    void validateEndEqualsBegin_should_throw_if_first_2_items_do_not_match_last_2_items() {
         var data = new String[] { "1", "2", "3", "4", "5", "6", "7", "8" };
         assertThrows(PolygonListValidator.PolygonValidationException.class, () -> new PolygonListValidatorImpl().validateEndEqualsBegin(data));
     }

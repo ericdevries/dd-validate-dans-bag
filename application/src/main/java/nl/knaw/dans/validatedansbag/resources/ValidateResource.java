@@ -15,10 +15,12 @@
  */
 package nl.knaw.dans.validatedansbag.resources;
 
+import io.dropwizard.auth.Auth;
 import nl.knaw.dans.validatedansbag.api.ValidateCommand;
 import nl.knaw.dans.validatedansbag.api.ValidateOk;
 import nl.knaw.dans.validatedansbag.api.ValidateOkRuleViolations;
 import nl.knaw.dans.validatedansbag.core.BagNotFoundException;
+import nl.knaw.dans.validatedansbag.core.auth.SwordUser;
 import nl.knaw.dans.validatedansbag.core.engine.DepositType;
 import nl.knaw.dans.validatedansbag.core.engine.RuleValidationResult;
 import nl.knaw.dans.validatedansbag.core.engine.ValidationLevel;
@@ -98,7 +100,7 @@ public class ValidateResource {
     @POST
     @Consumes({ "application/zip" })
     @Produces({ MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN })
-    public ValidateOk validateZip(InputStream inputStream, @QueryParam("level") ValidationLevel level) {
+    public ValidateOk validateZip(InputStream inputStream, @QueryParam("level") ValidationLevel level, @Auth SwordUser swordUser) {
         try {
             log.info("Received request to validate zip file with level = {}", level);
             return validateInputStream(inputStream, DepositType.DEPOSIT, level == null ? ValidationLevel.WITH_DATA_STATION_CONTEXT : level);

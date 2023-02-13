@@ -29,21 +29,21 @@ class LicenseValidatorImplTest {
     final LicenseConfig config = new LicenseConfig();
 
     @Test
-    void isValidLicense() {
+    void isValidLicense_should_return_true_if_it_is_found_in_license_config() {
         var license = "http://creativecommons.org/licenses/by-nc-nd/4.0/";
         config.setAllowedLicenses(List.of(URI.create(license)));
         assertTrue(new LicenseValidatorImpl(config).isValidLicense(license));
     }
 
     @Test
-    void isValidLicenseWhenTrailingSlashIsMissing() {
+    void isValidLicense_should_return_true_with_trailing_slash_missing() {
         var license = "http://creativecommons.org/licenses/by-nc-nd/4.0";
         config.setAllowedLicenses(List.of(URI.create(license)));
         assertTrue(new LicenseValidatorImpl(config).isValidLicense(license));
     }
 
     @Test
-    void isInvalidLicense() {
+    void isValidLicense_should_return_false_when_url_is_not_found_in_config() {
         var license = "http://creativecommons.org/licenses/by-nc-nd/4";
         var validLicense = "http://creativecommons.org/licenses/by-nc-nd/4.0";
         config.setAllowedLicenses(List.of(URI.create(validLicense)));

@@ -17,9 +17,15 @@
 package nl.knaw.dans.validatedansbag;
 
 import io.dropwizard.Application;
+import io.dropwizard.auth.AuthDynamicFeature;
+import io.dropwizard.auth.AuthValueFactoryProvider;
+import io.dropwizard.auth.basic.BasicCredentialAuthFilter;
+import io.dropwizard.client.HttpClientBuilder;
 import io.dropwizard.forms.MultiPartBundle;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
+import nl.knaw.dans.validatedansbag.core.auth.SwordAuthenticator;
+import nl.knaw.dans.validatedansbag.core.auth.SwordUser;
 import nl.knaw.dans.validatedansbag.core.engine.RuleEngineImpl;
 import nl.knaw.dans.validatedansbag.core.rules.BagRulesImpl;
 import nl.knaw.dans.validatedansbag.core.rules.DatastationRulesImpl;
@@ -86,11 +92,32 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
             organizationIdentifierPrefixValidator, filesXmlService);
         var filesXmlRules = new FilesXmlRulesImpl(fileService, originalFilepathsService, filesXmlService);
         var xmlRules = new XmlRulesImpl(xmlReader, xmlSchemaValidator, fileService);
-        var datastationRules = new DatastationRulesImpl(bagItMetadataReader, dataverseService, configuration.getValidationConfig().getSwordDepositorRoles(),xmlReader);
+        var datastationRules = new DatastationRulesImpl(bagItMetadataReader, dataverseService, configuration.getValidationConfig().getSwordDepositorRoles(), xmlReader);
 
         // set up the engine and the service that has a default set of rules
         var ruleEngine = new RuleEngineImpl();
         var ruleEngineService = new RuleEngineServiceImpl(ruleEngine, bagRules, xmlRules, filesXmlRules, fileService, datastationRules);
+
+        var validationConfig = configuration.getValidationConfig();
+
+        // the http client for making authentication calls
+        var httpClient = new HttpClientBuilder(environment)
+            .using(validationConfig.getHttpClientConfiguration())
+            .build(getName());
+
+        // set up authentication
+        var swordAuthenticator = new SwordAuthenticator(validationConfig.getPasswordDelegate(), httpClient);
+
+        // register the authentication plugins from dropwizard
+        environment.jersey().register(
+            new AuthDynamicFeature(new BasicCredentialAuthFilter.Builder<SwordUser>()
+                .setAuthenticator(swordAuthenticator)
+                .setRealm(validationConfig.getPasswordRealm())
+                .buildAuthFilter())
+        );
+
+        // for @Auth
+        environment.jersey().register(new AuthValueFactoryProvider.Binder<>(SwordUser.class));
 
         environment.jersey().register(new IllegalArgumentExceptionMapper());
         environment.jersey().register(new ValidateResource(ruleEngineService, fileService));

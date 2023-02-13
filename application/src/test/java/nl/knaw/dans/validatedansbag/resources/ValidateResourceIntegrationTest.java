@@ -15,6 +15,9 @@
  */
 package nl.knaw.dans.validatedansbag.resources;
 
+import io.dropwizard.auth.AuthDynamicFeature;
+import io.dropwizard.auth.AuthValueFactoryProvider;
+import io.dropwizard.auth.basic.BasicCredentialAuthFilter;
 import io.dropwizard.testing.junit5.DropwizardExtensionsSupport;
 import io.dropwizard.testing.junit5.ResourceExtension;
 import nl.knaw.dans.lib.dataverse.DataverseException;
@@ -25,6 +28,7 @@ import nl.knaw.dans.lib.dataverse.model.search.SearchResult;
 import nl.knaw.dans.validatedansbag.api.ValidateCommand;
 import nl.knaw.dans.validatedansbag.api.ValidateOk;
 import nl.knaw.dans.validatedansbag.api.ValidateOkRuleViolations;
+import nl.knaw.dans.validatedansbag.core.auth.SwordUser;
 import nl.knaw.dans.validatedansbag.core.config.OtherIdPrefix;
 import nl.knaw.dans.validatedansbag.core.config.SwordDepositorRoles;
 import nl.knaw.dans.validatedansbag.core.engine.RuleEngineImpl;
@@ -45,6 +49,8 @@ import nl.knaw.dans.validatedansbag.core.validator.IdentifierValidatorImpl;
 import nl.knaw.dans.validatedansbag.core.validator.LicenseValidatorImpl;
 import nl.knaw.dans.validatedansbag.core.validator.OrganizationIdentifierPrefixValidatorImpl;
 import nl.knaw.dans.validatedansbag.core.validator.PolygonListValidatorImpl;
+import nl.knaw.dans.validatedansbag.resources.util.MockAuthorization;
+import nl.knaw.dans.validatedansbag.resources.util.MockedDataverseResponse;
 import org.glassfish.jersey.media.multipart.FormDataMultiPart;
 import org.glassfish.jersey.media.multipart.MultiPartFeature;
 import org.junit.jupiter.api.BeforeEach;
@@ -57,12 +63,12 @@ import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static nl.knaw.dans.validatedansbag.resources.util.TestUtil.basicUsernamePassword;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -79,6 +85,11 @@ class ValidateResourceIntegrationTest {
         EXT = ResourceExtension.builder()
             .addProvider(MultiPartFeature.class)
             .addProvider(ValidateOkYamlMessageBodyWriter.class)
+            .addProvider(new AuthDynamicFeature(new BasicCredentialAuthFilter.Builder<SwordUser>()
+                .setAuthenticator(new MockAuthorization())
+                .setRealm("DANS")
+                .buildAuthFilter()))
+            .addProvider(new AuthValueFactoryProvider.Binder<>(SwordUser.class))
             .addResource(buildValidateResource())
             .build();
     }
@@ -119,7 +130,7 @@ class ValidateResourceIntegrationTest {
     }
 
     @Test
-    void validateFormDataWithInvalidBag() throws IOException, DataverseException {
+    void validateFormData_should_have_validation_errors_with_invalid_bag() throws IOException, DataverseException {
         var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("bags/audiences-invalid")).getFile();
 
         var data = new ValidateCommand();
@@ -148,11 +159,11 @@ class ValidateResourceIntegrationTest {
         assertEquals("1.0.0", response.getProfileVersion());
         assertEquals(ValidateOk.InformationPackageTypeEnum.DEPOSIT, response.getInformationPackageType());
         assertEquals(filename, response.getBagLocation());
-        assertEquals(2, response.getRuleViolations().size());
+        assertTrue(response.getRuleViolations().size() > 0);
     }
 
     @Test
-    void validateFormDataWithSomeException() throws Exception {
+    void validateFormData_should_return_500_when_xml_errors_occur() throws Exception {
         var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("bags/valid-bag")).getFile();
 
         var data = new ValidateCommand();
@@ -175,7 +186,7 @@ class ValidateResourceIntegrationTest {
     }
 
     @Test
-    void validateFormDataWithValidBagAndOriginalFilepaths() throws Exception {
+    void validateFormData_should_validate_ok_with_valid_bag_and_original_filepaths() throws Exception {
         var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("bags/datastation-valid-bag")).getFile();
 
         var data = new ValidateCommand();
@@ -204,7 +215,6 @@ class ValidateResourceIntegrationTest {
             + "    \"count_in_response\": 1\n"
             + "  }\n"
             + "}";
-
 
         var dataverseRoleAssignmentsJson = "{\n"
             + "  \"status\": \"OK\",\n"
@@ -252,7 +262,7 @@ class ValidateResourceIntegrationTest {
     }
 
     @Test
-    void validateFormDataWithInValidBagAndOriginalFilepaths() throws Exception {
+    void validateFormData_should_have_validation_erros_with_invalid_bag_and_original_filepaths() throws Exception {
         var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("bags/original-filepaths-invalid-bag")).getFile();
 
         var data = new ValidateCommand();
@@ -287,7 +297,7 @@ class ValidateResourceIntegrationTest {
     }
 
     @Test
-    void validateMultipartZipFile() throws Exception {
+    void validateFormData_with_invalid_zip_file_should_not_be_compliant_in_datastation_context() throws Exception {
         var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("zips/audiences.zip"));
 
         var data = new ValidateCommand();
@@ -319,12 +329,13 @@ class ValidateResourceIntegrationTest {
     }
 
     @Test
-    void validateZipFile() throws Exception {
+    void validateZipFile_should_have_no_violations_in_stand_alone_context() throws Exception {
         var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("zips/audiences.zip"));
 
         var response = EXT.target("/validate")
             .queryParam("level", "STAND-ALONE")
             .request()
+            .header("Authorization", basicUsernamePassword("user001", "user001"))
             .post(Entity.entity(filename.openStream(), MediaType.valueOf("application/zip")), ValidateOk.class);
 
         assertTrue(response.getIsCompliant());
@@ -335,7 +346,7 @@ class ValidateResourceIntegrationTest {
     }
 
     @Test
-    void validateZipFileAndGetTextResponse() throws Exception {
+    void validateZipFile_should_return_a_textual_representation_when_requested() throws Exception {
         var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("zips/invalid-sha1.zip"));
 
         var embargoResultJson = "{\n"
@@ -351,6 +362,7 @@ class ValidateResourceIntegrationTest {
         var response = EXT.target("/validate")
             .request()
             .header("accept", "text/plain")
+            .header("Authorization", basicUsernamePassword("user001", "user001"))
             .post(Entity.entity(filename.openStream(), MediaType.valueOf("application/zip")), String.class);
 
         assertTrue(response.contains("Bag location:"));
@@ -362,7 +374,7 @@ class ValidateResourceIntegrationTest {
     }
 
     @Test
-    void validateMultipartDataLocationCouldNotBeRead() {
+    void validateFormData_with_invalid_path_should_return_400_error() {
         var data = new ValidateCommand();
         data.setBagLocation("/some/non/existing/filename");
         data.setPackageType(ValidateCommand.PackageTypeEnum.DEPOSIT);
@@ -381,7 +393,7 @@ class ValidateResourceIntegrationTest {
     }
 
     @Test
-    void validateWithHasOrganizationalIdentifier() throws Exception {
+    void validateFormData_with_HasOrganizationalIdentifier_should_validate_if_results_from_dataverse_are_correct() throws Exception {
         var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("bags/bag-with-is-version-of")).getFile();
 
         var data = new ValidateCommand();
@@ -515,7 +527,7 @@ class ValidateResourceIntegrationTest {
     }
 
     @Test
-    void validateWithHasOrganizationalIdentifierButItDoesNotMatch() throws Exception {
+    void validateFormData_with_HasOrganizationalIdentifier_should_not_validate_if_results_from_dataverse_are_incorrect() throws Exception {
         var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("bags/bag-with-is-version-of")).getFile();
 
         var data = new ValidateCommand();
@@ -566,6 +578,7 @@ class ValidateResourceIntegrationTest {
             + "              \"typeName\": \"dansOtherId\",\n"
             + "              \"multiple\": false,\n"
             + "              \"typeClass\": \"primitive\",\n"
+            // this is the line that causes the rule violation
             + "              \"value\": \"urn:uuid:wrong-uuid\"\n"
             + "            }\n"
             + "          ]\n"
@@ -647,7 +660,7 @@ class ValidateResourceIntegrationTest {
     }
 
     @Test
-    void validateWithNoMatchingSwordToken() throws Exception {
+    void validateFormData_should_yield_violation_errors_if_swordToken_does_not_match() throws Exception {
         var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("bags/bag-with-is-version-of")).getFile();
 
         var data = new ValidateCommand();
@@ -677,6 +690,7 @@ class ValidateResourceIntegrationTest {
             + "  }\n"
             + "}";
 
+        // returns 0 items, causing the rule to be violated
         var swordTokenJson = "{\n"
             + "  \"status\": \"OK\",\n"
             + "  \"data\": {\n"

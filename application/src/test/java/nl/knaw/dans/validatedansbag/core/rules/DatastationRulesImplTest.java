@@ -28,7 +28,7 @@ import nl.knaw.dans.validatedansbag.core.service.XmlReader;
 import nl.knaw.dans.validatedansbag.core.service.XmlReaderImpl;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
-import nl.knaw.dans.validatedansbag.resources.MockedDataverseResponse;
+import nl.knaw.dans.validatedansbag.resources.util.MockedDataverseResponse;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;

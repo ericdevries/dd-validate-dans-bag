@@ -57,7 +57,7 @@ class XmlRulesImplTest {
     }
 
     @Test
-    void xmlFileConformsToSchema() throws Exception {
+    void xmlFileConformsToSchema_should_return_SUCCESS_status_if_file_validates_with_xsd() throws Exception {
 
         var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n"
             + "<ddm:DDM xmlns:ddm=\"http://schemas.dans.knaw.nl/dataset/ddm-v2/\" xmlns=\"http://easy.dans.knaw.nl/schemas/bag/metadata/files/\" xmlns:abr=\"http://www.den.nl/standaard/166/Archeologisch-Basisregister/\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:dcterms=\"http://purl.org/dc/terms/\" xmlns:dcx-dai=\"http://easy.dans.knaw.nl/schemas/dcx/dai/\" xmlns:dcx-gml=\"http://easy.dans.knaw.nl/schemas/dcx/gml/\" xmlns:id-type=\"http://easy.dans.knaw.nl/schemas/vocab/identifier-type/\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n"
@@ -80,7 +80,7 @@ class XmlRulesImplTest {
     }
 
     @Test
-    void xmlFileDoesNotConformToSchema() throws Exception {
+    void xmlFileConformsToSchema_should_return_ERROR_status_when_file_does_not_validate_with_xsd() throws Exception {
 
         var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n"
             + "<ddm:DDM xmlns:ddm=\"http://schemas.dans.knaw.nl/dataset/ddm-v2/\" xmlns=\"http://easy.dans.knaw.nl/schemas/bag/metadata/files/\" xmlns:abr=\"http://www.den.nl/standaard/166/Archeologisch-Basisregister/\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:dcterms=\"http://purl.org/dc/terms/\" xmlns:dcx-dai=\"http://easy.dans.knaw.nl/schemas/dcx/dai/\" xmlns:dcx-gml=\"http://easy.dans.knaw.nl/schemas/dcx/gml/\" xmlns:id-type=\"http://easy.dans.knaw.nl/schemas/vocab/identifier-type/\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n"
@@ -104,7 +104,7 @@ class XmlRulesImplTest {
     }
 
     @Test
-    void xmlFileIsInvalid() throws Exception {
+    void xmlFileConformsToSchema_should_return_ERROR_status_when_xmlReader_throws_exception() throws Exception {
         var reader = Mockito.mock(XmlReader.class);
 
         Mockito.doThrow(new SAXParseException("Invalid XML", null))
@@ -117,7 +117,7 @@ class XmlRulesImplTest {
     }
 
     @Test
-    void xmlFileIfExistsConformsToSchema() throws Exception {
+    void xmlFileIfExistsConformsToSchema_should_return_ERROR_status_if_file_exists_but_does_not_validate() throws Exception {
         var xml = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n"
             + "<ddm:DDM xmlns:ddm=\"http://schemas.dans.knaw.nl/dataset/ddm-v2/\" xmlns=\"http://easy.dans.knaw.nl/schemas/bag/metadata/files/\" xmlns:abr=\"http://www.den.nl/standaard/166/Archeologisch-Basisregister/\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:dcterms=\"http://purl.org/dc/terms/\" xmlns:dcx-dai=\"http://easy.dans.knaw.nl/schemas/dcx/dai/\" xmlns:dcx-gml=\"http://easy.dans.knaw.nl/schemas/dcx/gml/\" xmlns:id-type=\"http://easy.dans.knaw.nl/schemas/vocab/identifier-type/\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n"
             + "    <ddm:profile>\n"
@@ -135,12 +135,12 @@ class XmlRulesImplTest {
 
         var checker = new XmlRulesImpl(reader, xmlSchemaValidator, fileService);
 
-        var result = checker.xmlFileConformsToSchema(Path.of("metadata/dataset.xml"), "ddm").validate(Path.of("bagdir"));
+        var result = checker.xmlFileIfExistsConformsToSchema(Path.of("metadata/dataset.xml"), "ddm").validate(Path.of("bagdir"));
         assertEquals(RuleResult.Status.ERROR, result.getStatus());
     }
 
     @Test
-    void xmlFileIfExistsConformsToSchemaButFileDoesNotExist() throws Exception {
+    void xmlFileIfExistsConformsToSchema_should_return_SKIP_DEPENDENCIES_status_if_file_does_not_exist() throws Exception {
         var reader = Mockito.spy(new XmlReaderImpl());
 
         Mockito.doReturn(false).when(fileService).exists(Path.of("bagdir/metadata/dataset.xml"));
