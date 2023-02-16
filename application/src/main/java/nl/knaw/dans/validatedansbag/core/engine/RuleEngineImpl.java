@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class RuleEngineImpl implements RuleEngine {
     private static final Logger log = LoggerFactory.getLogger(RuleEngineImpl.class);
@@ -54,9 +53,9 @@ public class RuleEngineImpl implements RuleEngine {
     }
 
     @Override
-    public List<RuleValidationResult> validateRules(Path bag, NumberedRule[] rules, DepositType depositType, ValidationLevel validationLevel) throws Exception {
+    public List<RuleValidationResult> validateRules(Path bag, NumberedRule[] rules, DepositType depositType) throws Exception {
         final var ruleResults = new HashMap<String, RuleValidationResult>();
-        final var rulesToExecute = filterRulesOnDepositTypeAndValidationLevel(rules, depositType, validationLevel);
+        final var rulesToExecute = filterRulesOnDepositType(rules, depositType);
 
         // create a copy, because we will modify this list
         var remainingRules = new ArrayList<>(rulesToExecute);
@@ -213,18 +212,16 @@ public class RuleEngineImpl implements RuleEngine {
         var unresolved = new ArrayList<String>();
 
         for (var depositType : List.of(DepositType.DEPOSIT, DepositType.MIGRATION)) {
-            for (var validationLevel : List.of(ValidationLevel.STAND_ALONE, ValidationLevel.WITH_DATA_STATION_CONTEXT)) {
-                var typedRules = filterRulesOnDepositTypeAndValidationLevel(rules, depositType, validationLevel);
+            var typedRules = filterRulesOnDepositType(rules, depositType);
 
-                var keys = typedRules.stream()
-                    .map(NumberedRule::getNumber)
-                    .collect(Collectors.toSet());
+            var keys = typedRules.stream()
+                .map(NumberedRule::getNumber)
+                .collect(Collectors.toSet());
 
-                // this does not check for circular dependencies or self-references
-                for (var rule : typedRules) {
-                    if (rule.getDependencies() != null && !keys.containsAll(rule.getDependencies())) {
-                        unresolved.add(rule.getNumber());
-                    }
+            // this does not check for circular dependencies or self-references
+            for (var rule : typedRules) {
+                if (rule.getDependencies() != null && !keys.containsAll(rule.getDependencies())) {
+                    unresolved.add(rule.getNumber());
                 }
             }
         }
@@ -269,22 +266,9 @@ public class RuleEngineImpl implements RuleEngine {
         return !depositType.equals(rule.getDepositType());
     }
 
-    private boolean shouldBeIgnoredBecauseOfValidationLevel(NumberedRule rule, ValidationLevel validationLevel) {
-        if (ValidationContext.ALWAYS.equals(rule.getValidationContext())) {
-            return false;
-        }
-
-        if (ValidationContext.WITH_DATA_STATION_CONTEXT.equals(rule.getValidationContext()) && validationLevel.equals(ValidationLevel.WITH_DATA_STATION_CONTEXT)) {
-            return false;
-        }
-
-        return true;
-    }
-
-    List<NumberedRule> filterRulesOnDepositTypeAndValidationLevel(NumberedRule[] rules, DepositType depositType, ValidationLevel validationLevel) {
+    List<NumberedRule> filterRulesOnDepositType(NumberedRule[] rules, DepositType depositType) {
         return Arrays.stream(rules)
             .filter(rule -> !shouldBeIgnoredBecauseOfDepositType(rule, depositType))
-            .filter(rule -> !shouldBeIgnoredBecauseOfValidationLevel(rule, validationLevel))
             .collect(Collectors.toList());
     }
 }

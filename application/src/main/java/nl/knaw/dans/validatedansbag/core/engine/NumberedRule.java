@@ -24,42 +24,24 @@ public class NumberedRule {
     private final BagValidatorRule rule;
     private final List<String> dependencies;
     private final DepositType depositType;
-    private final ValidationContext validationContext;
 
-    public NumberedRule(String number, BagValidatorRule rule, List<String> dependencies, DepositType depositType, ValidationContext validationContext) {
+    public NumberedRule(String number, BagValidatorRule rule, DepositType depositType, List<String> dependencies) {
         this.number = number;
         this.rule = rule;
         this.dependencies = dependencies;
         this.depositType = depositType;
-        this.validationContext = validationContext;
     }
 
     public NumberedRule(String number, BagValidatorRule rule) {
-        this(number, rule, null, null, ValidationContext.ALWAYS);
+        this(number, rule, null, null);
     }
 
     public NumberedRule(String number, BagValidatorRule rule, List<String> dependencies) {
-        this(number, rule, dependencies, null, ValidationContext.ALWAYS);
-    }
-
-    public NumberedRule(String number, BagValidatorRule rule, DepositType depositType, List<String> dependencies) {
-        this(number, rule, dependencies, depositType, ValidationContext.ALWAYS);
+        this(number, rule, null, dependencies);
     }
 
     public NumberedRule(String number, BagValidatorRule rule, DepositType depositType) {
-        this(number, rule, null, depositType, ValidationContext.ALWAYS);
-    }
-
-    public NumberedRule(String number, BagValidatorRule rule, ValidationContext validationContext) {
-        this(number, rule, null, null, validationContext);
-    }
-
-    public NumberedRule(String number, BagValidatorRule rule, ValidationContext validationContext, List<String> dependencies) {
-        this(number, rule, dependencies, null, validationContext);
-    }
-
-    public ValidationContext getValidationContext() {
-        return validationContext;
+        this(number, rule, depositType, null);
     }
 
     public DepositType getDepositType() {

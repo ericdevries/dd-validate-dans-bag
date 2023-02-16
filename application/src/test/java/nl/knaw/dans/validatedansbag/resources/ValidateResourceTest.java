@@ -23,7 +23,6 @@ import io.dropwizard.testing.junit5.ResourceExtension;
 import nl.knaw.dans.validatedansbag.api.ValidateCommand;
 import nl.knaw.dans.validatedansbag.api.ValidateOk;
 import nl.knaw.dans.validatedansbag.api.ValidateOk.InformationPackageTypeEnum;
-import nl.knaw.dans.validatedansbag.api.ValidateOk.LevelEnum;
 import nl.knaw.dans.validatedansbag.core.BagNotFoundException;
 import nl.knaw.dans.validatedansbag.core.auth.SwordUser;
 import nl.knaw.dans.validatedansbag.core.service.FileService;
@@ -87,7 +86,6 @@ class ValidateResourceTest {
         assertEquals("it/is/here", response.getBagLocation());
         assertEquals("here", response.getName());
         assertEquals(InformationPackageTypeEnum.DEPOSIT, response.getInformationPackageType());
-        assertEquals(LevelEnum.STAND_ALONE, response.getLevel());
     }
 
     @Test
@@ -129,7 +127,7 @@ class ValidateResourceTest {
 
         Mockito.doThrow(BagNotFoundException.class)
             .when(ruleEngineService)
-            .validateBag(Mockito.any(), Mockito.any(), Mockito.any());
+            .validateBag(Mockito.any(), Mockito.any());
 
         try (var response = EXT.target("/validate")
             .register(MultiPartFeature.class)

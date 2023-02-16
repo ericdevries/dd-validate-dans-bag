@@ -17,13 +17,12 @@ package nl.knaw.dans.validatedansbag.core.service;
 
 import nl.knaw.dans.validatedansbag.core.engine.DepositType;
 import nl.knaw.dans.validatedansbag.core.engine.RuleValidationResult;
-import nl.knaw.dans.validatedansbag.core.engine.ValidationLevel;
 
 import java.nio.file.Path;
 import java.util.List;
 
 public interface RuleEngineService {
 
-    List<RuleValidationResult> validateBag(Path path, DepositType depositType, ValidationLevel validationLevel) throws Exception;
+    List<RuleValidationResult> validateBag(Path path, DepositType depositType) throws Exception;
 
 }
