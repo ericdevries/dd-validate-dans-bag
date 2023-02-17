@@ -21,8 +21,6 @@ import nl.knaw.dans.validatedansbag.core.engine.NumberedRule;
 import nl.knaw.dans.validatedansbag.core.engine.RuleEngine;
 import nl.knaw.dans.validatedansbag.core.engine.RuleEngineConfigurationException;
 import nl.knaw.dans.validatedansbag.core.engine.RuleValidationResult;
-import nl.knaw.dans.validatedansbag.core.engine.ValidationContext;
-import nl.knaw.dans.validatedansbag.core.engine.ValidationLevel;
 import nl.knaw.dans.validatedansbag.core.rules.BagRules;
 import nl.knaw.dans.validatedansbag.core.rules.DatastationRules;
 import nl.knaw.dans.validatedansbag.core.rules.FilesXmlRules;
@@ -132,28 +130,28 @@ public class RuleEngineServiceImpl implements RuleEngineService {
             // provenance.xml
             new NumberedRule("3.3.4", xmlRules.xmlFileIfExistsConformsToSchema(Path.of("metadata/provenance.xml"), "provenance.xml"), DepositType.MIGRATION),
 
-            new NumberedRule("4.1", bagRules.bagInfoContainsExactlyOneOf("Data-Station-User-Account"), ValidationContext.WITH_DATA_STATION_CONTEXT, List.of("1.2.1")),
-            new NumberedRule("4.2", datastationRules.userIsAuthorizedToCreateDataset(), ValidationContext.WITH_DATA_STATION_CONTEXT, List.of("4.1")),
-            new NumberedRule("4.3", bagRules.organizationalIdentifierPrefixIsValid(), ValidationContext.WITH_DATA_STATION_CONTEXT, List.of("4.1", "1.2.5(a)")),
-            new NumberedRule("4.4(a)", datastationRules.bagExistsInDatastation(), ValidationContext.WITH_DATA_STATION_CONTEXT, List.of("4.1")),
-            new NumberedRule("4.4(b)", datastationRules.organizationalIdentifierExistsInDataset(), ValidationContext.WITH_DATA_STATION_CONTEXT, List.of("4.1", "4.4(a)")),
-            new NumberedRule("4.4(c)", datastationRules.userIsAuthorizedToUpdateDataset(), ValidationContext.WITH_DATA_STATION_CONTEXT, List.of("4.1", "4.4(a)")),
-            new NumberedRule("4.6", datastationRules.embargoPeriodWithinLimits(), ValidationContext.WITH_DATA_STATION_CONTEXT),
+            new NumberedRule("4.1", bagRules.bagInfoContainsExactlyOneOf("Data-Station-User-Account"), DepositType.DEPOSIT, List.of("1.2.1")),
+            new NumberedRule("4.2", datastationRules.userIsAuthorizedToCreateDataset(), DepositType.DEPOSIT, List.of("4.1")),
+            new NumberedRule("4.3", bagRules.organizationalIdentifierPrefixIsValid(), DepositType.DEPOSIT, List.of("4.1", "1.2.5(a)")),
+            new NumberedRule("4.4(a)", datastationRules.bagExistsInDatastation(), DepositType.DEPOSIT, List.of("4.1")),
+            new NumberedRule("4.4(b)", datastationRules.organizationalIdentifierExistsInDataset(), DepositType.DEPOSIT, List.of("4.1", "4.4(a)")),
+            new NumberedRule("4.4(c)", datastationRules.userIsAuthorizedToUpdateDataset(), DepositType.DEPOSIT, List.of("4.1", "4.4(a)")),
+            new NumberedRule("4.6", datastationRules.embargoPeriodWithinLimits(), DepositType.DEPOSIT),
         };
 
         this.validateRuleConfiguration();
     }
 
     @Override
-    public List<RuleValidationResult> validateBag(Path path, DepositType depositType, ValidationLevel validationLevel) throws Exception {
-        log.info("Validating bag on path '{}', deposit type is {} and validation level {}", path, depositType, validationLevel);
+    public List<RuleValidationResult> validateBag(Path path, DepositType depositType) throws Exception {
+        log.info("Validating bag on path '{}', deposit type is {}", path, depositType);
 
         if (!fileService.isReadable(path)) {
             log.warn("Path {} could not not be found or is not readable", path);
             throw new BagNotFoundException(String.format("Bag on path '%s' could not be found or read", path));
         }
 
-        return ruleEngine.validateRules(path, this.defaultRules, depositType, validationLevel);
+        return ruleEngine.validateRules(path, this.defaultRules, depositType);
     }
 
     public void validateRuleConfiguration() {

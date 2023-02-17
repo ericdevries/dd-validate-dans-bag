@@ -22,6 +22,6 @@ public interface RuleEngine {
 
     void validateRuleConfiguration(NumberedRule[] rules) throws RuleEngineConfigurationException;
 
-    List<RuleValidationResult> validateRules(Path bag, NumberedRule[] rules, DepositType depositType, ValidationLevel validationLevel) throws Exception;
+    List<RuleValidationResult> validateRules(Path bag, NumberedRule[] rules, DepositType depositType) throws Exception;
 
 }

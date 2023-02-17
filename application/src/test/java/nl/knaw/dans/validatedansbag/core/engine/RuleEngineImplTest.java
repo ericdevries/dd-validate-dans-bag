@@ -42,7 +42,7 @@ class RuleEngineImplTest {
 
         var engine = new RuleEngineImpl();
         assertDoesNotThrow(() -> engine.validateRuleConfiguration(rules));
-        assertDoesNotThrow(() -> engine.validateRules(Path.of("somedir"), rules, DepositType.DEPOSIT, ValidationLevel.STAND_ALONE));
+        assertDoesNotThrow(() -> engine.validateRules(Path.of("somedir"), rules, DepositType.DEPOSIT));
 
         Mockito.verify(fakeRule, Mockito.times(4)).validate(Mockito.any());
     }
@@ -65,7 +65,7 @@ class RuleEngineImplTest {
 
         var engine = new RuleEngineImpl();
         assertDoesNotThrow(() -> engine.validateRuleConfiguration(rules));
-        assertDoesNotThrow(() -> engine.validateRules(Path.of("somedir"), rules, DepositType.DEPOSIT, ValidationLevel.STAND_ALONE));
+        assertDoesNotThrow(() -> engine.validateRules(Path.of("somedir"), rules, DepositType.DEPOSIT));
 
         Mockito.verify(fakeRule, Mockito.times(2)).validate(Mockito.any());
         Mockito.verify(fakeRuleSkipped).validate(Mockito.any());
@@ -87,7 +87,7 @@ class RuleEngineImplTest {
 
         var engine = new RuleEngineImpl();
         assertDoesNotThrow(() -> engine.validateRuleConfiguration(rules));
-        assertDoesNotThrow(() -> engine.validateRules(Path.of("somedir"), rules, DepositType.DEPOSIT, ValidationLevel.STAND_ALONE));
+        assertDoesNotThrow(() -> engine.validateRules(Path.of("somedir"), rules, DepositType.DEPOSIT));
 
         Mockito.verify(fakeRule, Mockito.times(4)).validate(Mockito.any());
     }
@@ -244,7 +244,7 @@ class RuleEngineImplTest {
         };
 
         var engine = new RuleEngineImpl();
-        var result = engine.validateRules(Path.of("bagdir"), rules, DepositType.DEPOSIT, ValidationLevel.STAND_ALONE);
+        var result = engine.validateRules(Path.of("bagdir"), rules, DepositType.DEPOSIT);
 
         assertEquals(3, result.size());
     }

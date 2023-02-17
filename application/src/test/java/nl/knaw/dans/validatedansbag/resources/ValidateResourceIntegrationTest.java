@@ -136,7 +136,6 @@ class ValidateResourceIntegrationTest {
         var data = new ValidateCommand();
         data.setBagLocation(filename);
         data.setPackageType(ValidateCommand.PackageTypeEnum.DEPOSIT);
-        data.setLevel(ValidateCommand.LevelEnum.WITH_DATA_STATION_CONTEXT);
         var multipart = new FormDataMultiPart()
             .field("command", data, MediaType.APPLICATION_JSON_TYPE);
 
@@ -169,7 +168,6 @@ class ValidateResourceIntegrationTest {
         var data = new ValidateCommand();
         data.setBagLocation(filename);
         data.setPackageType(ValidateCommand.PackageTypeEnum.DEPOSIT);
-        data.setLevel(ValidateCommand.LevelEnum.WITH_DATA_STATION_CONTEXT);
         var multipart = new FormDataMultiPart()
             .field("command", data, MediaType.APPLICATION_JSON_TYPE);
 
@@ -192,7 +190,6 @@ class ValidateResourceIntegrationTest {
         var data = new ValidateCommand();
         data.setBagLocation(filename);
         data.setPackageType(ValidateCommand.PackageTypeEnum.MIGRATION);
-        data.setLevel(ValidateCommand.LevelEnum.WITH_DATA_STATION_CONTEXT);
 
         var multipart = new FormDataMultiPart()
             .field("command", data, MediaType.APPLICATION_JSON_TYPE);
@@ -268,7 +265,6 @@ class ValidateResourceIntegrationTest {
         var data = new ValidateCommand();
         data.setBagLocation(filename);
         data.setPackageType(ValidateCommand.PackageTypeEnum.MIGRATION);
-        data.setLevel(ValidateCommand.LevelEnum.WITH_DATA_STATION_CONTEXT);
 
         var multipart = new FormDataMultiPart()
             .field("command", data, MediaType.APPLICATION_JSON_TYPE);
@@ -302,7 +298,6 @@ class ValidateResourceIntegrationTest {
 
         var data = new ValidateCommand();
         data.setPackageType(ValidateCommand.PackageTypeEnum.DEPOSIT);
-        data.setLevel(ValidateCommand.LevelEnum.WITH_DATA_STATION_CONTEXT);
         var multipart = new FormDataMultiPart()
             .field("command", data, MediaType.APPLICATION_JSON_TYPE)
             .field("zip", filename.openStream(), MediaType.valueOf("application/zip"));
@@ -326,23 +321,6 @@ class ValidateResourceIntegrationTest {
         assertEquals("1.0.0", response.getProfileVersion());
         assertEquals(ValidateOk.InformationPackageTypeEnum.DEPOSIT, response.getInformationPackageType());
         assertNull(response.getBagLocation());
-    }
-
-    @Test
-    void validateZipFile_should_have_no_violations_in_stand_alone_context() throws Exception {
-        var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("zips/audiences.zip"));
-
-        var response = EXT.target("/validate")
-            .queryParam("level", "STAND-ALONE")
-            .request()
-            .header("Authorization", basicUsernamePassword("user001", "user001"))
-            .post(Entity.entity(filename.openStream(), MediaType.valueOf("application/zip")), ValidateOk.class);
-
-        assertTrue(response.getIsCompliant());
-        assertEquals("1.0.0", response.getProfileVersion());
-        assertEquals(ValidateOk.InformationPackageTypeEnum.DEPOSIT, response.getInformationPackageType());
-        assertNull(response.getBagLocation());
-        assertEquals(0, response.getRuleViolations().size());
     }
 
     @Test
@@ -378,7 +356,6 @@ class ValidateResourceIntegrationTest {
         var data = new ValidateCommand();
         data.setBagLocation("/some/non/existing/filename");
         data.setPackageType(ValidateCommand.PackageTypeEnum.DEPOSIT);
-        data.setLevel(ValidateCommand.LevelEnum.WITH_DATA_STATION_CONTEXT);
 
         var multipart = new FormDataMultiPart()
             .field("command", data, MediaType.APPLICATION_JSON_TYPE);
@@ -399,7 +376,6 @@ class ValidateResourceIntegrationTest {
         var data = new ValidateCommand();
         data.setBagLocation(filename);
         data.setPackageType(ValidateCommand.PackageTypeEnum.DEPOSIT);
-        data.setLevel(ValidateCommand.LevelEnum.WITH_DATA_STATION_CONTEXT);
 
         var multipart = new FormDataMultiPart()
             .field("command", data, MediaType.APPLICATION_JSON_TYPE);
@@ -533,7 +509,6 @@ class ValidateResourceIntegrationTest {
         var data = new ValidateCommand();
         data.setBagLocation(filename);
         data.setPackageType(ValidateCommand.PackageTypeEnum.DEPOSIT);
-        data.setLevel(ValidateCommand.LevelEnum.WITH_DATA_STATION_CONTEXT);
 
         var multipart = new FormDataMultiPart()
             .field("command", data, MediaType.APPLICATION_JSON_TYPE);
@@ -666,7 +641,6 @@ class ValidateResourceIntegrationTest {
         var data = new ValidateCommand();
         data.setBagLocation(filename);
         data.setPackageType(ValidateCommand.PackageTypeEnum.DEPOSIT);
-        data.setLevel(ValidateCommand.LevelEnum.WITH_DATA_STATION_CONTEXT);
 
         var multipart = new FormDataMultiPart()
             .field("command", data, MediaType.APPLICATION_JSON_TYPE);

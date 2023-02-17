@@ -23,7 +23,6 @@ import nl.knaw.dans.validatedansbag.core.BagNotFoundException;
 import nl.knaw.dans.validatedansbag.core.auth.SwordUser;
 import nl.knaw.dans.validatedansbag.core.engine.DepositType;
 import nl.knaw.dans.validatedansbag.core.engine.RuleValidationResult;
-import nl.knaw.dans.validatedansbag.core.engine.ValidationLevel;
 import nl.knaw.dans.validatedansbag.core.service.FileService;
 import nl.knaw.dans.validatedansbag.core.service.RuleEngineService;
 import org.glassfish.jersey.media.multipart.FormDataParam;
@@ -38,7 +37,6 @@ import javax.ws.rs.InternalServerErrorException;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import java.io.IOException;
 import java.io.InputStream;
@@ -60,14 +58,13 @@ public class ValidateResource {
 
     @POST
     @Consumes(MediaType.MULTIPART_FORM_DATA)
-    @Produces({MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN})
+    @Produces({ MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN })
     public ValidateOk validateFormData(
         @Valid @NotNull @FormDataParam(value = "command") ValidateCommand command,
         @FormDataParam(value = "zip") InputStream zipInputStream
     ) {
         var location = command.getBagLocation();
         var depositType = toDepositType(command.getPackageType());
-        var validationLevel = toValidationLevel(command.getLevel());
 
         log.info("Received request to validate bag: {}", command);
 
@@ -75,11 +72,11 @@ public class ValidateResource {
             ValidateOk validateResult;
 
             if (location == null) {
-                validateResult = validateInputStream(zipInputStream, depositType, validationLevel);
+                validateResult = validateInputStream(zipInputStream, depositType);
             }
             else {
                 var locationPath = java.nio.file.Path.of(location);
-                validateResult = validatePath(locationPath, depositType, validationLevel);
+                validateResult = validatePath(locationPath, depositType);
             }
 
             // this information is lost during the validation, so set it again here
@@ -100,10 +97,10 @@ public class ValidateResource {
     @POST
     @Consumes({ "application/zip" })
     @Produces({ MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN })
-    public ValidateOk validateZip(InputStream inputStream, @QueryParam("level") ValidationLevel level, @Auth SwordUser swordUser) {
+    public ValidateOk validateZip(InputStream inputStream, @Auth SwordUser swordUser) {
         try {
-            log.info("Received request to validate zip file with level = {}", level);
-            return validateInputStream(inputStream, DepositType.DEPOSIT, level == null ? ValidationLevel.WITH_DATA_STATION_CONTEXT : level);
+            log.info("Received request to validate zip file");
+            return validateInputStream(inputStream, DepositType.DEPOSIT);
         }
         catch (BagNotFoundException e) {
             log.error("Bag not found", e);
@@ -115,14 +112,14 @@ public class ValidateResource {
         }
     }
 
-    ValidateOk validateInputStream(InputStream inputStream, DepositType depositType, ValidationLevel validationLevel) throws Exception {
+    ValidateOk validateInputStream(InputStream inputStream, DepositType depositType) throws Exception {
         var tempPath = fileService.extractZipFile(inputStream);
 
         try {
             var bagDir = fileService.getFirstDirectory(tempPath)
                 .orElseThrow(() -> new BagNotFoundException("Extracted zip does not contain a directory"));
 
-            return validatePath(bagDir, depositType, validationLevel);
+            return validatePath(bagDir, depositType);
         }
         finally {
             try {
@@ -135,8 +132,8 @@ public class ValidateResource {
 
     }
 
-    ValidateOk validatePath(java.nio.file.Path bagDir, DepositType depositType, ValidationLevel validationLevel) throws Exception {
-        var results = ruleEngineService.validateBag(bagDir, depositType, validationLevel);
+    ValidateOk validatePath(java.nio.file.Path bagDir, DepositType depositType) throws Exception {
+        var results = ruleEngineService.validateBag(bagDir, depositType);
         var isValid = results.stream().noneMatch(r -> r.getStatus().equals(RuleValidationResult.RuleValidationResultStatus.FAILURE));
 
         var result = new ValidateOk();
@@ -145,7 +142,6 @@ public class ValidateResource {
         result.setName(bagDir.getFileName().toString());
         result.setProfileVersion("1.0.0");
         result.setInformationPackageType(toInfoPackageType(depositType));
-        result.setLevel(toLevel(validationLevel));
         result.setRuleViolations(results.stream()
             .filter(r -> r.getStatus().equals(RuleValidationResult.RuleValidationResultStatus.FAILURE))
             .map(rule -> {
@@ -175,24 +171,10 @@ public class ValidateResource {
         return DepositType.DEPOSIT;
     }
 
-    ValidationLevel toValidationLevel(ValidateCommand.LevelEnum value) {
-        if (ValidateCommand.LevelEnum.WITH_DATA_STATION_CONTEXT.equals(value)) {
-            return ValidationLevel.WITH_DATA_STATION_CONTEXT;
-        }
-        return ValidationLevel.STAND_ALONE;
-    }
-
     ValidateOk.InformationPackageTypeEnum toInfoPackageType(DepositType value) {
         if (DepositType.MIGRATION.equals(value)) {
             return ValidateOk.InformationPackageTypeEnum.MIGRATION;
         }
         return ValidateOk.InformationPackageTypeEnum.DEPOSIT;
-    }
-
-    ValidateOk.LevelEnum toLevel(ValidationLevel value) {
-        if (ValidationLevel.WITH_DATA_STATION_CONTEXT.equals(value)) {
-            return ValidateOk.LevelEnum.WITH_DATA_STATION_CONTEXT;
-        }
-        return ValidateOk.LevelEnum.STAND_ALONE;
     }
 }
