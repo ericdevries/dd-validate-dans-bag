@@ -294,35 +294,6 @@ public class BagRulesImpl implements BagRules {
     }
 
     @Override
-    public BagValidatorRule hasOnlyValidFileNames() {
-        return (path) -> {
-            var basePath = path.resolve("data");
-            var invalidCharacters = ":*?\"<>|;#";
-
-            var files = fileService.getAllFiles(basePath)
-                .stream()
-                .filter(f -> {
-                    for (var c : invalidCharacters.toCharArray()) {
-                        if (f.getFileName().toString().indexOf(c) > -1) {
-                            return true;
-                        }
-                    }
-                    return false;
-                })
-                .map(Path::toString)
-                .collect(Collectors.joining(", "));
-
-            log.debug("Files with invalid filenames in path {}: {}", basePath, files);
-
-            if (files.length() > 0) {
-                return RuleResult.error(String.format("Payload files must have valid characters. Invalid ones: %s", files));
-            }
-
-            return RuleResult.ok();
-        };
-    }
-
-    @Override
     public BagValidatorRule optionalFileIsUtf8Decodable(Path filename) {
         return (path) -> {
             try {
