@@ -113,7 +113,6 @@ public class ValidateResource {
             throw new BadRequestException("Request could not be processed: " + e.getMessage(), e);
         }
         catch (BagDoesNotBelongToAuthenticatedUserException e) {
-            e.printStackTrace();
             log.error("Access denied", e);
             throw new ForbiddenException("Request could not be processed: " + e.getMessage(), e);
         }
