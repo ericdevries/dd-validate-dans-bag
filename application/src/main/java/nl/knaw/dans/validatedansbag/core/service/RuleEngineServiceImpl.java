@@ -90,8 +90,6 @@ public class RuleEngineServiceImpl implements RuleEngineService {
                 "files.xml"
             }), DepositType.DEPOSIT, List.of("2.1")),
 
-            new NumberedRule("2.5", bagRules.hasOnlyValidFileNames(), List.of("2.1")),
-
             // original-filepaths.txt
             new NumberedRule("2.6.1", bagRules.optionalFileIsUtf8Decodable(Path.of("original-filepaths.txt")), List.of("1.1.1")),
             new NumberedRule("2.6.2", bagRules.isOriginalFilepathsFileComplete(), List.of("2.6.1")),

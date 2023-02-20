@@ -1156,38 +1156,6 @@ class BagRulesImplTest {
     }
 
     @Test
-    void hasOnlyValidFileNames() throws Exception {
-        // invalidCharacters = ":*?\"<>|;#";
-
-        Mockito.when(fileService.getAllFiles(Mockito.any()))
-            .thenReturn(List.of(
-                Path.of("some/path.txt"),
-                Path.of("some/other_path-\\backslash.txt"),
-                Path.of("some/{}[]`~@$ðfáðfgfüþúüúíáðœfä&^()-_+= .txt")
-            ));
-
-        var checker = getBagRules();
-        var result = checker.hasOnlyValidFileNames().validate(Path.of("bagdir"));
-
-        assertEquals(RuleResult.Status.SUCCESS, result.getStatus());
-    }
-
-    @Test
-    void hasAlsoInvalidFileNames() throws Exception {
-        // invalidCharacters = ":*?\"<>|;#";
-
-        Mockito.when(fileService.getAllFiles(Mockito.any()))
-            .thenReturn(List.of(
-                Path.of("some/path:\\?.txt")
-            ));
-
-        var checker = getBagRules();
-        var result = checker.hasOnlyValidFileNames().validate(Path.of("bagdir"));
-
-        assertEquals(RuleResult.Status.ERROR, result.getStatus());
-    }
-
-    @Test
     void optionalFileIsUtf8Decodable() throws Exception {
         Mockito.when(fileService.exists(Mockito.any())).thenReturn(true);
         Mockito.when(fileService.readFileContents(Mockito.any(), Mockito.any())).thenReturn(CharBuffer.allocate(1));
