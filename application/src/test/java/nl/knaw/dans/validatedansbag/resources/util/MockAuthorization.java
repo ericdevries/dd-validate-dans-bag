@@ -29,6 +29,9 @@ public class MockAuthorization implements Authenticator<BasicCredentials, SwordU
         if ("user001".equals(basicCredentials.getUsername()) && "user001".equals(basicCredentials.getPassword())) {
             return Optional.of(new SwordUser("user001"));
         }
+        if ("user007".equals(basicCredentials.getUsername()) && "user007".equals(basicCredentials.getPassword())) {
+            return Optional.of(new SwordUser("user007"));
+        }
         return Optional.empty();
     }
 }

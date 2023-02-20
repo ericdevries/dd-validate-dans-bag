@@ -23,8 +23,8 @@ import gov.loc.repository.bagit.exceptions.MissingPayloadDirectoryException;
 import gov.loc.repository.bagit.exceptions.MissingPayloadManifestException;
 import gov.loc.repository.bagit.exceptions.VerificationException;
 import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms;
-import nl.knaw.dans.validatedansbag.core.BagNotFoundException;
 import nl.knaw.dans.validatedansbag.core.engine.RuleResult;
+import nl.knaw.dans.validatedansbag.core.exception.BagNotFoundException;
 import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReader;
 import nl.knaw.dans.validatedansbag.core.service.FileService;
 import nl.knaw.dans.validatedansbag.core.service.FilesXmlService;
@@ -450,18 +450,24 @@ public class BagRulesImpl implements BagRules {
 
                 log.debug("Found namespace prefix {}, comparing to {}", prefix, attr);
 
-                if (attr.equals(String.format("%s:URI", prefix)))
-                    if (licenseValidator.isValidLicense(license))
+                if (attr.equals(String.format("%s:URI", prefix))) {
+                    if (licenseValidator.isValidLicense(license)) {
                         numLicensesFound++;
-                    else
+                    }
+                    else {
                         return RuleResult.error(String.format("dataset.xml: Found unknown or unsupported license: %s", license));
+                    }
+                }
             }
-            if(numLicensesFound == 1)
+            if (numLicensesFound == 1) {
                 return RuleResult.ok();
-            else if(numLicensesFound == 0)
+            }
+            else if (numLicensesFound == 0) {
                 return RuleResult.error("No license with xsi:type=\"dcterms:URI\"");
-            else
+            }
+            else {
                 return RuleResult.error("More than one license with xsi:type=\"dcterms:URI\"");
+            }
         };
     }
 

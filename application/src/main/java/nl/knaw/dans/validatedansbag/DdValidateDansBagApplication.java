@@ -32,6 +32,7 @@ import nl.knaw.dans.validatedansbag.core.rules.DatastationRulesImpl;
 import nl.knaw.dans.validatedansbag.core.rules.FilesXmlRulesImpl;
 import nl.knaw.dans.validatedansbag.core.rules.XmlRulesImpl;
 import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReaderImpl;
+import nl.knaw.dans.validatedansbag.core.service.BagOwnerValidatorImpl;
 import nl.knaw.dans.validatedansbag.core.service.DataverseServiceImpl;
 import nl.knaw.dans.validatedansbag.core.service.FileServiceImpl;
 import nl.knaw.dans.validatedansbag.core.service.FilesXmlServiceImpl;
@@ -108,6 +109,9 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
         // set up authentication
         var swordAuthenticator = new SwordAuthenticator(validationConfig.getPasswordDelegate(), httpClient);
 
+        // bag owner validation step
+        var bagOwnerValidator = new BagOwnerValidatorImpl(bagItMetadataReader);
+
         // register the authentication plugins from dropwizard
         environment.jersey().register(
             new AuthDynamicFeature(new BasicCredentialAuthFilter.Builder<SwordUser>()
@@ -120,7 +124,7 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
         environment.jersey().register(new AuthValueFactoryProvider.Binder<>(SwordUser.class));
 
         environment.jersey().register(new IllegalArgumentExceptionMapper());
-        environment.jersey().register(new ValidateResource(ruleEngineService, fileService));
+        environment.jersey().register(new ValidateResource(ruleEngineService, fileService, bagOwnerValidator));
         environment.jersey().register(new ValidateOkYamlMessageBodyWriter());
 
         environment.healthChecks().register("xml-schemas", new XmlSchemaHealthCheck(xmlSchemaValidator));

@@ -23,8 +23,9 @@ import io.dropwizard.testing.junit5.ResourceExtension;
 import nl.knaw.dans.validatedansbag.api.ValidateCommand;
 import nl.knaw.dans.validatedansbag.api.ValidateOk;
 import nl.knaw.dans.validatedansbag.api.ValidateOk.InformationPackageTypeEnum;
-import nl.knaw.dans.validatedansbag.core.BagNotFoundException;
 import nl.knaw.dans.validatedansbag.core.auth.SwordUser;
+import nl.knaw.dans.validatedansbag.core.exception.BagNotFoundException;
+import nl.knaw.dans.validatedansbag.core.service.BagOwnerValidator;
 import nl.knaw.dans.validatedansbag.core.service.FileService;
 import nl.knaw.dans.validatedansbag.core.service.RuleEngineService;
 import nl.knaw.dans.validatedansbag.resources.util.MockAuthorization;
@@ -50,6 +51,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @ExtendWith(DropwizardExtensionsSupport.class)
 class ValidateResourceTest {
     private final RuleEngineService ruleEngineService = Mockito.mock(RuleEngineService.class);
+    private final BagOwnerValidator bagOwnerValidator = Mockito.mock(BagOwnerValidator.class);
     private final FileService fileService = Mockito.mock(FileService.class);
     public final ResourceExtension EXT = ResourceExtension.builder()
         .addProvider(MultiPartFeature.class)
@@ -57,7 +59,7 @@ class ValidateResourceTest {
             .setAuthenticator(new MockAuthorization())
             .setRealm("DANS")
             .buildAuthFilter()))
-        .addResource(new ValidateResource(ruleEngineService, fileService))
+        .addResource(new ValidateResource(ruleEngineService, fileService, bagOwnerValidator))
         .addProvider(new AuthValueFactoryProvider.Binder<>(SwordUser.class))
         .build();
 

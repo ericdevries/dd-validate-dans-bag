@@ -38,6 +38,8 @@ import nl.knaw.dans.validatedansbag.core.rules.FilesXmlRulesImpl;
 import nl.knaw.dans.validatedansbag.core.rules.TestLicenseConfig;
 import nl.knaw.dans.validatedansbag.core.rules.XmlRulesImpl;
 import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReaderImpl;
+import nl.knaw.dans.validatedansbag.core.service.BagOwnerValidator;
+import nl.knaw.dans.validatedansbag.core.service.BagOwnerValidatorImpl;
 import nl.knaw.dans.validatedansbag.core.service.DataverseService;
 import nl.knaw.dans.validatedansbag.core.service.FileServiceImpl;
 import nl.knaw.dans.validatedansbag.core.service.FilesXmlServiceImpl;
@@ -95,7 +97,6 @@ class ValidateResourceIntegrationTest {
     }
 
     static ValidateResource buildValidateResource() {
-
         var fileService = new FileServiceImpl();
         var bagItMetadataReader = new BagItMetadataReaderImpl();
         var xmlReader = new XmlReaderImpl();
@@ -104,6 +105,7 @@ class ValidateResourceIntegrationTest {
         var originalFilepathsService = new OriginalFilepathsServiceImpl(fileService);
         var licenseValidator = new LicenseValidatorImpl(new TestLicenseConfig());
         var filesXmlService = new FilesXmlServiceImpl(xmlReader);
+        var bagOwnerValidator = new BagOwnerValidatorImpl(bagItMetadataReader);
 
         var organizationIdentifierPrefixValidator = new OrganizationIdentifierPrefixValidatorImpl(
             List.of(new OtherIdPrefix("user001", "u1:"), new OtherIdPrefix("user002", "u2:"))
@@ -120,7 +122,7 @@ class ValidateResourceIntegrationTest {
         var ruleEngine = new RuleEngineImpl();
         var ruleEngineService = new RuleEngineServiceImpl(ruleEngine, bagRules, xmlRules, filesXmlRules, fileService, datastationRules);
 
-        return new ValidateResource(ruleEngineService, fileService);
+        return new ValidateResource(ruleEngineService, fileService, bagOwnerValidator);
     }
 
     @BeforeEach
@@ -636,6 +638,144 @@ class ValidateResourceIntegrationTest {
 
     @Test
     void validateFormData_should_yield_violation_errors_if_swordToken_does_not_match() throws Exception {
+        var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("bags/bag-with-is-version-of")).getFile();
+
+        var data = new ValidateCommand();
+        data.setBagLocation(filename);
+        data.setPackageType(ValidateCommand.PackageTypeEnum.DEPOSIT);
+
+        var multipart = new FormDataMultiPart()
+            .field("command", data, MediaType.APPLICATION_JSON_TYPE);
+
+        var searchResultsJson = "{\n"
+            + "  \"status\": \"OK\",\n"
+            + "  \"data\": {\n"
+            + "    \"q\": \"NBN:urn:nbn:nl:ui:13-025de6e2-bdcf-4622-b134-282b4c590f42\",\n"
+            + "    \"total_count\": 1,\n"
+            + "    \"start\": 0,\n"
+            + "    \"spelling_alternatives\": {},\n"
+            + "    \"items\": [\n"
+            + "      {\n"
+            + "        \"name\": \"Manual Test\",\n"
+            + "        \"type\": \"dataset\",\n"
+            + "        \"url\": \"https://doi.org/10.5072/FK2/QZZSST\",\n"
+            + "        \"global_id\": \"doi:10.5072/FK2/QZZSST\"\n"
+            + "      }\n"
+            + "    ],\n"
+            + "    \"count_in_response\": 1\n"
+            + "  }\n"
+            + "}";
+
+        // returns 0 items, causing the rule to be violated
+        var swordTokenJson = "{\n"
+            + "  \"status\": \"OK\",\n"
+            + "  \"data\": {\n"
+            + "    \"q\": \"NBN:urn:nbn:nl:ui:13-025de6e2-bdcf-4622-b134-282b4c590f42\",\n"
+            + "    \"total_count\": 1,\n"
+            + "    \"start\": 0,\n"
+            + "    \"spelling_alternatives\": {},\n"
+            + "    \"items\": [\n"
+            + "    ],\n"
+            + "    \"count_in_response\": 0\n"
+            + "  }\n"
+            + "}";
+
+        var latestVersionJson = "{\n"
+            + "  \"status\": \"OK\",\n"
+            + "  \"data\": {\n"
+            + "    \"id\": 2,\n"
+            + "    \"identifier\": \"FK2/QZZSST\",\n"
+            + "    \"persistentUrl\": \"https://doi.org/10.5072/FK2/QZZSST\",\n"
+            + "    \"latestVersion\": {\n"
+            + "      \"id\": 2,\n"
+            + "      \"datasetId\": 2,\n"
+            + "      \"datasetPersistentId\": \"doi:10.5072/FK2/QZZSST\",\n"
+            + "      \"storageIdentifier\": \"file://10.5072/FK2/QZZSST\",\n"
+            + "      \"fileAccessRequest\": false,\n"
+            + "      \"metadataBlocks\": {\n"
+            + "        \"dansDataVaultMetadata\": {\n"
+            + "          \"displayName\": \"Data Vault Metadata\",\n"
+            + "          \"name\": \"dansDataVaultMetadata\",\n"
+            + "          \"fields\": [\n"
+            + "            {\n"
+            + "              \"typeName\": \"dansSwordToken\",\n"
+            + "              \"multiple\": false,\n"
+            + "              \"typeClass\": \"primitive\",\n"
+            + "              \"value\": \"urn:uuid:34632f71-11f8-48d8-9bf3-79551ad22b5e\"\n"
+            + "            }\n"
+            + "          ]\n"
+            + "        }\n"
+            + "      }\n"
+            + "    }\n"
+            + "  }\n"
+            + "}";
+
+        var embargoResultJson = "{\n"
+            + "  \"status\": \"OK\",\n"
+            + "  \"data\": {\n"
+            + "    \"message\": \"24\"\n"
+            + "  }\n"
+            + "}";
+
+        var searchResult = new MockedDataverseResponse<SearchResult>(searchResultsJson, SearchResult.class);
+        var latestVersionResult = new MockedDataverseResponse<DatasetLatestVersion>(latestVersionJson, DatasetLatestVersion.class);
+        var swordTokenResult = new MockedDataverseResponse<SearchResult>(swordTokenJson, SearchResult.class);
+        var maxEmbargoDurationResult = new MockedDataverseResponse<DataMessage>(embargoResultJson, DataMessage.class);
+
+        Mockito.when(dataverseService.getMaxEmbargoDurationInMonths())
+            .thenReturn(maxEmbargoDurationResult);
+
+        Mockito.when(dataverseService.searchDatasetsByOrganizationalIdentifier(Mockito.anyString()))
+            .thenReturn(searchResult);
+
+        Mockito.when(dataverseService.getDataset(Mockito.anyString()))
+            .thenReturn(latestVersionResult);
+
+        Mockito.when(dataverseService.searchBySwordToken(Mockito.anyString()))
+            .thenReturn(swordTokenResult);
+
+        var response = EXT.target("/validate")
+            .register(MultiPartFeature.class)
+            .request()
+            .post(Entity.entity(multipart, multipart.getMediaType()), ValidateOk.class);
+
+        var failed = response.getRuleViolations().stream()
+            .map(ValidateOkRuleViolations::getRule).collect(Collectors.toSet());
+
+        assertEquals(Set.of("4.2", "4.4(a)"), failed);
+        assertFalse(response.getIsCompliant());
+        assertEquals("bag-with-is-version-of", response.getName());
+    }
+    @Test
+    void validateZipFile_should_return_Forbidden_status_if_username_does_not_match() throws Exception {
+        var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("zips/audiences-with-user-account.zip"));
+
+        var embargoResultJson = "{\n"
+            + "  \"status\": \"OK\",\n"
+            + "  \"data\": {\n"
+            + "    \"message\": \"24\"\n"
+            + "  }\n"
+            + "}";
+        var maxEmbargoDurationResult = new MockedDataverseResponse<DataMessage>(embargoResultJson, DataMessage.class);
+        Mockito.when(dataverseService.getMaxEmbargoDurationInMonths())
+            .thenReturn(maxEmbargoDurationResult);
+
+        try (var response = EXT.target("/validate")
+            .request()
+            .header("accept", "text/plain")
+            .header("Authorization", basicUsernamePassword("user007", "user007"))
+            .post(Entity.entity(filename.openStream(), MediaType.valueOf("application/zip")), Response.class)) {
+
+            assertEquals(403, response.getStatus());
+
+            var str = response.readEntity(String.class);
+            assertTrue(str.contains("Bag is owned by user001, but authenticated user is user007"));
+        }
+    }
+
+    @Test
+    void validateZipFile_should_return_forbidden_status_when_user_does_not_match_bag_user() throws Exception {
+        // contains user001 as user account
         var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("bags/bag-with-is-version-of")).getFile();
 
         var data = new ValidateCommand();

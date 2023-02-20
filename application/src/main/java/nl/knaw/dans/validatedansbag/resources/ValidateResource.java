@@ -19,10 +19,12 @@ import io.dropwizard.auth.Auth;
 import nl.knaw.dans.validatedansbag.api.ValidateCommand;
 import nl.knaw.dans.validatedansbag.api.ValidateOk;
 import nl.knaw.dans.validatedansbag.api.ValidateOkRuleViolations;
-import nl.knaw.dans.validatedansbag.core.BagNotFoundException;
 import nl.knaw.dans.validatedansbag.core.auth.SwordUser;
 import nl.knaw.dans.validatedansbag.core.engine.DepositType;
 import nl.knaw.dans.validatedansbag.core.engine.RuleValidationResult;
+import nl.knaw.dans.validatedansbag.core.exception.BagDoesNotBelongToAuthenticatedUserException;
+import nl.knaw.dans.validatedansbag.core.exception.BagNotFoundException;
+import nl.knaw.dans.validatedansbag.core.service.BagOwnerValidator;
 import nl.knaw.dans.validatedansbag.core.service.FileService;
 import nl.knaw.dans.validatedansbag.core.service.RuleEngineService;
 import org.glassfish.jersey.media.multipart.FormDataParam;
@@ -33,6 +35,7 @@ import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.InternalServerErrorException;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -51,9 +54,12 @@ public class ValidateResource {
 
     private final FileService fileService;
 
-    public ValidateResource(RuleEngineService ruleEngineService, FileService fileService) {
+    private final BagOwnerValidator bagOwnerValidator;
+
+    public ValidateResource(RuleEngineService ruleEngineService, FileService fileService, BagOwnerValidator bagOwnerValidator) {
         this.ruleEngineService = ruleEngineService;
         this.fileService = fileService;
+        this.bagOwnerValidator = bagOwnerValidator;
     }
 
     @POST
@@ -72,11 +78,11 @@ public class ValidateResource {
             ValidateOk validateResult;
 
             if (location == null) {
-                validateResult = validateInputStream(zipInputStream, depositType);
+                validateResult = validateInputStream(zipInputStream, depositType, null);
             }
             else {
                 var locationPath = java.nio.file.Path.of(location);
-                validateResult = validatePath(locationPath, depositType);
+                validateResult = validatePath(locationPath, depositType, null);
             }
 
             // this information is lost during the validation, so set it again here
@@ -100,11 +106,16 @@ public class ValidateResource {
     public ValidateOk validateZip(InputStream inputStream, @Auth SwordUser swordUser) {
         try {
             log.info("Received request to validate zip file");
-            return validateInputStream(inputStream, DepositType.DEPOSIT);
+            return validateInputStream(inputStream, DepositType.DEPOSIT, swordUser);
         }
         catch (BagNotFoundException e) {
             log.error("Bag not found", e);
             throw new BadRequestException("Request could not be processed: " + e.getMessage(), e);
+        }
+        catch (BagDoesNotBelongToAuthenticatedUserException e) {
+            e.printStackTrace();
+            log.error("Access denied", e);
+            throw new ForbiddenException("Request could not be processed: " + e.getMessage(), e);
         }
         catch (Exception e) {
             log.error("Internal server error", e);
@@ -112,14 +123,14 @@ public class ValidateResource {
         }
     }
 
-    ValidateOk validateInputStream(InputStream inputStream, DepositType depositType) throws Exception {
+    ValidateOk validateInputStream(InputStream inputStream, DepositType depositType, SwordUser swordUser) throws Exception {
         var tempPath = fileService.extractZipFile(inputStream);
 
         try {
             var bagDir = fileService.getFirstDirectory(tempPath)
                 .orElseThrow(() -> new BagNotFoundException("Extracted zip does not contain a directory"));
 
-            return validatePath(bagDir, depositType);
+            return validatePath(bagDir, depositType, swordUser);
         }
         finally {
             try {
@@ -132,7 +143,11 @@ public class ValidateResource {
 
     }
 
-    ValidateOk validatePath(java.nio.file.Path bagDir, DepositType depositType) throws Exception {
+    ValidateOk validatePath(java.nio.file.Path bagDir, DepositType depositType, SwordUser user) throws Exception {
+        if (user != null) {
+            bagOwnerValidator.validateUserOwnsBag(user, bagDir);
+        }
+
         var results = ruleEngineService.validateBag(bagDir, depositType);
         var isValid = results.stream().noneMatch(r -> r.getStatus().equals(RuleValidationResult.RuleValidationResultStatus.FAILURE));
 
