@@ -16,8 +16,6 @@
 package nl.knaw.dans.validatedansbag.core.rules;
 
 import nl.knaw.dans.lib.dataverse.DataverseException;
-import nl.knaw.dans.lib.dataverse.DataverseResponse;
-import nl.knaw.dans.lib.dataverse.model.DataMessage;
 import nl.knaw.dans.lib.dataverse.model.RoleAssignmentReadOnly;
 import nl.knaw.dans.lib.dataverse.model.dataset.DatasetLatestVersion;
 import nl.knaw.dans.lib.dataverse.model.dataset.PrimitiveSingleValueField;
@@ -28,7 +26,6 @@ import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReader;
 import nl.knaw.dans.validatedansbag.core.service.DataverseService;
 import nl.knaw.dans.validatedansbag.core.service.XmlReader;
 import org.joda.time.DateTime;
-import org.joda.time.format.DateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,7 +58,7 @@ public class DatastationRulesImpl implements DatastationRules {
             log.trace("Using Is-Version-Of value '{}' to find a matching dataset", isVersionOf);
 
             if (isVersionOf != null) {
-                var dataset = getDatasetBySwordToken(isVersionOf);
+                var dataset = getDatasetIsVersionOf(isVersionOf);
 
                 if (dataset.isEmpty()) {
                     log.debug("Dataset with sword token '{}' not found", isVersionOf);
@@ -84,7 +81,7 @@ public class DatastationRulesImpl implements DatastationRules {
     public BagValidatorRule organizationalIdentifierExistsInDataset() {
         return path -> {
             var isVersionOf = bagItMetadataReader.getSingleField(path, "Is-Version-Of");
-            var dataset = getDatasetBySwordToken(isVersionOf);
+            var dataset = getDatasetIsVersionOf(isVersionOf);
 
             if (dataset.isEmpty()) {
                 return RuleResult.error("Expected a dataset, but got nothing");
@@ -180,7 +177,7 @@ public class DatastationRulesImpl implements DatastationRules {
             // both userAccount and isVersionOf are required fields at this point, but they are checked in other steps
             // so to keep this rule oblivious of other requirements, just check if we have values
             if (userAccount != null && isVersionOf != null) {
-                var dataset = getDatasetBySwordToken(isVersionOf);
+                var dataset = getDatasetIsVersionOf(isVersionOf);
 
                 // no result means it does not exist
                 if (dataset.isEmpty()) {
@@ -241,25 +238,31 @@ public class DatastationRulesImpl implements DatastationRules {
                 return RuleResult.ok();
 
             DateTime embargoDate = DateTime.parse(nodes.get(0).getTextContent());
-            if(embargoDate.isBefore(new DateTime(DateTime.now().plusMonths(months))))
+            if (embargoDate.isBefore(new DateTime(DateTime.now().plusMonths(months))))
                 return RuleResult.ok();
             else
                 return RuleResult.error("Date available is further is the future than the Embargo Period allows");
         };
     }
 
-    Optional<DatasetLatestVersion> getDatasetBySwordToken(String swordToken) throws IOException, DataverseException {
-        var result = dataverseService.searchBySwordToken(swordToken)
-            .getData().getItems().stream()
-            .filter(resultItem -> resultItem instanceof DatasetResultItem)
-            .map(resultItem -> (DatasetResultItem) resultItem)
-            .findFirst();
+    Optional<DatasetLatestVersion> getDatasetIsVersionOf(String isVersionOf) throws IOException, DataverseException {
+        if (isVersionOf.startsWith("urn:uuid:")) {
+            var swordToken = "sword:" + isVersionOf.substring("urn:uuid:".length());
+            var result = dataverseService.searchBySwordToken(swordToken)
+                .getData().getItems().stream()
+                .filter(resultItem -> resultItem instanceof DatasetResultItem)
+                .map(resultItem -> (DatasetResultItem) resultItem)
+                .findFirst();
+            if (result.isPresent()) {
+                var globalId = result.get().getGlobalId();
+                return Optional.ofNullable(dataverseService.getDataset(globalId).getData());
+            }
 
-        if (result.isPresent()) {
-            var globalId = result.get().getGlobalId();
-            return Optional.ofNullable(dataverseService.getDataset(globalId).getData());
+            return Optional.empty();
+
         }
-
-        return Optional.empty();
+        else {
+            throw new IllegalArgumentException("Is-Version-Of is not a urn:uuid");
+        }
     }
 }
