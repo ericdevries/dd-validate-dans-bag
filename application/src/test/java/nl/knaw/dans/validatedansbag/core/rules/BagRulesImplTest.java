@@ -493,7 +493,7 @@ class BagRulesImplTest {
 
         var checker = getBagRulesWithXmlReader(reader);
 
-        var result = checker.ddmMayContainDctermsLicenseFromList().validate(Path.of("bagdir"));
+        var result = checker.ddmMustContainDctermsLicenseFromList().validate(Path.of("bagdir"));
         assertEquals(RuleResult.Status.ERROR, result.getStatus());
     }
 

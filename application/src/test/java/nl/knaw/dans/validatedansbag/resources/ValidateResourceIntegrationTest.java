@@ -293,37 +293,6 @@ class ValidateResourceIntegrationTest {
     }
 
     @Test
-    void validateFormData_with_invalid_zip_file_should_not_be_compliant_in_datastation_context() throws Exception {
-        var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("zips/audiences.zip"));
-
-        var data = new ValidateCommand();
-        data.setPackageType(ValidateCommand.PackageTypeEnum.DEPOSIT);
-        var multipart = new FormDataMultiPart()
-            .field("command", data, MediaType.APPLICATION_JSON_TYPE)
-            .field("zip", filename.openStream(), MediaType.valueOf("application/zip"));
-
-        var embargoResultJson = "{\n"
-            + "  \"status\": \"OK\",\n"
-            + "  \"data\": {\n"
-            + "    \"message\": \"24\"\n"
-            + "  }\n"
-            + "}";
-        var maxEmbargoDurationResult = new MockedDataverseResponse<DataMessage>(embargoResultJson, DataMessage.class);
-        Mockito.when(dataverseService.getMaxEmbargoDurationInMonths())
-            .thenReturn(maxEmbargoDurationResult);
-
-        var response = EXT.target("/validate")
-            .register(MultiPartFeature.class)
-            .request()
-            .post(Entity.entity(multipart, multipart.getMediaType()), ValidateOk.class);
-
-        assertFalse(response.getIsCompliant());
-        assertEquals("1.0.0", response.getProfileVersion());
-        assertEquals(ValidateOk.InformationPackageTypeEnum.DEPOSIT, response.getInformationPackageType());
-        assertNull(response.getBagLocation());
-    }
-
-    @Test
     void validateZipFile_should_return_a_textual_representation_when_requested() throws Exception {
         var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("zips/invalid-sha1.zip"));
 
@@ -629,7 +598,7 @@ class ValidateResourceIntegrationTest {
         var failed = response.getRuleViolations().stream()
             .map(ValidateOkRuleViolations::getRule).collect(Collectors.toSet());
 
-        assertEquals(Set.of("4.4(b)"), failed);
+        assertEquals(Set.of("4.2(b)"), failed);
         assertFalse(response.getIsCompliant());
         assertEquals("bag-with-is-version-of", response.getName());
     }
@@ -740,7 +709,7 @@ class ValidateResourceIntegrationTest {
         var failed = response.getRuleViolations().stream()
             .map(ValidateOkRuleViolations::getRule).collect(Collectors.toSet());
 
-        assertEquals(Set.of("4.2", "4.4(a)"), failed);
+        assertEquals(Set.of("4.2(a)", "4.2(b)"), failed);
         assertFalse(response.getIsCompliant());
         assertEquals("bag-with-is-version-of", response.getName());
     }
