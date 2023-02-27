@@ -41,7 +41,7 @@ public interface BagRules {
 
     BagValidatorRule isOriginalFilepathsFileComplete();
 
-    BagValidatorRule ddmMayContainDctermsLicenseFromList();
+    BagValidatorRule ddmMustContainDctermsLicenseFromList();
 
     BagValidatorRule ddmDoiIdentifiersAreValid();
 
