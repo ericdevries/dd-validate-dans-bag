@@ -15,39 +15,27 @@
  */
 package nl.knaw.dans.validatedansbag.core.validator;
 
-import nl.knaw.dans.validatedansbag.core.config.LicenseConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
-import java.util.stream.Collectors;
+import java.net.URISyntaxException;
 
 public class LicenseValidatorImpl implements LicenseValidator {
     private static final Logger log = LoggerFactory.getLogger(LicenseValidatorImpl.class);
 
-    private final LicenseConfig licenseConfig;
-
-    public LicenseValidatorImpl(LicenseConfig licenseConfig) {
-        this.licenseConfig = licenseConfig;
-    }
-
-    String normalizeLicense(String license) {
-        return license.replaceAll("/+$", "");
+    public LicenseValidatorImpl() {
     }
 
     @Override
     public boolean isValidLicense(String license) {
-        // strip trailing slashes so urls are more consistent
-        // it might be worth investigating if this should be more extensive
-        // for example, also dropping the www. prefix
-        var licenses = licenseConfig.getAllowedLicenses().stream()
-            .map(URI::toString)
-            .map(this::normalizeLicense)
-            .collect(Collectors.toSet());
-
-        var normalizedLicense = normalizeLicense(license);
-        log.trace("Normalized license from {} to {}", license, normalizedLicense);
-
-        return licenses.contains(normalizedLicense);
+        try {
+            new URI(license);
+            return true;
+        }
+        catch (URISyntaxException e) {
+            log.error("URI syntax error for uri {}", license, e);
+            return false;
+        }
     }
 }

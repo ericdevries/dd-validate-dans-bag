@@ -40,7 +40,6 @@ import org.joda.time.format.ISODateTimeFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
-import org.w3c.dom.Node;
 
 import javax.xml.xpath.XPathExpressionException;
 import java.net.URI;
@@ -398,41 +397,30 @@ public class BagRulesImpl implements BagRules {
     }
 
     @Override
-    public BagValidatorRule ddmMustContainDctermsLicenseFromList() {
+    public BagValidatorRule ddmMustContainDctermsLicense() {
         return (path) -> {
             var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
-            var expr = "/ddm:DDM/ddm:dcmiMetadata/dcterms:license[@xsi:type]";
+            // converts a namespace uri into a prefix that is used in the document
+            var prefix = document.lookupPrefix(XmlReader.NAMESPACE_DCTERMS);
+            var expr = String.format("/ddm:DDM/ddm:dcmiMetadata/dcterms:license[@xsi:type='%s:URI']", prefix);
 
-            var nodes = xmlReader.xpathToStream(document, expr).collect(Collectors.toList());
+            var validNodes = xmlReader.xpathToStream(document, expr)
+                .filter(item -> licenseValidator.isValidLicense(item.getTextContent()))
+                .collect(Collectors.toList());
 
-            log.debug("Checking {} nodes for correct licenses", nodes.size());
+            log.debug("Found {} nodes with correct licenses", validNodes.size());
 
-            if (nodes.size() == 0) {
-                return RuleResult.error("No licenses found");
-            }
+            var numLicensesFound = validNodes.size();
 
-            var numLicensesFound = 0;
-            for (Node node : nodes) {
-                var license = node.getTextContent();
-                var attr = node.getAttributes().getNamedItem("xsi:type").getTextContent();
-
-                // converts a namespace uri into a prefix that is used in the document
-                var prefix = document.lookupPrefix(XmlReader.NAMESPACE_DCTERMS);
-
-                log.debug("Found namespace prefix {}, comparing to {}", prefix, attr);
-
-                if (attr.equals(String.format("%s:URI", prefix)))
-                    if (licenseValidator.isValidLicense(license))
-                        numLicensesFound++;
-                    else
-                        return RuleResult.error(String.format("dataset.xml: Found unknown or unsupported license: %s", license));
-            }
-            if(numLicensesFound == 1)
+            if (numLicensesFound == 1) {
                 return RuleResult.ok();
-            else if(numLicensesFound == 0)
+            }
+            else if (numLicensesFound == 0) {
                 return RuleResult.error("No license with xsi:type=\"dcterms:URI\"");
-            else
+            }
+            else {
                 return RuleResult.error("More than one license with xsi:type=\"dcterms:URI\"");
+            }
         };
     }
 

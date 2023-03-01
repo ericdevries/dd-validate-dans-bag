@@ -91,7 +91,7 @@ public class RuleEngineServiceImpl implements RuleEngineService {
 
             // metadata/dataset.xml
             new NumberedRule("3.1.1", xmlRules.xmlFileConformsToSchema(datasetPath, "dataset.xml"), List.of("1.1.1", "2.2(a)")),
-            new NumberedRule("3.1.2", bagRules.ddmMustContainDctermsLicenseFromList(), List.of("3.1.1")), // TODO: only check that it is a URI
+            new NumberedRule("3.1.2", bagRules.ddmMustContainDctermsLicense(), List.of("3.1.1")), // TODO: only check that it is a URI
             new NumberedRule("3.1.3", bagRules.ddmDoiIdentifiersAreValid(), List.of("3.1.1")),
 
             new NumberedRule("3.1.4(a)", bagRules.ddmDaisAreValid(), List.of("3.1.1")),

@@ -25,14 +25,7 @@ import io.dropwizard.jackson.Jackson;
 import io.dropwizard.jersey.validation.Validators;
 import org.junit.jupiter.api.Test;
 
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class DdValidateDansBagConfigurationTest {
 
@@ -41,16 +34,6 @@ public class DdValidateDansBagConfigurationTest {
     {
         ObjectMapper mapper = Jackson.newObjectMapper().enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
         factory = new YamlConfigurationFactory<>(DdValidateDansBagConfiguration.class, Validators.newValidator(), mapper, "dw");
-    }
-
-    @Test
-    public void canReadDist() throws IOException, ConfigurationException, URISyntaxException {
-        var config = factory.build(FileInputStream::new, "src/main/assembly/dist/cfg/config.yml");
-        var licenses = config.getValidationConfig().getLicenseConfig().getAllowedLicenses();
-        assertTrue(
-            licenses.contains(new URI("http://creativecommons.org/licenses/by-nc-nd/4.0/")),
-            licenses.toString()
-        );
     }
 
     @Test

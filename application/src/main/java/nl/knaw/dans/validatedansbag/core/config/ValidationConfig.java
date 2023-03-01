@@ -27,11 +27,6 @@ import java.util.List;
 public class ValidationConfig {
 
     @NotNull
-    @JsonProperty("licenses")
-    @Valid
-    private LicenseConfig licenseConfig;
-
-    @NotNull
     @Valid
     private SwordDepositorRoles swordDepositorRoles;
 
@@ -50,14 +45,6 @@ public class ValidationConfig {
 
     @Valid
     private HttpClientConfiguration httpClient = new HttpClientConfiguration();
-
-    public LicenseConfig getLicenseConfig() {
-        return licenseConfig;
-    }
-
-    public void setLicenseConfig(LicenseConfig licenseConfig) {
-        this.licenseConfig = licenseConfig;
-    }
 
     public SwordDepositorRoles getSwordDepositorRoles() {
         return swordDepositorRoles;
