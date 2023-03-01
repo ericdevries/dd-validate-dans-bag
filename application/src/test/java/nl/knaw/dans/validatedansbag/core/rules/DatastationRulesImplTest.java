@@ -26,9 +26,9 @@ import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReader;
 import nl.knaw.dans.validatedansbag.core.service.DataverseService;
 import nl.knaw.dans.validatedansbag.core.service.XmlReader;
 import nl.knaw.dans.validatedansbag.core.service.XmlReaderImpl;
+import nl.knaw.dans.validatedansbag.resources.util.MockedDataverseResponse;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
-import nl.knaw.dans.validatedansbag.resources.util.MockedDataverseResponse;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -41,7 +41,6 @@ import java.nio.file.Path;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DatastationRulesImplTest {
 
@@ -49,11 +48,12 @@ class DatastationRulesImplTest {
     final DataverseService dataverseService = Mockito.mock(DataverseService.class);
     final SwordDepositorRoles swordDepositorRoles = new SwordDepositorRoles("datasetcreator", "dataseteditor");
     final XmlReader xmlReader = Mockito.mock(XmlReader.class);
-    private Document parseXmlString(String str) throws ParserConfigurationException, IOException, SAXException {
-        return new XmlReaderImpl().readXmlString(str);
-    }
 
     DatastationRulesImplTest() {
+    }
+
+    private Document parseXmlString(String str) throws ParserConfigurationException, IOException, SAXException {
+        return new XmlReaderImpl().readXmlString(str);
     }
 
     @AfterEach
@@ -159,354 +159,6 @@ class DatastationRulesImplTest {
         assertEquals(RuleResult.Status.ERROR, result.getStatus());
     }
 
-    // CREATE tests
-    @Test
-    void dataStationUserAccountIsAuthorizedToCreate() throws Exception {
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader);
-
-        Mockito
-            .doReturn("user-account-name")
-            .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
-
-        var assignmentResult = "{\n"
-            + "  \"status\": \"OK\",\n"
-            + "  \"data\": [\n"
-            + "    {\n"
-            + "      \"id\": 6,\n"
-            + "      \"assignee\": \"@user-account-name\",\n"
-            + "      \"roleId\": 11,\n"
-            + "      \"_roleAlias\": \"datasetcreator\",\n"
-            + "      \"definitionPointId\": 2\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"id\": 5,\n"
-            + "      \"assignee\": \"@datamanager001\",\n"
-            + "      \"roleId\": 9,\n"
-            + "      \"_roleAlias\": \"datamanager\",\n"
-            + "      \"definitionPointId\": 1\n"
-            + "    }\n"
-            + "  ]\n"
-            + "}";
-        mockGetDataverseRoleAssignments(assignmentResult);
-
-        var result = checker.userIsAuthorizedToCreateDataset().validate(Path.of("bagdir"));
-
-        assertEquals(RuleResult.Status.SUCCESS, result.getStatus());
-    }
-
-    @Test
-    void dataStationUserAccountIsNotAuthorizedToCreate() throws Exception {
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader);
-
-        Mockito
-            .doReturn("user-account-name")
-            .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
-
-        // trimmed down versions of what dataverse would actually spit out
-        var assignmentResult = "{\n"
-            + "  \"status\": \"OK\",\n"
-            + "  \"data\": [\n"
-            + "    {\n"
-            + "      \"id\": 6,\n"
-            + "      \"assignee\": \"@dataverseAdmin\",\n"
-            + "      \"roleId\": 11,\n"
-            + "      \"_roleAlias\": \"dataseteditor\",\n"
-            + "      \"definitionPointId\": 2\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"id\": 6,\n"
-            + "      \"assignee\": \"@user-account-name\",\n"
-            + "      \"roleId\": 11,\n"
-            + "      \"_roleAlias\": \"differentrole\",\n"
-            + "      \"definitionPointId\": 2\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"id\": 5,\n"
-            + "      \"assignee\": \"@datamanager001\",\n"
-            + "      \"roleId\": 9,\n"
-            + "      \"_roleAlias\": \"datamanager\",\n"
-            + "      \"definitionPointId\": 1\n"
-            + "    }\n"
-            + "  ]\n"
-            + "}";
-
-        mockGetDataverseRoleAssignments(assignmentResult);
-
-        var result = checker.userIsAuthorizedToCreateDataset().validate(Path.of("bagdir"));
-
-        assertEquals(RuleResult.Status.ERROR, result.getStatus());
-    }
-
-    @Test
-    void dataStationUserAccountIsNotSetCreate() throws Exception {
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader);
-
-        Mockito
-            .doReturn(null)
-            .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
-
-        var assignmentResult = "{\n"
-            + "  \"status\": \"OK\",\n"
-            + "  \"data\": [\n"
-            + "    {\n"
-            + "      \"id\": 6,\n"
-            + "      \"assignee\": \"@dataverseAdmin\",\n"
-            + "      \"roleId\": 11,\n"
-            + "      \"_roleAlias\": \"contributorplus\",\n"
-            + "      \"definitionPointId\": 2\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"id\": 5,\n"
-            + "      \"assignee\": \"@datamanager001\",\n"
-            + "      \"roleId\": 9,\n"
-            + "      \"_roleAlias\": \"datamanager\",\n"
-            + "      \"definitionPointId\": 1\n"
-            + "    }\n"
-            + "  ]\n"
-            + "}";
-        mockGetDataverseRoleAssignments(assignmentResult);
-
-        var result = checker.userIsAuthorizedToCreateDataset().validate(Path.of("bagdir"));
-        assertEquals(RuleResult.Status.SKIP_DEPENDENCIES, result.getStatus());
-    }
-
-    @Test
-    void dataStationUserAccountYieldsNoSearchResultsCreate() throws Exception {
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader);
-
-        Mockito
-            .doReturn("user-name")
-            .doReturn("urn:uuid:the_id")
-            .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
-
-        // trimmed down versions of what dataverse would actually spit out
-        var assignmentResult = "{\n"
-            + "  \"status\": \"OK\",\n"
-            + "  \"data\": [\n"
-            + "    {\n"
-            + "      \"id\": 6,\n"
-            + "      \"assignee\": \"@dataverseAdmin\",\n"
-            + "      \"roleId\": 11,\n"
-            + "      \"_roleAlias\": \"contributorplus\",\n"
-            + "      \"definitionPointId\": 2\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"id\": 5,\n"
-            + "      \"assignee\": \"@datamanager001\",\n"
-            + "      \"roleId\": 9,\n"
-            + "      \"_roleAlias\": \"datamanager\",\n"
-            + "      \"definitionPointId\": 1\n"
-            + "    }\n"
-            + "  ]\n"
-            + "}";
-        mockGetDataverseRoleAssignments(assignmentResult);
-
-        var result = checker.userIsAuthorizedToCreateDataset().validate(Path.of("bagdir"));
-
-        assertEquals(RuleResult.Status.ERROR, result.getStatus());
-    }
-
-    // EDIT tests
-
-    @Test
-    void dataStationUserAccountIsAuthorizedToEdit() throws Exception {
-        var dv = dataverseService;
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dv, swordDepositorRoles, xmlReader);
-
-        Mockito
-            .doReturn("user-account-name")
-            .doReturn("urn:uuid:the_id")
-            .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
-
-        var assignmentResult = "{\n"
-            + "  \"status\": \"OK\",\n"
-            + "  \"data\": [\n"
-            + "    {\n"
-            + "      \"id\": 6,\n"
-            + "      \"assignee\": \"@user-account-name\",\n"
-            + "      \"roleId\": 11,\n"
-            + "      \"_roleAlias\": \"dataseteditor\",\n"
-            + "      \"definitionPointId\": 2\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"id\": 5,\n"
-            + "      \"assignee\": \"@datamanager001\",\n"
-            + "      \"roleId\": 9,\n"
-            + "      \"_roleAlias\": \"datamanager\",\n"
-            + "      \"definitionPointId\": 1\n"
-            + "    }\n"
-            + "  ]\n"
-            + "}";
-        mockSearchBySwordToken(getSearchResult("doi"));
-        mockGetDataset(null);
-        mockGetDataset(getLatestVersion("doi", "otherid"));
-        mockGetDatasetRoleAssignments(assignmentResult);
-
-        var result = checker.userIsAuthorizedToUpdateDataset().validate(Path.of("bagdir"));
-
-        assertEquals(RuleResult.Status.SUCCESS, result.getStatus());
-
-        Mockito.verify(dv).getDataset(Mockito.eq("doi"));
-    }
-
-    @Test
-    void dataStationUserAccountIsNotAuthorizedToEdit() throws Exception {
-        var dv = dataverseService;
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dv, swordDepositorRoles, xmlReader);
-
-        Mockito
-            .doReturn("user-account-name")
-            .doReturn("urn:uuid:the_id")
-            .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
-
-        // trimmed down versions of what dataverse would actually spit out
-        var assignmentResult = "{\n"
-            + "  \"status\": \"OK\",\n"
-            + "  \"data\": [\n"
-            + "    {\n"
-            + "      \"id\": 6,\n"
-            + "      \"assignee\": \"@dataverseAdmin\",\n"
-            + "      \"roleId\": 11,\n"
-            + "      \"_roleAlias\": \"dataseteditor\",\n"
-            + "      \"definitionPointId\": 2\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"id\": 5,\n"
-            + "      \"assignee\": \"@datamanager001\",\n"
-            + "      \"roleId\": 9,\n"
-            + "      \"_roleAlias\": \"datamanager\",\n"
-            + "      \"definitionPointId\": 1\n"
-            + "    }\n"
-            + "  ]\n"
-            + "}";
-        mockSearchBySwordToken(getSearchResult("doi"));
-        mockGetDataset(null);
-        mockGetDataset(getLatestVersion("doi", "otherid"));
-        mockGetDatasetRoleAssignments(assignmentResult);
-
-        var result = checker.userIsAuthorizedToUpdateDataset().validate(Path.of("bagdir"));
-
-        assertEquals(RuleResult.Status.ERROR, result.getStatus());
-        Mockito.verify(dv).getDataset(Mockito.eq("doi"));
-    }
-
-    @Test
-    void dataStationUserAccountIsNotAuthorizedToEditButHasADifferentRole() throws Exception {
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader);
-
-        Mockito
-            .doReturn("user-account-name")
-            .doReturn("urn:uuid:the_id")
-            .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
-
-        var assignmentResult = "{\n"
-            + "  \"status\": \"OK\",\n"
-            + "  \"data\": [\n"
-            + "    {\n"
-            + "      \"id\": 6,\n"
-            + "      \"assignee\": \"@user-account-name\",\n"
-            + "      \"roleId\": 11,\n"
-            + "      \"_roleAlias\": \"readonly\",\n"
-            + "      \"definitionPointId\": 2\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"id\": 5,\n"
-            + "      \"assignee\": \"@datamanager001\",\n"
-            + "      \"roleId\": 9,\n"
-            + "      \"_roleAlias\": \"datamanager\",\n"
-            + "      \"definitionPointId\": 1\n"
-            + "    }\n"
-            + "  ]\n"
-            + "}";
-        mockSearchBySwordToken(getSearchResult("doi"));
-        mockGetDataset(getLatestVersion("doi", "dans-other-id"));
-        mockGetDatasetRoleAssignments(assignmentResult);
-
-        var result = checker.userIsAuthorizedToUpdateDataset().validate(Path.of("bagdir"));
-
-        assertEquals(RuleResult.Status.ERROR, result.getStatus());
-        String firstMsg = result.getErrorMessages().get(0);
-        assertTrue(firstMsg.contains("user-account-name"), firstMsg);
-        assertTrue(firstMsg.contains("expected: dataseteditor"), firstMsg);
-        assertTrue(firstMsg.contains("readonly"), firstMsg);
-    }
-
-    @Test
-    void dataStationUserAccountIsNotSetEdit() throws Exception {
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader);
-
-        Mockito
-            .doReturn(null)
-            .doReturn("urn:uuid:the_id")
-            .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
-
-        var assignmentResult = "{\n"
-            + "  \"status\": \"OK\",\n"
-            + "  \"data\": [\n"
-            + "    {\n"
-            + "      \"id\": 6,\n"
-            + "      \"assignee\": \"@dataverseAdmin\",\n"
-            + "      \"roleId\": 11,\n"
-            + "      \"_roleAlias\": \"contributorplus\",\n"
-            + "      \"definitionPointId\": 2\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"id\": 5,\n"
-            + "      \"assignee\": \"@datamanager001\",\n"
-            + "      \"roleId\": 9,\n"
-            + "      \"_roleAlias\": \"datamanager\",\n"
-            + "      \"definitionPointId\": 1\n"
-            + "    }\n"
-            + "  ]\n"
-            + "}";
-        mockSearchBySwordToken(getEmptySearchResult());
-        mockSearchBySwordToken(getSearchResult("doi"));
-        mockGetDataverseRoleAssignments(assignmentResult);
-
-        var result = checker.userIsAuthorizedToUpdateDataset().validate(Path.of("bagdir"));
-        assertEquals(RuleResult.Status.SKIP_DEPENDENCIES, result.getStatus());
-    }
-
-    @Test
-    void dataStationUserAccountYieldsNoSearchResultsEdit() throws Exception {
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader);
-
-        Mockito
-            .doReturn("user-name")
-            .doReturn("urn:uuid:the_id")
-            .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
-
-        // trimmed down versions of what dataverse would actually spit out
-        var assignmentResult = "{\n"
-            + "  \"status\": \"OK\",\n"
-            + "  \"data\": [\n"
-            + "    {\n"
-            + "      \"id\": 6,\n"
-            + "      \"assignee\": \"@dataverseAdmin\",\n"
-            + "      \"roleId\": 11,\n"
-            + "      \"_roleAlias\": \"contributorplus\",\n"
-            + "      \"definitionPointId\": 2\n"
-            + "    },\n"
-            + "    {\n"
-            + "      \"id\": 5,\n"
-            + "      \"assignee\": \"@datamanager001\",\n"
-            + "      \"roleId\": 9,\n"
-            + "      \"_roleAlias\": \"datamanager\",\n"
-            + "      \"definitionPointId\": 1\n"
-            + "    }\n"
-            + "  ]\n"
-            + "}";
-
-        mockSearchBySwordToken(getEmptySearchResult());
-        mockGetDataset("doi");
-        mockGetDataverseRoleAssignments(assignmentResult);
-
-        var result = checker.userIsAuthorizedToUpdateDataset().validate(Path.of("bagdir"));
-
-        assertTrue(result.getErrorMessages().get(0).contains("it must be a valid SWORD token in the data station"));
-        assertEquals(RuleResult.Status.ERROR, result.getStatus());
-    }
-
     private void mockGetDataset(String json) throws IOException, DataverseException {
         var response = new MockedDataverseResponse<>(json, DatasetLatestVersion.class);
         Mockito.doReturn(response).when(dataverseService).getDataset(Mockito.anyString());
@@ -515,16 +167,6 @@ class DatastationRulesImplTest {
     private void mockSearchBySwordToken(String json) throws IOException, DataverseException {
         var response = new MockedDataverseResponse<>(json, SearchResult.class);
         Mockito.doReturn(response).when(dataverseService).searchBySwordToken(Mockito.any());
-    }
-
-    private void mockGetDataverseRoleAssignments(String json) throws IOException, DataverseException {
-        var response = new MockedDataverseResponse<>(json, List.class, RoleAssignmentReadOnly.class);
-        Mockito.doReturn(response).when(dataverseService).getDataverseRoleAssignments(Mockito.any());
-    }
-
-    private void mockGetDatasetRoleAssignments(String json) throws IOException, DataverseException {
-        var response = new MockedDataverseResponse<>(json, List.class, RoleAssignmentReadOnly.class);
-        Mockito.doReturn(response).when(dataverseService).getDatasetRoleAssignments(Mockito.any());
     }
 
     String getSearchResult(String globalId) {
@@ -568,10 +210,11 @@ class DatastationRulesImplTest {
         return "{\n"
             + "  \"status\": \"OK\",\n"
             + "  \"data\": {\n"
-            + "    \"message\": \""+months+"\"\n"
+            + "    \"message\": \"" + months + "\"\n"
             + "  }\n"
             + "}";
     }
+
     String getLatestVersion(String persistentId, String dansOtherId) {
 
         if (persistentId == null) {
@@ -620,6 +263,7 @@ class DatastationRulesImplTest {
             + "  }\n"
             + "}", persistentId, dansOtherId);
     }
+
     @Test
     void embargoPeriodIsTooLong() throws Exception {
         int embargoPeriodInMonths = 4;
@@ -632,7 +276,7 @@ class DatastationRulesImplTest {
             + "        xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
             + "        xmlns:id-type=\"http://easy.dans.knaw.nl/schemas/vocab/identifier-type/\">\n"
             + "    <ddm:profile>\n"
-            + "        <ddm:available>"+ DateTimeFormat.forPattern("yyyy-MM-dd").print(dateTime) +"</ddm:available>\n"
+            + "        <ddm:available>" + DateTimeFormat.forPattern("yyyy-MM-dd").print(dateTime) + "</ddm:available>\n"
             + "    </ddm:profile>\n"
             + "</ddm:DDM>";
 
@@ -646,7 +290,7 @@ class DatastationRulesImplTest {
         var embargoResultJson = "{\n"
             + "  \"status\": \"OK\",\n"
             + "  \"data\": {\n"
-            + "    \"message\": \""+embargoPeriodInMonths+"\"\n"
+            + "    \"message\": \"" + embargoPeriodInMonths + "\"\n"
             + "  }\n"
             + "}";
         var maxEmbargoDurationResult = new MockedDataverseResponse<DataMessage>(embargoResultJson, DataMessage.class);
@@ -669,7 +313,7 @@ class DatastationRulesImplTest {
             + "        xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
             + "        xmlns:id-type=\"http://easy.dans.knaw.nl/schemas/vocab/identifier-type/\">\n"
             + "    <ddm:profile>\n"
-            + "        <ddm:available>"+ DateTimeFormat.forPattern("yyyy-MM-dd").print(dateTime) +"</ddm:available>\n"
+            + "        <ddm:available>" + DateTimeFormat.forPattern("yyyy-MM-dd").print(dateTime) + "</ddm:available>\n"
             + "    </ddm:profile>\n"
             + "</ddm:DDM>";
 
@@ -683,7 +327,7 @@ class DatastationRulesImplTest {
         var embargoResultJson = "{\n"
             + "  \"status\": \"OK\",\n"
             + "  \"data\": {\n"
-            + "    \"message\": \""+embargoPeriodInMonths+"\"\n"
+            + "    \"message\": \"" + embargoPeriodInMonths + "\"\n"
             + "  }\n"
             + "}";
         var maxEmbargoDurationResult = new MockedDataverseResponse<DataMessage>(embargoResultJson, DataMessage.class);
@@ -718,7 +362,7 @@ class DatastationRulesImplTest {
         var embargoResultJson = "{\n"
             + "  \"status\": \"OK\",\n"
             + "  \"data\": {\n"
-            + "    \"message\": \""+embargoPeriodInMonths+"\"\n"
+            + "    \"message\": \"" + embargoPeriodInMonths + "\"\n"
             + "  }\n"
             + "}";
         var maxEmbargoDurationResult = new MockedDataverseResponse<DataMessage>(embargoResultJson, DataMessage.class);
