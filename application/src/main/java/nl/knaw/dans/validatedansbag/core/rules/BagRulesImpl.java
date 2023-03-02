@@ -405,7 +405,7 @@ public class BagRulesImpl implements BagRules {
             var expr = String.format("/ddm:DDM/ddm:dcmiMetadata/dcterms:license[@xsi:type='%s:URI']", prefix);
 
             var validNodes = xmlReader.xpathToStream(document, expr)
-                .filter(item -> licenseValidator.isValidLicense(item.getTextContent()))
+                .filter(item -> licenseValidator.isValidLicenseURI(item.getTextContent()))
                 .collect(Collectors.toList());
 
             log.debug("Found {} nodes with correct licenses", validNodes.size());

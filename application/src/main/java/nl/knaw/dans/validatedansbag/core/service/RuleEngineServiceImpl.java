@@ -130,7 +130,7 @@ public class RuleEngineServiceImpl implements RuleEngineService {
             new NumberedRule("4.1", bagRules.organizationalIdentifierPrefixIsValid(), DepositType.DEPOSIT, List.of("1.2.4(a)")),
             new NumberedRule("4.2(a)", datastationRules.bagExistsInDatastation(), DepositType.DEPOSIT, List.of("4.1")),
             new NumberedRule("4.2(b)", datastationRules.organizationalIdentifierExistsInDataset(), DepositType.DEPOSIT, List.of("1.2.3(a)")),
-            // TODO: implement 4.3
+            new NumberedRule("4.3", datastationRules.licenseExistsInDatastation(), DepositType.DEPOSIT, List.of("3.1.2")),
             new NumberedRule("4.4", datastationRules.embargoPeriodWithinLimits(), DepositType.DEPOSIT),
         };
 

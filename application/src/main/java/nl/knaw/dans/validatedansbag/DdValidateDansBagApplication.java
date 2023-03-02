@@ -78,12 +78,12 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
         var daiDigestCalculator = new IdentifierValidatorImpl();
         var polygonListValidator = new PolygonListValidatorImpl();
         var originalFilepathsService = new OriginalFilepathsServiceImpl(fileService);
-        var licenseValidator = new LicenseValidatorImpl();
         var filesXmlService = new FilesXmlServiceImpl(xmlReader);
 
         var xmlSchemaValidator = new XmlSchemaValidatorImpl(configuration.getValidationConfig().getXmlSchemas().buildMap());
 
         var dataverseService = new DataverseServiceImpl(configuration.getDataverse().build());
+        var licenseValidator = new LicenseValidatorImpl(dataverseService);
 
         var organizationIdentifierPrefixValidator = new OrganizationIdentifierPrefixValidatorImpl(configuration.getValidationConfig().getOtherIdPrefixes());
 
@@ -92,7 +92,7 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
             organizationIdentifierPrefixValidator, filesXmlService);
         var filesXmlRules = new FilesXmlRulesImpl(fileService, originalFilepathsService, filesXmlService);
         var xmlRules = new XmlRulesImpl(xmlReader, xmlSchemaValidator, fileService);
-        var datastationRules = new DatastationRulesImpl(bagItMetadataReader, dataverseService, configuration.getValidationConfig().getSwordDepositorRoles(), xmlReader);
+        var datastationRules = new DatastationRulesImpl(bagItMetadataReader, dataverseService, configuration.getValidationConfig().getSwordDepositorRoles(), xmlReader, licenseValidator);
 
         // set up the engine and the service that has a default set of rules
         var ruleEngine = new RuleEngineImpl();

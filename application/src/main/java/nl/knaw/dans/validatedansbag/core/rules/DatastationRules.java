@@ -26,4 +26,6 @@ public interface DatastationRules {
     BagValidatorRule userIsAuthorizedToUpdateDataset();
 
     BagValidatorRule embargoPeriodWithinLimits();
+
+    BagValidatorRule licenseExistsInDatastation();
 }

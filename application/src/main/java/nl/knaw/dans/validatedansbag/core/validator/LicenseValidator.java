@@ -15,7 +15,13 @@
  */
 package nl.knaw.dans.validatedansbag.core.validator;
 
+import nl.knaw.dans.lib.dataverse.DataverseException;
+
+import java.io.IOException;
+
 public interface LicenseValidator {
 
-    boolean isValidLicense(String license);
+    boolean isValidLicenseURI(String license);
+
+    boolean isValidLicense(String license) throws IOException, DataverseException;
 }

@@ -45,6 +45,7 @@ import nl.knaw.dans.validatedansbag.core.service.RuleEngineServiceImpl;
 import nl.knaw.dans.validatedansbag.core.service.XmlReaderImpl;
 import nl.knaw.dans.validatedansbag.core.service.XmlSchemaValidator;
 import nl.knaw.dans.validatedansbag.core.validator.IdentifierValidatorImpl;
+import nl.knaw.dans.validatedansbag.core.validator.LicenseValidator;
 import nl.knaw.dans.validatedansbag.core.validator.LicenseValidatorImpl;
 import nl.knaw.dans.validatedansbag.core.validator.OrganizationIdentifierPrefixValidatorImpl;
 import nl.knaw.dans.validatedansbag.core.validator.PolygonListValidatorImpl;
@@ -79,6 +80,19 @@ class ValidateResourceIntegrationTest {
     private static final DataverseService dataverseService = Mockito.mock(DataverseService.class);
     private static final XmlSchemaValidator xmlSchemaValidator = Mockito.mock(XmlSchemaValidator.class);
 
+    private static final LicenseValidator licenseValidator = new LicenseValidator() {
+
+        @Override
+        public boolean isValidLicenseURI(String license) {
+            return true;
+        }
+
+        @Override
+        public boolean isValidLicense(String license) throws IOException, DataverseException {
+            return true;
+        }
+    };
+
     static {
         EXT = ResourceExtension.builder()
             .addProvider(MultiPartFeature.class)
@@ -93,14 +107,12 @@ class ValidateResourceIntegrationTest {
     }
 
     static ValidateResource buildValidateResource() {
-
         var fileService = new FileServiceImpl();
         var bagItMetadataReader = new BagItMetadataReaderImpl();
         var xmlReader = new XmlReaderImpl();
         var daiDigestCalculator = new IdentifierValidatorImpl();
         var polygonListValidator = new PolygonListValidatorImpl();
         var originalFilepathsService = new OriginalFilepathsServiceImpl(fileService);
-        var licenseValidator = new LicenseValidatorImpl();
         var filesXmlService = new FilesXmlServiceImpl(xmlReader);
 
         var organizationIdentifierPrefixValidator = new OrganizationIdentifierPrefixValidatorImpl(
@@ -112,7 +124,7 @@ class ValidateResourceIntegrationTest {
             organizationIdentifierPrefixValidator, filesXmlService);
         var filesXmlRules = new FilesXmlRulesImpl(fileService, originalFilepathsService, filesXmlService);
         var xmlRules = new XmlRulesImpl(xmlReader, xmlSchemaValidator, fileService);
-        var datastationRules = new DatastationRulesImpl(bagItMetadataReader, dataverseService, new SwordDepositorRoles("datasetcreator", "dataseteditor"), xmlReader);
+        var datastationRules = new DatastationRulesImpl(bagItMetadataReader, dataverseService, new SwordDepositorRoles("datasetcreator", "dataseteditor"), xmlReader, licenseValidator);
 
         // set up the engine and the service that has a default set of rules
         var ruleEngine = new RuleEngineImpl();

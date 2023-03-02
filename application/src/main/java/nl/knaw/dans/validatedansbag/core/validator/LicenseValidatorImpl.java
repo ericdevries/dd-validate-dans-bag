@@ -15,20 +15,29 @@
  */
 package nl.knaw.dans.validatedansbag.core.validator;
 
+import nl.knaw.dans.lib.dataverse.DataverseException;
+import nl.knaw.dans.lib.dataverse.model.license.License;
+import nl.knaw.dans.validatedansbag.core.service.DataverseService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class LicenseValidatorImpl implements LicenseValidator {
     private static final Logger log = LoggerFactory.getLogger(LicenseValidatorImpl.class);
 
-    public LicenseValidatorImpl() {
+    private final DataverseService dataverseService;
+
+    public LicenseValidatorImpl(DataverseService dataverseService) {
+        this.dataverseService = dataverseService;
     }
 
     @Override
-    public boolean isValidLicense(String license) {
+    public boolean isValidLicenseURI(String license) {
         try {
             new URI(license);
             return true;
@@ -37,5 +46,27 @@ public class LicenseValidatorImpl implements LicenseValidator {
             log.error("URI syntax error for uri {}", license, e);
             return false;
         }
+    }
+
+    @Override
+    public boolean isValidLicense(String license) throws IOException, DataverseException {
+        // strip trailing slashes so urls are more consistent
+        // it might be worth investigating if this should be more extensive
+        // for example, also dropping the www. prefix
+        var licenses = dataverseService.getLicenses().stream()
+            .filter(License::isActive)
+            .map(License::getUri)
+            .filter(Objects::nonNull)
+            .map(this::normalizeLicense)
+            .collect(Collectors.toSet());
+
+        var normalizedLicense = normalizeLicense(license);
+        log.trace("Normalized license from {} to {}", license, normalizedLicense);
+
+        return licenses.contains(normalizedLicense);
+    }
+
+    String normalizeLicense(String license) {
+        return license.replaceAll("/+$", "");
     }
 }

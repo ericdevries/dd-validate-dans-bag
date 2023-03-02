@@ -25,11 +25,13 @@ import nl.knaw.dans.validatedansbag.core.engine.RuleResult;
 import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReader;
 import nl.knaw.dans.validatedansbag.core.service.DataverseService;
 import nl.knaw.dans.validatedansbag.core.service.XmlReader;
+import nl.knaw.dans.validatedansbag.core.validator.LicenseValidator;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -41,12 +43,15 @@ public class DatastationRulesImpl implements DatastationRules {
     private final DataverseService dataverseService;
     private final SwordDepositorRoles swordDepositorRoles;
     private final XmlReader xmlReader;
+    private final LicenseValidator licenseValidator;
 
-    public DatastationRulesImpl(BagItMetadataReader bagItMetadataReader, DataverseService dataverseService, SwordDepositorRoles swordDepositorRoles, XmlReader xmlReader) {
+    public DatastationRulesImpl(BagItMetadataReader bagItMetadataReader, DataverseService dataverseService, SwordDepositorRoles swordDepositorRoles, XmlReader xmlReader,
+        LicenseValidator licenseValidator) {
         this.bagItMetadataReader = bagItMetadataReader;
         this.dataverseService = dataverseService;
         this.swordDepositorRoles = swordDepositorRoles;
         this.xmlReader = xmlReader;
+        this.licenseValidator = licenseValidator;
     }
 
     @Override
@@ -234,14 +239,60 @@ public class DatastationRulesImpl implements DatastationRules {
             var expr = "/ddm:DDM/ddm:profile/ddm:available";
 
             var nodes = xmlReader.xpathToStream(document, expr).collect(Collectors.toList());
-            if (nodes.isEmpty())
+            if (nodes.isEmpty()) {
                 return RuleResult.ok();
+            }
 
             DateTime embargoDate = DateTime.parse(nodes.get(0).getTextContent());
-            if (embargoDate.isBefore(new DateTime(DateTime.now().plusMonths(months))))
+            if (embargoDate.isBefore(new DateTime(DateTime.now().plusMonths(months)))) {
                 return RuleResult.ok();
-            else
+            }
+            else {
                 return RuleResult.error("Date available is further is the future than the Embargo Period allows");
+            }
+        };
+    }
+
+    @Override
+    public BagValidatorRule licenseExistsInDatastation() {
+        return path -> {
+            var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
+            // converts a namespace uri into a prefix that is used in the document
+            var prefix = document.lookupPrefix(XmlReader.NAMESPACE_DCTERMS);
+            var expr = String.format("/ddm:DDM/ddm:dcmiMetadata/dcterms:license[@xsi:type='%s:URI']", prefix);
+
+            var validNodes = xmlReader.xpathToStream(document, expr)
+                .filter(item -> licenseValidator.isValidLicenseURI(item.getTextContent()))
+                .collect(Collectors.toList());
+
+            log.debug("Nodes found with valid URI's: {}", validNodes.size());
+
+            var invalidLicenses = new ArrayList<String>();
+
+            for (var node : validNodes) {
+                var isValid = false;
+                var text = node.getTextContent();
+
+                log.debug("Validating if {} is a valid license in data station", text);
+                try {
+                    isValid = licenseValidator.isValidLicense(text);
+                }
+                catch (IOException | DataverseException e) {
+                    log.error("Unable to validate licenses with dataverse", e);
+                }
+
+                if (!isValid) {
+                    invalidLicenses.add(text);
+                }
+            }
+
+            if (invalidLicenses.size() > 0) {
+                return RuleResult.error(String.format(
+                    "Invalid licenses found that are not available in the data station: %s", invalidLicenses
+                ));
+            }
+
+            return RuleResult.ok();
         };
     }
 

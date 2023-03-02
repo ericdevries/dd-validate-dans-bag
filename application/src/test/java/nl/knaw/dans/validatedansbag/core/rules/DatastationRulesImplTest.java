@@ -26,9 +26,10 @@ import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReader;
 import nl.knaw.dans.validatedansbag.core.service.DataverseService;
 import nl.knaw.dans.validatedansbag.core.service.XmlReader;
 import nl.knaw.dans.validatedansbag.core.service.XmlReaderImpl;
+import nl.knaw.dans.validatedansbag.core.validator.LicenseValidator;
+import nl.knaw.dans.validatedansbag.resources.util.MockedDataverseResponse;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
-import nl.knaw.dans.validatedansbag.resources.util.MockedDataverseResponse;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -47,24 +48,27 @@ class DatastationRulesImplTest {
 
     final BagItMetadataReader bagItMetadataReader = Mockito.mock(BagItMetadataReader.class);
     final DataverseService dataverseService = Mockito.mock(DataverseService.class);
+    final LicenseValidator licenseValidator = Mockito.mock(LicenseValidator.class);
     final SwordDepositorRoles swordDepositorRoles = new SwordDepositorRoles("datasetcreator", "dataseteditor");
     final XmlReader xmlReader = Mockito.mock(XmlReader.class);
-    private Document parseXmlString(String str) throws ParserConfigurationException, IOException, SAXException {
-        return new XmlReaderImpl().readXmlString(str);
-    }
 
     DatastationRulesImplTest() {
+    }
+
+    private Document parseXmlString(String str) throws ParserConfigurationException, IOException, SAXException {
+        return new XmlReaderImpl().readXmlString(str);
     }
 
     @AfterEach
     void afterEach() {
         Mockito.reset(bagItMetadataReader);
         Mockito.reset(dataverseService);
+        Mockito.reset(licenseValidator);
     }
 
     @Test
     void bagExistsInDatastation() throws Exception {
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader, licenseValidator);
 
         Mockito.doReturn("urn:uuid:is-version-of-id")
             .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
@@ -79,7 +83,7 @@ class DatastationRulesImplTest {
 
     @Test
     void bagNotExistsInDatastation() throws Exception {
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader, licenseValidator);
 
         Mockito.doReturn("urn:uuid:is-version-of-id")
             .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
@@ -95,7 +99,7 @@ class DatastationRulesImplTest {
 
     void organizationalIdentifierExistsInDataset() throws Exception {
 
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader, licenseValidator);
 
         String otherId = "dans-other-id";
         Mockito.doReturn(otherId)
@@ -112,7 +116,7 @@ class DatastationRulesImplTest {
     //@Test
     void organizationalIdentifierExistsInDatasetBothAreNull() throws Exception {
 
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader, licenseValidator);
 
         Mockito.doReturn(null)
             .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
@@ -128,7 +132,7 @@ class DatastationRulesImplTest {
     @Test
     void organizationalIdentifierExistsInDatasetActualIsNull() throws Exception {
 
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader, licenseValidator);
 
         Mockito.when(bagItMetadataReader.getSingleField(Mockito.any(), Mockito.anyString()))
             .thenReturn("urn:uuid:is_version_of")
@@ -145,7 +149,7 @@ class DatastationRulesImplTest {
     @Test
     void organizationalIdentifierExistsInDatasetMismatch() throws Exception {
 
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader, licenseValidator);
 
         Mockito.when(bagItMetadataReader.getSingleField(Mockito.any(), Mockito.anyString()))
             .thenReturn("urn:uuid:is_version_of")
@@ -162,7 +166,7 @@ class DatastationRulesImplTest {
     // CREATE tests
     @Test
     void dataStationUserAccountIsAuthorizedToCreate() throws Exception {
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader, licenseValidator);
 
         Mockito
             .doReturn("user-account-name")
@@ -196,7 +200,7 @@ class DatastationRulesImplTest {
 
     @Test
     void dataStationUserAccountIsNotAuthorizedToCreate() throws Exception {
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader, licenseValidator);
 
         Mockito
             .doReturn("user-account-name")
@@ -239,7 +243,7 @@ class DatastationRulesImplTest {
 
     @Test
     void dataStationUserAccountIsNotSetCreate() throws Exception {
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader, licenseValidator);
 
         Mockito
             .doReturn(null)
@@ -272,7 +276,7 @@ class DatastationRulesImplTest {
 
     @Test
     void dataStationUserAccountYieldsNoSearchResultsCreate() throws Exception {
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader, licenseValidator);
 
         Mockito
             .doReturn("user-name")
@@ -311,7 +315,7 @@ class DatastationRulesImplTest {
     @Test
     void dataStationUserAccountIsAuthorizedToEdit() throws Exception {
         var dv = dataverseService;
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dv, swordDepositorRoles, xmlReader);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dv, swordDepositorRoles, xmlReader, licenseValidator);
 
         Mockito
             .doReturn("user-account-name")
@@ -352,7 +356,7 @@ class DatastationRulesImplTest {
     @Test
     void dataStationUserAccountIsNotAuthorizedToEdit() throws Exception {
         var dv = dataverseService;
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dv, swordDepositorRoles, xmlReader);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dv, swordDepositorRoles, xmlReader, licenseValidator);
 
         Mockito
             .doReturn("user-account-name")
@@ -392,7 +396,7 @@ class DatastationRulesImplTest {
 
     @Test
     void dataStationUserAccountIsNotAuthorizedToEditButHasADifferentRole() throws Exception {
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader, licenseValidator);
 
         Mockito
             .doReturn("user-account-name")
@@ -433,7 +437,7 @@ class DatastationRulesImplTest {
 
     @Test
     void dataStationUserAccountIsNotSetEdit() throws Exception {
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader, licenseValidator);
 
         Mockito
             .doReturn(null)
@@ -469,7 +473,7 @@ class DatastationRulesImplTest {
 
     @Test
     void dataStationUserAccountYieldsNoSearchResultsEdit() throws Exception {
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader, licenseValidator);
 
         Mockito
             .doReturn("user-name")
@@ -568,10 +572,11 @@ class DatastationRulesImplTest {
         return "{\n"
             + "  \"status\": \"OK\",\n"
             + "  \"data\": {\n"
-            + "    \"message\": \""+months+"\"\n"
+            + "    \"message\": \"" + months + "\"\n"
             + "  }\n"
             + "}";
     }
+
     String getLatestVersion(String persistentId, String dansOtherId) {
 
         if (persistentId == null) {
@@ -620,6 +625,7 @@ class DatastationRulesImplTest {
             + "  }\n"
             + "}", persistentId, dansOtherId);
     }
+
     @Test
     void embargoPeriodIsTooLong() throws Exception {
         int embargoPeriodInMonths = 4;
@@ -632,7 +638,7 @@ class DatastationRulesImplTest {
             + "        xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
             + "        xmlns:id-type=\"http://easy.dans.knaw.nl/schemas/vocab/identifier-type/\">\n"
             + "    <ddm:profile>\n"
-            + "        <ddm:available>"+ DateTimeFormat.forPattern("yyyy-MM-dd").print(dateTime) +"</ddm:available>\n"
+            + "        <ddm:available>" + DateTimeFormat.forPattern("yyyy-MM-dd").print(dateTime) + "</ddm:available>\n"
             + "    </ddm:profile>\n"
             + "</ddm:DDM>";
 
@@ -641,12 +647,12 @@ class DatastationRulesImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, reader);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, reader, licenseValidator);
 
         var embargoResultJson = "{\n"
             + "  \"status\": \"OK\",\n"
             + "  \"data\": {\n"
-            + "    \"message\": \""+embargoPeriodInMonths+"\"\n"
+            + "    \"message\": \"" + embargoPeriodInMonths + "\"\n"
             + "  }\n"
             + "}";
         var maxEmbargoDurationResult = new MockedDataverseResponse<DataMessage>(embargoResultJson, DataMessage.class);
@@ -669,7 +675,7 @@ class DatastationRulesImplTest {
             + "        xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
             + "        xmlns:id-type=\"http://easy.dans.knaw.nl/schemas/vocab/identifier-type/\">\n"
             + "    <ddm:profile>\n"
-            + "        <ddm:available>"+ DateTimeFormat.forPattern("yyyy-MM-dd").print(dateTime) +"</ddm:available>\n"
+            + "        <ddm:available>" + DateTimeFormat.forPattern("yyyy-MM-dd").print(dateTime) + "</ddm:available>\n"
             + "    </ddm:profile>\n"
             + "</ddm:DDM>";
 
@@ -678,12 +684,12 @@ class DatastationRulesImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, reader);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, reader, licenseValidator);
 
         var embargoResultJson = "{\n"
             + "  \"status\": \"OK\",\n"
             + "  \"data\": {\n"
-            + "    \"message\": \""+embargoPeriodInMonths+"\"\n"
+            + "    \"message\": \"" + embargoPeriodInMonths + "\"\n"
             + "  }\n"
             + "}";
         var maxEmbargoDurationResult = new MockedDataverseResponse<DataMessage>(embargoResultJson, DataMessage.class);
@@ -714,11 +720,11 @@ class DatastationRulesImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, reader);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, reader, licenseValidator);
         var embargoResultJson = "{\n"
             + "  \"status\": \"OK\",\n"
             + "  \"data\": {\n"
-            + "    \"message\": \""+embargoPeriodInMonths+"\"\n"
+            + "    \"message\": \"" + embargoPeriodInMonths + "\"\n"
             + "  }\n"
             + "}";
         var maxEmbargoDurationResult = new MockedDataverseResponse<DataMessage>(embargoResultJson, DataMessage.class);

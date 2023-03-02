@@ -16,21 +16,19 @@
 package nl.knaw.dans.validatedansbag.core.service;
 
 import nl.knaw.dans.lib.dataverse.DataverseClient;
-import nl.knaw.dans.lib.dataverse.DataverseClientConfig;
 import nl.knaw.dans.lib.dataverse.DataverseException;
 import nl.knaw.dans.lib.dataverse.DataverseResponse;
 import nl.knaw.dans.lib.dataverse.SearchOptions;
 import nl.knaw.dans.lib.dataverse.model.DataMessage;
 import nl.knaw.dans.lib.dataverse.model.RoleAssignmentReadOnly;
 import nl.knaw.dans.lib.dataverse.model.dataset.DatasetLatestVersion;
+import nl.knaw.dans.lib.dataverse.model.license.License;
 import nl.knaw.dans.lib.dataverse.model.search.SearchItemType;
 import nl.knaw.dans.lib.dataverse.model.search.SearchResult;
-import nl.knaw.dans.validatedansbag.core.config.DataverseConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.net.URI;
 import java.util.List;
 
 public class DataverseServiceImpl implements DataverseService {
@@ -94,5 +92,11 @@ public class DataverseServiceImpl implements DataverseService {
     public DataverseResponse<DataMessage> getMaxEmbargoDurationInMonths() throws IOException, DataverseException {
         var client = this.getDataverseClient();
         return client.admin().getDatabaseSetting(":MaxEmbargoDurationInMonths");
+    }
+
+    @Override
+    public List<License> getLicenses() throws IOException, DataverseException {
+        var client = this.getDataverseClient();
+        return client.license().getLicenses().getData();
     }
 }

@@ -15,23 +15,62 @@
  */
 package nl.knaw.dans.validatedansbag.core.validator;
 
+import nl.knaw.dans.lib.dataverse.model.license.License;
+import nl.knaw.dans.validatedansbag.core.service.DataverseService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class LicenseValidatorImplTest {
 
-    @Test
-    void isValidLicense_should_return_true_if_it_is_found_in_license_config() {
-        var license = "http://creativecommons.org/licenses/by-nc-nd/4.0/";
-        assertTrue(new LicenseValidatorImpl().isValidLicense(license));
+    final DataverseService dataverseService = Mockito.mock(DataverseService.class);
+
+    @AfterEach
+    void afterEach() {
+        Mockito.reset(dataverseService);
     }
 
     @Test
-    void isValidLicense_should_return_false_when_url_is_not_valid() {
+    void isValidLicenseURI_should_return_true_if_license_is_valid_uri() {
+        var license = "http://creativecommons.org/licenses/by-nc-nd/4.0/";
+        assertTrue(new LicenseValidatorImpl(dataverseService).isValidLicenseURI(license));
+    }
+
+    @Test
+    void isValidLicenseURI_should_return_false_when_url_is_not_valid() {
         var license = "invalid license";
-        assertFalse(new LicenseValidatorImpl().isValidLicense(license));
-        assertFalse(new LicenseValidatorImpl().isValidLicense("something completely different"));
+        assertFalse(new LicenseValidatorImpl(dataverseService).isValidLicenseURI(license));
+        assertFalse(new LicenseValidatorImpl(dataverseService).isValidLicenseURI("something completely different"));
+    }
+
+    @Test
+    void isValidLicense_should_return_true_for_valid_uri() throws Exception {
+        var license = "http://dans.nl/";
+        var dvLicense = new License();
+        dvLicense.setActive(true);
+        dvLicense.setUri("http://dans.nl");
+
+        Mockito.when(dataverseService.getLicenses())
+            .thenReturn(List.of(dvLicense));
+
+        assertTrue(new LicenseValidatorImpl(dataverseService).isValidLicense(license));
+    }
+
+    @Test
+    void isValidLicense_should_return_false_for_invalid_uri() throws Exception {
+        var license = "http://dans.nl/";
+        var dvLicense = new License();
+        dvLicense.setActive(true);
+        dvLicense.setUri("http://something.else.com");
+
+        Mockito.when(dataverseService.getLicenses())
+            .thenReturn(List.of(dvLicense));
+
+        assertFalse(new LicenseValidatorImpl(dataverseService).isValidLicense(license));
     }
 }

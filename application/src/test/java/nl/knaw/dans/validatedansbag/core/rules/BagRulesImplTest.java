@@ -67,7 +67,7 @@ class BagRulesImplTest {
     final OriginalFilepathsService originalFilepathsService = Mockito.mock(OriginalFilepathsService.class);
     final DataverseService dataverseService = Mockito.mock(DataverseService.class);
 
-    final LicenseValidator licenseValidator = new LicenseValidatorImpl();
+    final LicenseValidator licenseValidator = new LicenseValidatorImpl(dataverseService);
     final FilesXmlService filesXmlService = Mockito.mock(FilesXmlService.class);
 
     final OrganizationIdentifierPrefixValidator organizationIdentifierPrefixValidator = new OrganizationIdentifierPrefixValidatorImpl(
