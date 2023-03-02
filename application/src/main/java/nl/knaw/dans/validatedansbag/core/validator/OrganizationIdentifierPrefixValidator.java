@@ -16,5 +16,5 @@
 package nl.knaw.dans.validatedansbag.core.validator;
 
 public interface OrganizationIdentifierPrefixValidator {
-    boolean hasValidPrefix(String user, String identifier);
+    boolean hasValidPrefix(String identifier);
 }

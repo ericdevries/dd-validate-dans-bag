@@ -15,21 +15,19 @@
  */
 package nl.knaw.dans.validatedansbag.core.validator;
 
-import nl.knaw.dans.validatedansbag.core.config.OtherIdPrefix;
-
 import java.util.List;
 
 public class OrganizationIdentifierPrefixValidatorImpl implements OrganizationIdentifierPrefixValidator {
-    private final List<OtherIdPrefix> otherIdPrefixes;
+    private final List<String> otherIdPrefixes;
 
-    public OrganizationIdentifierPrefixValidatorImpl(List<OtherIdPrefix> otherIdPrefixes) {
+    public OrganizationIdentifierPrefixValidatorImpl(List<String> otherIdPrefixes) {
         this.otherIdPrefixes = otherIdPrefixes;
     }
 
     @Override
-    public boolean hasValidPrefix(String user, String identifier) {
+    public boolean hasValidPrefix(String identifier) {
         for (var prefix : otherIdPrefixes) {
-            if (user.equals(prefix.getUser()) && identifier.startsWith(prefix.getPrefix())) {
+            if (identifier.startsWith(prefix)) {
                 return true;
             }
         }

@@ -20,7 +20,6 @@ import io.dropwizard.client.HttpClientConfiguration;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
-import java.net.URL;
 import java.util.List;
 
 @Valid
@@ -33,20 +32,11 @@ public class ValidationConfig {
 
     @NotNull
     @Valid
-    private SwordDepositorRoles swordDepositorRoles;
-
-    @NotNull
-    @Valid
-    private List<OtherIdPrefix> otherIdPrefixes;
+    private List<String> otherIdPrefixes;
 
     @Valid
     @NotNull
     private XmlSchemaConfig xmlSchemas;
-
-    @Valid
-    private URL passwordDelegate;
-    @Valid
-    private String passwordRealm;
 
     @Valid
     private HttpClientConfiguration httpClient = new HttpClientConfiguration();
@@ -59,19 +49,11 @@ public class ValidationConfig {
         this.licenseConfig = licenseConfig;
     }
 
-    public SwordDepositorRoles getSwordDepositorRoles() {
-        return swordDepositorRoles;
-    }
-
-    public void setSwordDepositorRoles(SwordDepositorRoles swordDepositorRoles) {
-        this.swordDepositorRoles = swordDepositorRoles;
-    }
-
-    public List<OtherIdPrefix> getOtherIdPrefixes() {
+    public List<String> getOtherIdPrefixes() {
         return otherIdPrefixes;
     }
 
-    public void setOtherIdPrefixes(List<OtherIdPrefix> otherIdPrefixes) {
+    public void setOtherIdPrefixes(List<String> otherIdPrefixes) {
         this.otherIdPrefixes = otherIdPrefixes;
     }
 
@@ -83,29 +65,11 @@ public class ValidationConfig {
         this.xmlSchemas = xmlSchemas;
     }
 
-    public URL getPasswordDelegate() {
-        return passwordDelegate;
-    }
-
-    public void setPasswordDelegate(URL passwordDelegate) {
-        this.passwordDelegate = passwordDelegate;
-    }
-
-    public String getPasswordRealm() {
-        return passwordRealm;
-    }
-
-    public void setPasswordRealm(String passwordRealm) {
-        this.passwordRealm = passwordRealm;
-    }
-
-    @JsonProperty("httpClient")
-    public HttpClientConfiguration getHttpClientConfiguration() {
+    public HttpClientConfiguration getHttpClient() {
         return httpClient;
     }
 
-    @JsonProperty("httpClient")
-    public void setHttpClientConfiguration(HttpClientConfiguration httpClient) {
+    public void setHttpClient(HttpClientConfiguration httpClient) {
         this.httpClient = httpClient;
     }
 }
