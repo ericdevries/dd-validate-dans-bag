@@ -16,7 +16,6 @@
 package nl.knaw.dans.validatedansbag.core.rules;
 
 import nl.knaw.dans.lib.dataverse.DataverseException;
-import nl.knaw.dans.lib.dataverse.model.RoleAssignmentReadOnly;
 import nl.knaw.dans.lib.dataverse.model.dataset.DatasetLatestVersion;
 import nl.knaw.dans.lib.dataverse.model.dataset.PrimitiveSingleValueField;
 import nl.knaw.dans.lib.dataverse.model.search.DatasetResultItem;
@@ -32,7 +31,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -132,106 +130,6 @@ public class DatastationRulesImpl implements DatastationRules {
     }
 
     @Override
-    public BagValidatorRule userIsAuthorizedToCreateDataset() {
-        return path -> {
-            var userAccount = bagItMetadataReader.getSingleField(path, "Data-Station-User-Account");
-
-            if (userAccount != null) {
-                var result = Optional.ofNullable(dataverseService.getDataverseRoleAssignments("root"))
-                    .map(d -> {
-                        try {
-                            return d.getData();
-                        }
-                        catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-                    })
-                    .orElse(List.of());
-
-                log.debug("Role assignments found in dataverse: {}", result);
-
-                var userRoles = result.stream()
-                    .filter(a -> a.getAssignee().replaceFirst("@", "").equals(userAccount))
-                    .map(RoleAssignmentReadOnly::get_roleAlias)
-                    .collect(Collectors.toList());
-
-                var validRole = swordDepositorRoles.getDatasetCreator();
-
-                if (!userRoles.contains(validRole)) {
-                    return RuleResult.error(String.format(
-                        "User '%s' does not have the correct role for creating datasets (expected: %s, found: %s)",
-                        userAccount, validRole, userRoles
-                    ));
-                }
-
-                return RuleResult.ok();
-            }
-
-            return RuleResult.skipDependencies();
-        };
-
-    }
-
-    @Override
-    public BagValidatorRule userIsAuthorizedToUpdateDataset() {
-        return path -> {
-            var userAccount = bagItMetadataReader.getSingleField(path, "Data-Station-User-Account");
-            var isVersionOf = bagItMetadataReader.getSingleField(path, "Is-Version-Of");
-
-            log.debug("Checking if user '{}' is authorized on dataset '{}'", userAccount, isVersionOf);
-            // both userAccount and isVersionOf are required fields at this point, but they are checked in other steps
-            // so to keep this rule oblivious of other requirements, just check if we have values
-            if (userAccount != null && isVersionOf != null) {
-                var dataset = getDatasetIsVersionOf(isVersionOf);
-
-                // no result means it does not exist
-                if (dataset.isEmpty()) {
-                    return RuleResult.error(String.format(
-                        "If 'Is-Version-Of' is specified, it must be a valid SWORD token in the data station; no tokens were found: %s", isVersionOf
-                    ));
-                }
-
-                var itemId = dataset.get().getLatestVersion().getDatasetPersistentId();
-                var assignments = Optional.ofNullable(dataverseService.getDatasetRoleAssignments(itemId))
-                    .map(d -> {
-                        try {
-                            return d.getData();
-                        }
-                        catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-                    })
-                    .orElse(List.of());
-
-                log.debug("Role assignments on dataset: {}", assignments);
-
-                // when the user has one of these valid roles, the check succeeds
-                var validRole = swordDepositorRoles.getDatasetEditor();
-
-                // get all roles assigned to this user
-                var assignmentsNames = assignments
-                    .stream()
-                    .filter(a -> a.getAssignee().replaceFirst("@", "").equals(userAccount))
-                    .map(RoleAssignmentReadOnly::get_roleAlias)
-                    .collect(Collectors.toList());
-
-                log.debug("Role assignments for user '{}': {}", userAccount, assignmentsNames);
-
-                if (!assignmentsNames.contains(validRole)) {
-                    return RuleResult.error(String.format(
-                        "User '%s' does not have the correct role for creating datasets (expected: %s, found: %s)",
-                        userAccount, validRole, assignmentsNames
-                    ));
-                }
-
-                return RuleResult.ok();
-            }
-
-            return RuleResult.skipDependencies();
-        };
-    }
-
-    @Override
     public BagValidatorRule embargoPeriodWithinLimits() {
         return (path) -> {
             var months = Integer.parseInt(dataverseService.getMaxEmbargoDurationInMonths().getData().getMessage());
@@ -310,7 +208,6 @@ public class DatastationRulesImpl implements DatastationRules {
             }
 
             return Optional.empty();
-
         }
         else {
             throw new IllegalArgumentException("Is-Version-Of is not a urn:uuid");
