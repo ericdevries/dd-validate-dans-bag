@@ -21,15 +21,7 @@ dataverse:
   baseUrl: "http://localhost:8080/"
 
 validation:
-  otherIdPrefixes:
-    - user: user001
-      prefix: 'USER01-'
-    - user: user002
-      prefix: 'U2:'
-
-  swordDepositorRoles:
-    datasetCreator: swordcreator
-    datasetEditor: swordupdater
+  otherIdPrefixes: []
 
   xmlSchemas:
     dataset.xml:  "https://easy.dans.knaw.nl/schemas/md/ddm/ddm.xsd"
@@ -68,9 +60,6 @@ validation:
       - "http://www.tapr.org/ohl.html"
       - "http://dans.knaw.nl/en/about/organisation-and-policy/legal-information/DANSGeneralconditionsofuseUKDEF.pdf"
       - "http://dans.knaw.nl/en/about/organisation-and-policy/legal-information/DANSLicence.pdf"
-
-  passwordRealm: "DANS"
-  passwordDelegate: "http://localhost:20340"
 
 health:
   delayedShutdownHandlerEnabled: false

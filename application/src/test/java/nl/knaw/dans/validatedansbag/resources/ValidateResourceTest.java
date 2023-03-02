@@ -53,10 +53,6 @@ class ValidateResourceTest {
     private final FileService fileService = Mockito.mock(FileService.class);
     public final ResourceExtension EXT = ResourceExtension.builder()
         .addProvider(MultiPartFeature.class)
-        .addProvider(new AuthDynamicFeature(new BasicCredentialAuthFilter.Builder<SwordUser>()
-            .setAuthenticator(new MockAuthorization())
-            .setRealm("DANS")
-            .buildAuthFilter()))
         .addResource(new ValidateResource(ruleEngineService, fileService))
         .addProvider(new AuthValueFactoryProvider.Binder<>(SwordUser.class))
         .build();
@@ -152,37 +148,11 @@ class ValidateResourceTest {
 
         var response = EXT.target("/validate")
             .request()
-            .header("Authorization", basicUsernamePassword("user001", "user001"))
             .post(zip, ValidateOk.class);
 
         Mockito.verify(fileService).extractZipFile(Mockito.any(InputStream.class));
 
         assertEquals("bagdir", response.getName());
-    }
-
-    @Test
-    void validateZipFile_should_return_401_with_wrong_credentials() throws Exception {
-        var zip = Entity.entity(new ByteArrayInputStream(new byte[4]), MediaType.valueOf("application/zip"));
-
-        try (var response = EXT.target("/validate")
-            .request()
-            .header("Authorization", basicUsernamePassword("unknown", "unknown"))
-            .post(zip, Response.class)) {
-
-            assertEquals(401, response.getStatus());
-        }
-    }
-
-    @Test
-    void validateZipFile_should_return_401_with_missing_credentials() throws Exception {
-        var zip = Entity.entity(new ByteArrayInputStream(new byte[4]), MediaType.valueOf("application/zip"));
-
-        try (var response = EXT.target("/validate")
-            .request()
-            .post(zip, Response.class)) {
-
-            assertEquals(401, response.getStatus());
-        }
     }
 
     @Test
@@ -196,7 +166,6 @@ class ValidateResourceTest {
         try (var response = EXT.target("/validate")
             .register(MultiPartFeature.class)
             .request()
-            .header("Authorization", basicUsernamePassword("user001", "user001"))
             .post(zip, Response.class)) {
 
             assertEquals(500, response.getStatus());
