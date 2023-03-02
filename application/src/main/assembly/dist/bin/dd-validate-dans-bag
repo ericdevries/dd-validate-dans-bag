@@ -5,4 +5,4 @@ BINPATH=$(command readlink -f $0 2> /dev/null || command grealpath $0 2> /dev/nu
 APPHOME=$(dirname  $(dirname $BINPATH))
 CONFIG_PATH=/etc/opt/dans.knaw.nl/$SCRIPTNAME/config.yml
 
-java -Ddans.default.config=$CONFIG_PATH -jar $APPHOME/bin/$SCRIPTNAME.jar "$@"
+java $DANS_JAVA_OPTS -Ddans.default.config=$CONFIG_PATH -jar $APPHOME/bin/$SCRIPTNAME.jar "$@"
