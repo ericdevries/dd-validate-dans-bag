@@ -26,9 +26,9 @@ import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReader;
 import nl.knaw.dans.validatedansbag.core.service.DataverseService;
 import nl.knaw.dans.validatedansbag.core.service.XmlReader;
 import nl.knaw.dans.validatedansbag.core.service.XmlReaderImpl;
+import nl.knaw.dans.validatedansbag.resources.util.MockedDataverseResponse;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
-import nl.knaw.dans.validatedansbag.resources.util.MockedDataverseResponse;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -49,21 +49,23 @@ class DatastationRulesImplTest {
     final DataverseService dataverseService = Mockito.mock(DataverseService.class);
     final SwordDepositorRoles swordDepositorRoles = new SwordDepositorRoles("datasetcreator", "dataseteditor");
     final XmlReader xmlReader = Mockito.mock(XmlReader.class);
-    private Document parseXmlString(String str) throws ParserConfigurationException, IOException, SAXException {
-        return new XmlReaderImpl().readXmlString(str);
-    }
 
     DatastationRulesImplTest() {
+    }
+
+    private Document parseXmlString(String str) throws ParserConfigurationException, IOException, SAXException {
+        return new XmlReaderImpl().readXmlString(str);
     }
 
     @AfterEach
     void afterEach() {
         Mockito.reset(bagItMetadataReader);
         Mockito.reset(dataverseService);
+        Mockito.reset(xmlReader);
     }
 
     @Test
-    void bagExistsInDatastation() throws Exception {
+    void bagExistsInDatastation_should_return_SUCCESS_if_bag_exists() throws Exception {
         var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader);
 
         Mockito.doReturn("urn:uuid:is-version-of-id")
@@ -78,7 +80,7 @@ class DatastationRulesImplTest {
     }
 
     @Test
-    void bagNotExistsInDatastation() throws Exception {
+    void bagExistsInDatastation_should_return_ERROR_when_search_yields_zero_results() throws Exception {
         var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader);
 
         Mockito.doReturn("urn:uuid:is-version-of-id")
@@ -91,15 +93,19 @@ class DatastationRulesImplTest {
         assertEquals(RuleResult.Status.ERROR, result.getStatus());
     }
 
-    //@Test
-
-    void organizationalIdentifierExistsInDataset() throws Exception {
-
+    @Test
+    void organizationalIdentifierExistsInDataset_should_return_SUCCESS_if_otherId_matches_hasOrganizationalIdentifier() throws Exception {
         var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader);
 
-        String otherId = "dans-other-id";
-        Mockito.doReturn(otherId)
-            .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
+        var isVersionOf = "urn:uuid:some-uuid";
+        var otherId = "other-id";
+        var hasOrganizationalIdentifier = "other-id";
+
+        Mockito.doReturn(isVersionOf)
+            .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.eq("Is-Version-Of"));
+
+        Mockito.doReturn(hasOrganizationalIdentifier)
+            .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.eq("Has-Organizational-Identifier"));
 
         var doi = "doi:10.5072/FK2/QZZSST";
         mockSearchBySwordToken(getSearchResult(doi));
@@ -109,13 +115,15 @@ class DatastationRulesImplTest {
         assertEquals(RuleResult.Status.SUCCESS, result.getStatus());
     }
 
-    //@Test
-    void organizationalIdentifierExistsInDatasetBothAreNull() throws Exception {
-
+    @Test
+    void organizationalIdentifierExistsInDataset_should_return_SUCCESS_if_both_values_are_null() throws Exception {
         var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader);
 
+        Mockito.doReturn("urn:uuid:some-uuid")
+            .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.eq("Is-Version-Of"));
+
         Mockito.doReturn(null)
-            .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
+            .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.eq("Has-Organizational-Identifier"));
 
         var doi = "doi:10.5072/FK2/QZZSST";
         mockSearchBySwordToken(getSearchResult(doi));
@@ -126,8 +134,7 @@ class DatastationRulesImplTest {
     }
 
     @Test
-    void organizationalIdentifierExistsInDatasetActualIsNull() throws Exception {
-
+    void organizationalIdentifierExistsInDataset_should_return_ERROR_when_dataset_is_null_and_metadata_is_not_null() throws Exception {
         var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader);
 
         Mockito.when(bagItMetadataReader.getSingleField(Mockito.any(), Mockito.anyString()))
@@ -143,8 +150,7 @@ class DatastationRulesImplTest {
     }
 
     @Test
-    void organizationalIdentifierExistsInDatasetMismatch() throws Exception {
-
+    void organizationalIdentifierExistsInDataset_should_return_ERROR_if_values_do_not_match() throws Exception {
         var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader);
 
         Mockito.when(bagItMetadataReader.getSingleField(Mockito.any(), Mockito.anyString()))
@@ -564,19 +570,11 @@ class DatastationRulesImplTest {
             + "}";
     }
 
-    String getMaxEmbargoInMonths(int months) {
-        return "{\n"
-            + "  \"status\": \"OK\",\n"
-            + "  \"data\": {\n"
-            + "    \"message\": \""+months+"\"\n"
-            + "  }\n"
-            + "}";
-    }
     String getLatestVersion(String persistentId, String dansOtherId) {
-
         if (persistentId == null) {
             persistentId = "persistent_id";
         }
+
         if (dansOtherId == null) {
             dansOtherId = "null";
         }
@@ -620,6 +618,7 @@ class DatastationRulesImplTest {
             + "  }\n"
             + "}", persistentId, dansOtherId);
     }
+
     @Test
     void embargoPeriodIsTooLong() throws Exception {
         int embargoPeriodInMonths = 4;
@@ -632,7 +631,7 @@ class DatastationRulesImplTest {
             + "        xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
             + "        xmlns:id-type=\"http://easy.dans.knaw.nl/schemas/vocab/identifier-type/\">\n"
             + "    <ddm:profile>\n"
-            + "        <ddm:available>"+ DateTimeFormat.forPattern("yyyy-MM-dd").print(dateTime) +"</ddm:available>\n"
+            + "        <ddm:available>" + DateTimeFormat.forPattern("yyyy-MM-dd").print(dateTime) + "</ddm:available>\n"
             + "    </ddm:profile>\n"
             + "</ddm:DDM>";
 
@@ -646,7 +645,7 @@ class DatastationRulesImplTest {
         var embargoResultJson = "{\n"
             + "  \"status\": \"OK\",\n"
             + "  \"data\": {\n"
-            + "    \"message\": \""+embargoPeriodInMonths+"\"\n"
+            + "    \"message\": \"" + embargoPeriodInMonths + "\"\n"
             + "  }\n"
             + "}";
         var maxEmbargoDurationResult = new MockedDataverseResponse<DataMessage>(embargoResultJson, DataMessage.class);
@@ -669,7 +668,7 @@ class DatastationRulesImplTest {
             + "        xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n"
             + "        xmlns:id-type=\"http://easy.dans.knaw.nl/schemas/vocab/identifier-type/\">\n"
             + "    <ddm:profile>\n"
-            + "        <ddm:available>"+ DateTimeFormat.forPattern("yyyy-MM-dd").print(dateTime) +"</ddm:available>\n"
+            + "        <ddm:available>" + DateTimeFormat.forPattern("yyyy-MM-dd").print(dateTime) + "</ddm:available>\n"
             + "    </ddm:profile>\n"
             + "</ddm:DDM>";
 
@@ -683,7 +682,7 @@ class DatastationRulesImplTest {
         var embargoResultJson = "{\n"
             + "  \"status\": \"OK\",\n"
             + "  \"data\": {\n"
-            + "    \"message\": \""+embargoPeriodInMonths+"\"\n"
+            + "    \"message\": \"" + embargoPeriodInMonths + "\"\n"
             + "  }\n"
             + "}";
         var maxEmbargoDurationResult = new MockedDataverseResponse<DataMessage>(embargoResultJson, DataMessage.class);
@@ -718,7 +717,7 @@ class DatastationRulesImplTest {
         var embargoResultJson = "{\n"
             + "  \"status\": \"OK\",\n"
             + "  \"data\": {\n"
-            + "    \"message\": \""+embargoPeriodInMonths+"\"\n"
+            + "    \"message\": \"" + embargoPeriodInMonths + "\"\n"
             + "  }\n"
             + "}";
         var maxEmbargoDurationResult = new MockedDataverseResponse<DataMessage>(embargoResultJson, DataMessage.class);

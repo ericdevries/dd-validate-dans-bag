@@ -259,7 +259,6 @@ public class DatastationRulesImpl implements DatastationRules {
             }
 
             return Optional.empty();
-
         }
         else {
             throw new IllegalArgumentException("Is-Version-Of is not a urn:uuid");
