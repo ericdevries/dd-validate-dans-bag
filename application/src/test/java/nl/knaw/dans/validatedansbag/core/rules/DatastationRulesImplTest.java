@@ -46,7 +46,6 @@ class DatastationRulesImplTest {
     final BagItMetadataReader bagItMetadataReader = Mockito.mock(BagItMetadataReader.class);
     final DataverseService dataverseService = Mockito.mock(DataverseService.class);
     final LicenseValidator licenseValidator = Mockito.mock(LicenseValidator.class);
-    final SwordDepositorRoles swordDepositorRoles = new SwordDepositorRoles("datasetcreator", "dataseteditor");
     final XmlReader xmlReader = Mockito.mock(XmlReader.class);
 
     DatastationRulesImplTest() {
@@ -65,13 +64,13 @@ class DatastationRulesImplTest {
 
     @Test
     void bagExistsInDatastation() throws Exception {
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader, licenseValidator);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, xmlReader, licenseValidator);
         Mockito.reset(xmlReader);
     }
 
     @Test
     void bagExistsInDatastation_should_return_SUCCESS_if_bag_exists() throws Exception {
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader, licenseValidator);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, xmlReader, licenseValidator);
 
         Mockito.doReturn("urn:uuid:is-version-of-id")
             .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
@@ -86,7 +85,7 @@ class DatastationRulesImplTest {
 
     @Test
     void bagExistsInDatastation_should_return_ERROR_when_search_yields_zero_results() throws Exception {
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader, licenseValidator);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, xmlReader, licenseValidator);
 
         Mockito.doReturn("urn:uuid:is-version-of-id")
             .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.anyString());
@@ -100,7 +99,7 @@ class DatastationRulesImplTest {
 
     @Test
     void organizationalIdentifierExistsInDataset_should_return_SUCCESS_if_otherId_matches_hasOrganizationalIdentifier() throws Exception {
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader, licenseValidator);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, xmlReader, licenseValidator);
 
         var isVersionOf = "urn:uuid:some-uuid";
         var otherId = "other-id";
@@ -122,7 +121,7 @@ class DatastationRulesImplTest {
 
     @Test
     void organizationalIdentifierExistsInDataset_should_return_SUCCESS_if_both_values_are_null() throws Exception {
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader, licenseValidator);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, xmlReader, licenseValidator);
 
         Mockito.doReturn("urn:uuid:some-uuid")
             .when(bagItMetadataReader).getSingleField(Mockito.any(), Mockito.eq("Is-Version-Of"));
@@ -140,7 +139,7 @@ class DatastationRulesImplTest {
 
     @Test
     void organizationalIdentifierExistsInDataset_should_return_ERROR_when_dataset_is_null_and_metadata_is_not_null() throws Exception {
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader, licenseValidator);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, xmlReader, licenseValidator);
 
         Mockito.when(bagItMetadataReader.getSingleField(Mockito.any(), Mockito.anyString()))
             .thenReturn("urn:uuid:is_version_of")
@@ -156,7 +155,7 @@ class DatastationRulesImplTest {
 
     @Test
     void organizationalIdentifierExistsInDataset_should_return_ERROR_if_values_do_not_match() throws Exception {
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, xmlReader, licenseValidator);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, xmlReader, licenseValidator);
 
         Mockito.when(bagItMetadataReader.getSingleField(Mockito.any(), Mockito.anyString()))
             .thenReturn("urn:uuid:is_version_of")
@@ -296,7 +295,7 @@ class DatastationRulesImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, reader, licenseValidator);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, reader, licenseValidator);
 
         var embargoResultJson = "{\n"
             + "  \"status\": \"OK\",\n"
@@ -333,7 +332,7 @@ class DatastationRulesImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, reader, licenseValidator);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, reader, licenseValidator);
 
         var embargoResultJson = "{\n"
             + "  \"status\": \"OK\",\n"
@@ -369,7 +368,7 @@ class DatastationRulesImplTest {
 
         Mockito.doReturn(document).when(reader).readXmlFile(Mockito.any());
 
-        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, swordDepositorRoles, reader, licenseValidator);
+        var checker = new DatastationRulesImpl(bagItMetadataReader, dataverseService, reader, licenseValidator);
         var embargoResultJson = "{\n"
             + "  \"status\": \"OK\",\n"
             + "  \"data\": {\n"

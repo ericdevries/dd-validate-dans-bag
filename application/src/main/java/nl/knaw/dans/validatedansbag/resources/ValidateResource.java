@@ -97,7 +97,7 @@ public class ValidateResource {
     @POST
     @Consumes({ "application/zip" })
     @Produces({ MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN })
-    public ValidateOk validateZip(InputStream inputStream, @Auth SwordUser swordUser) {
+    public ValidateOk validateZip(InputStream inputStream) {
         try {
             log.info("Received request to validate zip file");
             return validateInputStream(inputStream, DepositType.DEPOSIT);

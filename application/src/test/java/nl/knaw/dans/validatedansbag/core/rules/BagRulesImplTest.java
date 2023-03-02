@@ -19,7 +19,6 @@ import gov.loc.repository.bagit.domain.Bag;
 import gov.loc.repository.bagit.domain.Manifest;
 import gov.loc.repository.bagit.exceptions.InvalidBagitFileFormatException;
 import gov.loc.repository.bagit.hash.StandardSupportedAlgorithms;
-import nl.knaw.dans.validatedansbag.core.config.OtherIdPrefix;
 import nl.knaw.dans.validatedansbag.core.engine.RuleResult;
 import nl.knaw.dans.validatedansbag.core.engine.RuleResult.Status;
 import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReader;
@@ -71,7 +70,7 @@ class BagRulesImplTest {
     final FilesXmlService filesXmlService = Mockito.mock(FilesXmlService.class);
 
     final OrganizationIdentifierPrefixValidator organizationIdentifierPrefixValidator = new OrganizationIdentifierPrefixValidatorImpl(
-        List.of(new OtherIdPrefix("user001", "USER1-"), new OtherIdPrefix("user002", "U2:"))
+        List.of("USER1-", "U2:")
     );
 
     @AfterEach
@@ -1252,7 +1251,7 @@ class BagRulesImplTest {
 
         var result = checker.organizationalIdentifierPrefixIsValid().validate(Path.of("bagdir"));
 
-        assertEquals(RuleResult.Status.SKIP_DEPENDENCIES, result.getStatus());
+        assertEquals(RuleResult.Status.ERROR, result.getStatus());
     }
 
     @Test

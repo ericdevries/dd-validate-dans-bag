@@ -39,15 +39,13 @@ public class DatastationRulesImpl implements DatastationRules {
     private static final Logger log = LoggerFactory.getLogger(DatastationRulesImpl.class);
     private final BagItMetadataReader bagItMetadataReader;
     private final DataverseService dataverseService;
-    private final SwordDepositorRoles swordDepositorRoles;
     private final XmlReader xmlReader;
     private final LicenseValidator licenseValidator;
 
-    public DatastationRulesImpl(BagItMetadataReader bagItMetadataReader, DataverseService dataverseService, SwordDepositorRoles swordDepositorRoles, XmlReader xmlReader,
+    public DatastationRulesImpl(BagItMetadataReader bagItMetadataReader, DataverseService dataverseService, XmlReader xmlReader,
         LicenseValidator licenseValidator) {
         this.bagItMetadataReader = bagItMetadataReader;
         this.dataverseService = dataverseService;
-        this.swordDepositorRoles = swordDepositorRoles;
         this.xmlReader = xmlReader;
         this.licenseValidator = licenseValidator;
     }

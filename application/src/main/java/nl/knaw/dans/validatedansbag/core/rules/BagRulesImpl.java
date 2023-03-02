@@ -827,15 +827,10 @@ public class BagRulesImpl implements BagRules {
     public BagValidatorRule organizationalIdentifierPrefixIsValid() {
         return path -> {
             var hasOrganizationalIdentifier = bagItMetadataReader.getSingleField(path, "Has-Organizational-Identifier");
-            var userAccount = bagItMetadataReader.getSingleField(path, "Data-Station-User-Account");
 
             log.debug("Checking prefix on organizational identifier '{}'", hasOrganizationalIdentifier);
 
-            if (hasOrganizationalIdentifier == null || userAccount == null) {
-                return RuleResult.skipDependencies();
-            }
-
-            var isValid = organizationIdentifierPrefixValidator.hasValidPrefix(userAccount, hasOrganizationalIdentifier);
+            var isValid = organizationIdentifierPrefixValidator.hasValidPrefix(hasOrganizationalIdentifier);
 
             if (!isValid) {
                 return RuleResult.error(String.format("No valid prefix given for value of 'Has-Organizational-Identifier': %s", hasOrganizationalIdentifier));

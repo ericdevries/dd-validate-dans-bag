@@ -29,8 +29,6 @@ import nl.knaw.dans.validatedansbag.api.ValidateCommand;
 import nl.knaw.dans.validatedansbag.api.ValidateOk;
 import nl.knaw.dans.validatedansbag.api.ValidateOkRuleViolations;
 import nl.knaw.dans.validatedansbag.core.auth.SwordUser;
-import nl.knaw.dans.validatedansbag.core.config.OtherIdPrefix;
-import nl.knaw.dans.validatedansbag.core.config.SwordDepositorRoles;
 import nl.knaw.dans.validatedansbag.core.engine.RuleEngineImpl;
 import nl.knaw.dans.validatedansbag.core.rules.BagRulesImpl;
 import nl.knaw.dans.validatedansbag.core.rules.DatastationRulesImpl;
@@ -116,7 +114,7 @@ class ValidateResourceIntegrationTest {
         var filesXmlService = new FilesXmlServiceImpl(xmlReader);
 
         var organizationIdentifierPrefixValidator = new OrganizationIdentifierPrefixValidatorImpl(
-            List.of(new OtherIdPrefix("user001", "u1:"), new OtherIdPrefix("user002", "u2:"))
+            List.of("u1:",  "u2:")
         );
 
         // set up the different rule implementations
@@ -124,7 +122,7 @@ class ValidateResourceIntegrationTest {
             organizationIdentifierPrefixValidator, filesXmlService);
         var filesXmlRules = new FilesXmlRulesImpl(fileService, originalFilepathsService, filesXmlService);
         var xmlRules = new XmlRulesImpl(xmlReader, xmlSchemaValidator, fileService);
-        var datastationRules = new DatastationRulesImpl(bagItMetadataReader, dataverseService, new SwordDepositorRoles("datasetcreator", "dataseteditor"), xmlReader, licenseValidator);
+        var datastationRules = new DatastationRulesImpl(bagItMetadataReader, dataverseService, xmlReader, licenseValidator);
 
         // set up the engine and the service that has a default set of rules
         var ruleEngine = new RuleEngineImpl();
