@@ -22,7 +22,7 @@
     <parent>
         <groupId>nl.knaw.dans</groupId>
         <artifactId>dd-parent</artifactId>
-        <version>0.16.0</version>
+        <version>0.17.0</version>
         <relativePath />
     </parent>
 
@@ -94,7 +94,6 @@
         <dependency>
             <groupId>nl.knaw.dans</groupId>
             <artifactId>dans-dataverse-client-lib</artifactId>
-            <version>0.17.0</version>
         </dependency>
 
         <dependency>
