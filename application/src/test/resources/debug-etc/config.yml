@@ -32,12 +32,12 @@ validation:
     - 'EXAMPLE:'
 
   xmlSchemas:
-      dataset.xml: file:../../dans-schema/src/main/resources/md/ddm/v2/ddm.xsd
-      files.xml: file:../../dans-schema/src/main/resources/bag/metadata/files/files.xsd
-      agreements.xml: file:../../dans-schema/src/main/resources/bag/metadata/agreements/agreements.xsd
-      provenance.xml: file:../../dans-schema/src/main/resources/bag/metadata/prov/v2/provenance.xsd
-      amd.xml: file:../../dans-schema/src/main/resources/bag/metadata/amd/amd.xsd
-      emd.xml: file:../../dans-schema/src/main/resources/md/emd/emd.xsd
+      dataset.xml: file:../../dans-schema/lib/src/main/resources/md/ddm/v2/ddm.xsd
+      files.xml: file:../../dans-schema/lib/src/main/resources/bag/metadata/files/files.xsd
+      agreements.xml: file:../../dans-schema/lib/src/main/resources/bag/metadata/agreements/agreements.xsd
+      provenance.xml: file:../../dans-schema/lib/src/main/resources/bag/metadata/prov/v2/provenance.xsd
+      amd.xml: file:../../dans-schema/lib/src/main/resources/bag/metadata/amd/amd.xsd
+      emd.xml: file:../../dans-schema/lib/src/main/resources/md/emd/emd.xsd
 
 health:
   delayedShutdownHandlerEnabled: false
