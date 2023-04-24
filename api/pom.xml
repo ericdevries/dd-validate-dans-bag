@@ -22,7 +22,7 @@
     <parent>
         <groupId>nl.knaw.dans</groupId>
         <artifactId>dd-parent</artifactId>
-        <version>0.18.0</version>
+        <version>0.19.0</version>
         <relativePath />
     </parent>
 
