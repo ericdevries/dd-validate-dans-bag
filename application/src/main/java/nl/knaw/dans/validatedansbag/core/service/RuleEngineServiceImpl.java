@@ -38,6 +38,7 @@ public class RuleEngineServiceImpl implements RuleEngineService {
     private final NumberedRule[] defaultRules;
     private final Path datasetPath = Path.of("metadata/dataset.xml");
     private final Path metadataPath = Path.of("metadata");
+    private final Path payloadPath = Path.of("data");
     private final Path metadataFilesPath = Path.of("metadata/files.xml");
 
     public RuleEngineServiceImpl(RuleEngine ruleEngine, BagRules bagRules, XmlRules xmlRules, FilesXmlRules filesXmlRules, FileService fileService, DatastationRules datastationRules) {
@@ -88,6 +89,10 @@ public class RuleEngineServiceImpl implements RuleEngineService {
                 "dataset.xml",
                 "files.xml"
             }), DepositType.DEPOSIT, List.of("2.1")),
+
+            new NumberedRule("2.5", bagRules.mustNotContain(payloadPath, new String[] {
+                "original-metadata.zip"
+            }), List.of("1.1.1")),
 
             // metadata/dataset.xml
             new NumberedRule("3.1.1", xmlRules.xmlFileConformsToSchema(datasetPath, "dataset.xml"), List.of("1.1.1", "2.2(a)")),

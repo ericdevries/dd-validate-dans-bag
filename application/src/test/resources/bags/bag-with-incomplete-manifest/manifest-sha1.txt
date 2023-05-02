@@ -1,0 +1,5 @@
+da39a3ee5e6b4b0d3255bfef95601890afd80709  data/leeg.txt
+da39a3ee5e6b4b0d3255bfef95601890afd80709  data/sub/leeg2.txt
+da39a3ee5e6b4b0d3255bfef95601890afd80709  data/sub/sub/vacio.txt
+8018fd2ee706f98337e488afeb0aa6015f60e696  data/sine-md5.txt
+8018fd2ee706f98337e488afeb0aa6015f60e696  data/sub/sub/sine-md5.txt
