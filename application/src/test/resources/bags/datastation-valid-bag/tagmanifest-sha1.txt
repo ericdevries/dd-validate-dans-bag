@@ -1,7 +1,7 @@
 b06c692932b54ad4181ce6ce09e33b70dd547089  bag-info.txt
 e2924b081506bac23f5fffe650ad1848a1c8ac1d  bagit.txt
 0e24fb6120bbc3a18e29db5501286d698f1ee14a  manifest-sha1.txt
-ff24912d484516ffdd2adae0d9e832606476e88f  original-filepaths.txt
+f1a31d62e5f45b4569f7c4bab828e4cb4c2788a9  original-filepaths.txt
 410552d46fdb94b1e9d1be5169e57501bd77bf1c  metadata/files.xml
 955063dc5321a22b8c71d742bd11c11774af3726  metadata/amd.xml
 144c4f8002e7192644118ca9a4e01628871c6bf9  metadata/emd.xml
