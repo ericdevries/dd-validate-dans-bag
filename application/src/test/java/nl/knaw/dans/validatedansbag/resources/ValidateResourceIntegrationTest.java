@@ -44,7 +44,6 @@ import nl.knaw.dans.validatedansbag.core.service.XmlReaderImpl;
 import nl.knaw.dans.validatedansbag.core.service.XmlSchemaValidator;
 import nl.knaw.dans.validatedansbag.core.validator.IdentifierValidatorImpl;
 import nl.knaw.dans.validatedansbag.core.validator.LicenseValidator;
-import nl.knaw.dans.validatedansbag.core.validator.LicenseValidatorImpl;
 import nl.knaw.dans.validatedansbag.core.validator.OrganizationIdentifierPrefixValidatorImpl;
 import nl.knaw.dans.validatedansbag.core.validator.PolygonListValidatorImpl;
 import nl.knaw.dans.validatedansbag.resources.util.MockAuthorization;
@@ -67,6 +66,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static nl.knaw.dans.validatedansbag.resources.util.TestUtil.basicUsernamePassword;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -267,7 +267,7 @@ class ValidateResourceIntegrationTest {
     }
 
     @Test
-    void validateFormData_should_have_validation_erros_with_invalid_bag_and_original_filepaths() throws Exception {
+    void validateFormData_should_have_validation_errors_with_invalid_bag_and_original_filepaths() throws Exception {
         var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("bags/original-filepaths-invalid-bag")).getFile();
 
         var data = new ValidateCommand();
@@ -298,6 +298,76 @@ class ValidateResourceIntegrationTest {
         assertEquals("1.0.0", response.getProfileVersion());
         assertEquals(ValidateOk.InformationPackageTypeEnum.MIGRATION, response.getInformationPackageType());
         assertEquals(filename, response.getBagLocation());
+    }
+
+    @Test
+    void validateFormData_should_have_validation_errors_with_not_allowed_original_metadata_zip() throws Exception {
+        var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("bags/bag-with-original-metadata-zip")).getFile();
+
+        var data = new ValidateCommand();
+        data.setBagLocation(filename);
+        data.setPackageType(ValidateCommand.PackageTypeEnum.DEPOSIT);
+        var multipart = new FormDataMultiPart()
+            .field("command", data, MediaType.APPLICATION_JSON_TYPE);
+
+        var embargoResultJson = "{\n"
+            + "  \"status\": \"OK\",\n"
+            + "  \"data\": {\n"
+            + "    \"message\": \"24\"\n"
+            + "  }\n"
+            + "}";
+        var maxEmbargoDurationResult = new MockedDataverseResponse<DataMessage>(embargoResultJson, DataMessage.class);
+        Mockito.when(dataverseService.getMaxEmbargoDurationInMonths())
+            .thenReturn(maxEmbargoDurationResult);
+
+        var response = EXT.target("/validate")
+            .register(MultiPartFeature.class)
+            .request()
+            .post(Entity.entity(multipart, multipart.getMediaType()), ValidateOk.class);
+
+        assertFalse(response.getIsCompliant());
+        assertEquals("1.0.0", response.getProfileVersion());
+        assertEquals(ValidateOk.InformationPackageTypeEnum.DEPOSIT, response.getInformationPackageType());
+        assertEquals(filename, response.getBagLocation());
+        assertThat(response.getRuleViolations().size()).isEqualTo(1);
+        assertThat(response.getRuleViolations().get(0).getViolation()).contains("not allowed");
+        assertThat(response.getRuleViolations().get(0).getViolation()).contains("original-metadata.zip");
+        assertThat(response.getRuleViolations().get(0).getRule()).isEqualTo("2.5");
+    }
+
+    @Test
+    void validateFormData_should_not_throw_internal_server_error_on_incomplete_manifest() throws Exception {
+        var filename = Objects.requireNonNull(getClass().getClassLoader().getResource("bags/bag-with-incomplete-manifest")).getFile();
+
+        var data = new ValidateCommand();
+        data.setBagLocation(filename);
+        data.setPackageType(ValidateCommand.PackageTypeEnum.DEPOSIT);
+        var multipart = new FormDataMultiPart()
+            .field("command", data, MediaType.APPLICATION_JSON_TYPE);
+
+        var embargoResultJson = "{\n"
+            + "  \"status\": \"OK\",\n"
+            + "  \"data\": {\n"
+            + "    \"message\": \"24\"\n"
+            + "  }\n"
+            + "}";
+        var maxEmbargoDurationResult = new MockedDataverseResponse<DataMessage>(embargoResultJson, DataMessage.class);
+        Mockito.when(dataverseService.getMaxEmbargoDurationInMonths())
+            .thenReturn(maxEmbargoDurationResult);
+
+        var response = EXT.target("/validate")
+            .register(MultiPartFeature.class)
+            .request()
+            .post(Entity.entity(multipart, multipart.getMediaType()), ValidateOk.class);
+
+        assertFalse(response.getIsCompliant());
+        assertEquals("1.0.0", response.getProfileVersion());
+        assertEquals(ValidateOk.InformationPackageTypeEnum.DEPOSIT, response.getInformationPackageType());
+        assertEquals(filename, response.getBagLocation());
+        assertThat(response.getRuleViolations().size()).isEqualTo(1);
+        assertThat(response.getRuleViolations().get(0).getRule()).isEqualTo("1.1.1");
+        assertThat(response.getRuleViolations().get(0).getViolation())
+            .endsWith("original-metadata.zip] is in the payload directory but isn't listed in any manifest!");
     }
 
     @Test

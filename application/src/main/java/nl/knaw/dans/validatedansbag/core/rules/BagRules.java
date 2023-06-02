@@ -37,6 +37,8 @@ public interface BagRules {
 
     BagValidatorRule containsNothingElseThan(Path dir, String[] paths);
 
+    BagValidatorRule mustNotContain(Path dir, String[] paths);
+
     BagValidatorRule optionalFileIsUtf8Decodable(Path path);
 
     BagValidatorRule isOriginalFilepathsFileComplete();

@@ -16,6 +16,7 @@
 package nl.knaw.dans.validatedansbag.core.rules;
 
 import gov.loc.repository.bagit.exceptions.CorruptChecksumException;
+import gov.loc.repository.bagit.exceptions.FileNotInManifestException;
 import gov.loc.repository.bagit.exceptions.FileNotInPayloadDirectoryException;
 import gov.loc.repository.bagit.exceptions.InvalidBagitFileFormatException;
 import gov.loc.repository.bagit.exceptions.MissingBagitFileException;
@@ -104,8 +105,10 @@ public class BagRulesImpl implements BagRules {
                 log.debug("Bag {} is valid", path);
                 return RuleResult.ok();
             }
-            // only catch exceptions that have to do with the bag verification; other exceptions such as IOException should be propagated to the rule engine
-            catch (InvalidBagitFileFormatException | MissingPayloadManifestException | MissingPayloadDirectoryException | FileNotInPayloadDirectoryException | MissingBagitFileException |
+            // only catch exceptions that have to do with the bag verification;
+            // other exceptions such as IOException should be propagated to the rule engine
+            // sadly FileNotInManifestException bubbles up as an IOException
+            catch (FileNotInManifestException | InvalidBagitFileFormatException | MissingPayloadManifestException | MissingPayloadDirectoryException | FileNotInPayloadDirectoryException | MissingBagitFileException |
                    CorruptChecksumException | VerificationException | NoSuchFileException e) {
 
                 return RuleResult.error(String.format(
@@ -281,6 +284,37 @@ public class BagRulesImpl implements BagRules {
 
             if (allItems.size() > 0) {
                 var filenames = allItems.stream().map(Path::toString).collect(Collectors.joining(", "));
+
+                return RuleResult.error(String.format(
+                    "Directory %s contains files or directories that are not allowed: %s",
+                    dir, filenames
+                ));
+            }
+
+            return RuleResult.ok();
+        };
+    }
+
+    @Override
+    public BagValidatorRule mustNotContain(Path dir, String[] paths) {
+        return (path) -> {
+            var basePath = path.resolve(dir);
+            var notAllowed = Arrays.stream(paths)
+                .map(Path::of)
+                .collect(Collectors.toSet());
+
+            var foundButNotAllowedItems = fileService.getAllFilesAndDirectories(basePath)
+                .stream()
+                .filter(p -> !basePath.equals(p))
+                .map(basePath::relativize)
+                .filter(notAllowed::contains)
+                // filter out the parent path
+                .collect(Collectors.toSet());
+
+            log.debug("Found items that are not allowed in path {}: {} ", basePath, foundButNotAllowedItems);
+
+            if (foundButNotAllowedItems.size() > 0) {
+                var filenames = foundButNotAllowedItems.stream().map(Path::toString).collect(Collectors.joining(", "));
 
                 return RuleResult.error(String.format(
                     "Directory %s contains files or directories that are not allowed: %s",
