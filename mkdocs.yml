@@ -24,6 +24,7 @@ repo_url: https://github.com/DANS-KNAW/dd-validate-dans-bag
 nav:
   - Manual: index.md
   - API: to-api.md
+  - ⇒ DANS Data Station Architecture: arch.md
 
 plugins:
   - markdownextradata
