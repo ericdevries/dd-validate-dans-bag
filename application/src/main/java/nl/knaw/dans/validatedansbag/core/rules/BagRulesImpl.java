@@ -466,12 +466,8 @@ public class BagRulesImpl implements BagRules {
 
             var nodes = xmlReader.xpathToStreamOfStrings(document, expr);
             var match = nodes
-                .peek(node -> {
-                    log.trace("Validating if {} matches pattern {}", node, doiPattern);
-                })
-                .filter((text) -> {
-                    return !doiPattern.matcher(text).matches();
-                })
+                .peek(node -> log.trace("Validating if {} matches pattern {}", node, doiPattern))
+                .filter((text) -> !doiPattern.matcher(text).matches())
                 .collect(Collectors.joining(", "));
 
             log.debug("Identifiers (DOI) that do not match the pattern: {}", match);
@@ -492,9 +488,7 @@ public class BagRulesImpl implements BagRules {
             var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
             var expr = "//dcx-dai:DAI";
             var match = xmlReader.xpathToStreamOfStrings(document, expr)
-                .peek(id -> {
-                    log.trace("Validating if {} is a valid DAI", id);
-                })
+                .peek(id -> log.trace("Validating if {} is a valid DAI", id))
                 .filter((id) -> !identifierValidator.validateDai(id))
                 .collect(Collectors.toList());
 
@@ -515,9 +509,7 @@ public class BagRulesImpl implements BagRules {
             var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
             var expr = "//dcx-dai:ISNI";
             var match = xmlReader.xpathToStreamOfStrings(document, expr)
-                .peek(id -> {
-                    log.trace("Validating if {} is a valid ISNI", id);
-                })
+                .peek(id -> log.trace("Validating if {} is a valid ISNI", id))
                 .filter((id) -> !identifierValidator.validateIsni(id))
                 .collect(Collectors.toList());
 
@@ -538,9 +530,7 @@ public class BagRulesImpl implements BagRules {
             var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
             var expr = "//dcx-dai:ORCID";
             var match = xmlReader.xpathToStreamOfStrings(document, expr)
-                .peek(id -> {
-                    log.trace("Validating if {} is a valid ISNI", id);
-                })
+                .peek(id -> log.trace("Validating if {} is a valid ISNI", id))
                 .filter((id) -> !identifierValidator.validateOrcid(id))
                 .collect(Collectors.toList());
 
@@ -563,9 +553,7 @@ public class BagRulesImpl implements BagRules {
             var nodes = xmlReader.xpathToStreamOfStrings(document, expr);
 
             var match = nodes
-                .peek(posList -> {
-                    log.trace("Validation posList value {}", posList);
-                })
+                .peek(posList -> log.trace("Validation posList value {}", posList))
                 .map(polygonListValidator::validatePolygonList)
                 .filter(e -> !e.isValid())
                 .map(PolygonListValidator.PolygonValidationResult::getMessage)
@@ -642,7 +630,7 @@ public class BagRulesImpl implements BagRules {
 
                         if (parts.size() < 2) {
                             return String.format(
-                                "Point has less than two coordinates: %s", text
+                                "%s has less than two coordinates: %s", value.getLocalName(), text
                             );
                         }
 
@@ -654,14 +642,14 @@ public class BagRulesImpl implements BagRules {
 
                             if (!valid) {
                                 return String.format(
-                                    "Point is outside RD bounds: %s", text
+                                    "%s is outside RD bounds: %s", value.getLocalName(), text
                                 );
                             }
                         }
                     }
                     catch (NumberFormatException e) {
                         return String.format(
-                            "Point has non numeric coordinates: %s", text
+                            "%s has non numeric coordinates: %s", value.getLocalName(), text
                         );
                     }
 
@@ -689,9 +677,7 @@ public class BagRulesImpl implements BagRules {
             var expr = "/ddm:DDM/ddm:dcmiMetadata/dcterms:identifier[@xsi:type = 'id-type:ARCHIS-ZAAK-IDENTIFICATIE']";
             var match = xmlReader.xpathToStreamOfStrings(document, expr)
                 .filter(Objects::nonNull)
-                .peek(text -> {
-                    log.trace("Validating element text '{}' for maximum length", text);
-                })
+                .peek(text -> log.trace("Validating element text '{}' for maximum length", text))
                 .filter(text -> text.length() > 10)
                 .collect(Collectors.toList());
 

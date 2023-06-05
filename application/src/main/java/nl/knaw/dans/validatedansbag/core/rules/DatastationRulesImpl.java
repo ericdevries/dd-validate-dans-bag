@@ -19,7 +19,6 @@ import nl.knaw.dans.lib.dataverse.DataverseException;
 import nl.knaw.dans.lib.dataverse.model.dataset.DatasetLatestVersion;
 import nl.knaw.dans.lib.dataverse.model.dataset.PrimitiveSingleValueField;
 import nl.knaw.dans.lib.dataverse.model.search.DatasetResultItem;
-import nl.knaw.dans.validatedansbag.core.config.SwordDepositorRoles;
 import nl.knaw.dans.validatedansbag.core.engine.RuleResult;
 import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReader;
 import nl.knaw.dans.validatedansbag.core.service.DataverseService;
@@ -144,7 +143,7 @@ public class DatastationRulesImpl implements DatastationRules {
                 return RuleResult.ok();
             }
             else {
-                return RuleResult.error("Date available is further is the future than the Embargo Period allows");
+                return RuleResult.error("Date available is further in the future than the Embargo Period allows");
             }
         };
     }
