@@ -17,21 +17,13 @@
 package nl.knaw.dans.validatedansbag;
 
 import io.dropwizard.Application;
-import io.dropwizard.auth.AuthDynamicFeature;
-import io.dropwizard.auth.AuthValueFactoryProvider;
-import io.dropwizard.auth.basic.BasicCredentialAuthFilter;
-import io.dropwizard.client.HttpClientBuilder;
 import io.dropwizard.forms.MultiPartBundle;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
-import nl.knaw.dans.validatedansbag.core.auth.SwordAuthenticator;
-import nl.knaw.dans.validatedansbag.core.auth.SwordUser;
 import nl.knaw.dans.validatedansbag.core.engine.RuleEngineImpl;
-import nl.knaw.dans.validatedansbag.core.rules.BagRulesImpl;
-import nl.knaw.dans.validatedansbag.core.rules.DatastationRulesImpl;
-import nl.knaw.dans.validatedansbag.core.rules.FilesXmlRulesImpl;
-import nl.knaw.dans.validatedansbag.core.rules.XmlRulesImpl;
+import nl.knaw.dans.validatedansbag.core.rules.RuleSets;
 import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReaderImpl;
+import nl.knaw.dans.validatedansbag.core.service.DataverseService;
 import nl.knaw.dans.validatedansbag.core.service.DataverseServiceImpl;
 import nl.knaw.dans.validatedansbag.core.service.FileServiceImpl;
 import nl.knaw.dans.validatedansbag.core.service.FilesXmlServiceImpl;
@@ -71,32 +63,39 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
 
     @Override
     public void run(final DdValidateDansBagConfiguration configuration, final Environment environment) {
+        validateContextConfiguration(configuration);
+        DataverseService dataverseService = null;
+
+        if (configuration.getDataverse() != null) {
+            dataverseService = new DataverseServiceImpl(configuration.getDataverse().build());
+        }
 
         var fileService = new FileServiceImpl();
         var bagItMetadataReader = new BagItMetadataReaderImpl();
         var xmlReader = new XmlReaderImpl();
-        var daiDigestCalculator = new IdentifierValidatorImpl();
         var polygonListValidator = new PolygonListValidatorImpl();
         var originalFilepathsService = new OriginalFilepathsServiceImpl(fileService);
         var filesXmlService = new FilesXmlServiceImpl(xmlReader);
+        var xmlSchemaValidator = new XmlSchemaValidatorImpl(configuration.getValidation().getXmlSchemas().buildMap());
 
-        var xmlSchemaValidator = new XmlSchemaValidatorImpl(configuration.getValidationConfig().getXmlSchemas().buildMap());
-
-        var dataverseService = new DataverseServiceImpl(configuration.getDataverse().build());
         var licenseValidator = new LicenseValidatorImpl(dataverseService);
+        var identifierValidator = new IdentifierValidatorImpl();
+        var organizationIdentifierPrefixValidator = new OrganizationIdentifierPrefixValidatorImpl(configuration.getValidation().getOtherIdPrefixes());
 
-        var organizationIdentifierPrefixValidator = new OrganizationIdentifierPrefixValidatorImpl(configuration.getValidationConfig().getOtherIdPrefixes());
-
-        // set up the different rule implementations
-        var bagRules = new BagRulesImpl(fileService, bagItMetadataReader, xmlReader, originalFilepathsService, daiDigestCalculator, polygonListValidator, licenseValidator,
-            organizationIdentifierPrefixValidator, filesXmlService);
-        var filesXmlRules = new FilesXmlRulesImpl(fileService, originalFilepathsService, filesXmlService);
-        var xmlRules = new XmlRulesImpl(xmlReader, xmlSchemaValidator, fileService);
-        var datastationRules = new DatastationRulesImpl(bagItMetadataReader, dataverseService, xmlReader, licenseValidator);
-
-        // set up the engine and the service that has a default set of rules
         var ruleEngine = new RuleEngineImpl();
-        var ruleEngineService = new RuleEngineServiceImpl(ruleEngine, bagRules, xmlRules, filesXmlRules, fileService, datastationRules);
+        var ruleSets = new RuleSets(dataverseService,
+                fileService,
+                filesXmlService,
+                originalFilepathsService,
+                xmlReader,
+                bagItMetadataReader,
+                xmlSchemaValidator,
+                licenseValidator,
+                identifierValidator,
+                polygonListValidator,
+                organizationIdentifierPrefixValidator);
+        var ruleEngineService = new RuleEngineServiceImpl(ruleEngine, fileService,
+                configuration.getDataverse() != null ? ruleSets.getDataStationSet() : ruleSets.getVaasSet());
 
         environment.jersey().register(new IllegalArgumentExceptionMapper());
         environment.jersey().register(new ValidateResource(ruleEngineService, fileService));
@@ -104,5 +103,11 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
 
         environment.healthChecks().register("xml-schemas", new XmlSchemaHealthCheck(xmlSchemaValidator));
         environment.healthChecks().register("dataverse", new DataverseHealthCheck(dataverseService));
+    }
+
+    private void validateContextConfiguration(DdValidateDansBagConfiguration configuration) {
+        if ((configuration.getDataverse() != null) == (configuration.getVaultCatalog() != null)) {
+            throw new IllegalArgumentException("Exactly one of dataverse and vaultCatalog must be configured");
+        }
     }
 }

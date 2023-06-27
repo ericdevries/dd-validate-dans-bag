@@ -15,13 +15,6 @@
  */
 package nl.knaw.dans.validatedansbag.core.rules;
 
-public interface DatastationRules {
-
-    BagValidatorRule bagExistsInDatastation();
-
-    BagValidatorRule organizationalIdentifierExistsInDataset();
-
-    BagValidatorRule embargoPeriodWithinLimits();
-
-    BagValidatorRule licenseExistsInDatastation();
+public class BagDirDoesNotContainTest {
+    //
 }

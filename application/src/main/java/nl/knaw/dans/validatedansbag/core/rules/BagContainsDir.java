@@ -15,9 +15,26 @@
  */
 package nl.knaw.dans.validatedansbag.core.rules;
 
-public interface FilesXmlRules {
 
-    BagValidatorRule filesXmlFilePathAttributesContainLocalBagPathAndNonPayloadFilesAreNotDescribed();
+import lombok.AllArgsConstructor;
+import nl.knaw.dans.validatedansbag.core.engine.RuleResult;
+import nl.knaw.dans.validatedansbag.core.service.FileService;
 
-    BagValidatorRule filesXmlNoDuplicateFilesAndEveryPayloadFileIsDescribed();
+import java.nio.file.Path;
+
+@AllArgsConstructor
+public class BagContainsDir implements BagValidatorRule {
+    private final Path dir;
+    private final FileService fileService;
+
+    @Override
+    public RuleResult validate(Path path) throws Exception {
+        var target = path.resolve(dir);
+
+        if (!fileService.isDirectory(target)) {
+            return RuleResult.error(String.format("Path '%s' is not a directory", dir));
+        }
+
+        return RuleResult.ok();
+    }
 }

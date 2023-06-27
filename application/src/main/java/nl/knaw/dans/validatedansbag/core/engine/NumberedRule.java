@@ -28,8 +28,8 @@ public class NumberedRule {
     public NumberedRule(String number, BagValidatorRule rule, DepositType depositType, List<String> dependencies) {
         this.number = number;
         this.rule = rule;
-        this.dependencies = dependencies;
         this.depositType = depositType;
+        this.dependencies = dependencies;
     }
 
     public NumberedRule(String number, BagValidatorRule rule) {
@@ -63,11 +63,11 @@ public class NumberedRule {
     @Override
     public String toString() {
         return "NumberedRule{" +
-            "number='" + number + '\'' +
-            ", rule=" + rule +
-            ", dependencies=" + dependencies +
-            ", depositType=" + depositType +
-            '}';
+                "number='" + number + '\'' +
+                ", rule=" + rule +
+                ", dependencies=" + dependencies +
+                ", depositType=" + depositType +
+                '}';
     }
 
 }

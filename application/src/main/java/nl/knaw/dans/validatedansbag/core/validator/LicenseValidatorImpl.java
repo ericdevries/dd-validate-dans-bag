@@ -37,7 +37,7 @@ public class LicenseValidatorImpl implements LicenseValidator {
     }
 
     @Override
-    public boolean isValidLicenseURI(String license) {
+    public boolean isValidUri(String license) {
         try {
             new URI(license);
             return true;

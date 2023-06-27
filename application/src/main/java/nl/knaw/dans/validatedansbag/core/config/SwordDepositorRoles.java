@@ -15,36 +15,16 @@
  */
 package nl.knaw.dans.validatedansbag.core.config;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import javax.validation.constraints.NotEmpty;
 
+@Getter
+@Setter
 public class SwordDepositorRoles {
     @NotEmpty
     private String datasetCreator;
     @NotEmpty
     private String datasetEditor;
-
-    public SwordDepositorRoles(String datasetCreator, String datasetEditor) {
-        this.datasetCreator = datasetCreator;
-        this.datasetEditor = datasetEditor;
-    }
-
-    public SwordDepositorRoles() {
-
-    }
-
-    public String getDatasetCreator() {
-        return datasetCreator;
-    }
-
-    public void setDatasetCreator(String datasetCreator) {
-        this.datasetCreator = datasetCreator;
-    }
-
-    public String getDatasetEditor() {
-        return datasetEditor;
-    }
-
-    public void setDatasetEditor(String datasetEditor) {
-        this.datasetEditor = datasetEditor;
-    }
 }

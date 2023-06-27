@@ -38,14 +38,14 @@ class LicenseValidatorImplTest {
     @Test
     void isValidLicenseURI_should_return_true_if_license_is_valid_uri() {
         var license = "http://creativecommons.org/licenses/by-nc-nd/4.0/";
-        assertTrue(new LicenseValidatorImpl(dataverseService).isValidLicenseURI(license));
+        assertTrue(new LicenseValidatorImpl(dataverseService).isValidUri(license));
     }
 
     @Test
     void isValidLicenseURI_should_return_false_when_url_is_not_valid() {
         var license = "invalid license";
-        assertFalse(new LicenseValidatorImpl(dataverseService).isValidLicenseURI(license));
-        assertFalse(new LicenseValidatorImpl(dataverseService).isValidLicenseURI("something completely different"));
+        assertFalse(new LicenseValidatorImpl(dataverseService).isValidUri(license));
+        assertFalse(new LicenseValidatorImpl(dataverseService).isValidUri("something completely different"));
     }
 
     @Test

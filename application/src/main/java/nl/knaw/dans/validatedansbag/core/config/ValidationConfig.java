@@ -15,14 +15,17 @@
  */
 package nl.knaw.dans.validatedansbag.core.config;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import io.dropwizard.client.HttpClientConfiguration;
+import lombok.Getter;
+import lombok.Setter;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import java.util.List;
 
 @Valid
+@Getter
+@Setter
 public class ValidationConfig {
 
     @NotNull
@@ -35,28 +38,5 @@ public class ValidationConfig {
 
     @Valid
     private HttpClientConfiguration httpClient = new HttpClientConfiguration();
-
-    public List<String> getOtherIdPrefixes() {
-        return otherIdPrefixes;
-    }
-
-    public void setOtherIdPrefixes(List<String> otherIdPrefixes) {
-        this.otherIdPrefixes = otherIdPrefixes;
-    }
-
-    public XmlSchemaConfig getXmlSchemas() {
-        return xmlSchemas;
-    }
-
-    public void setXmlSchemas(XmlSchemaConfig xmlSchemas) {
-        this.xmlSchemas = xmlSchemas;
-    }
-
-    public HttpClientConfiguration getHttpClient() {
-        return httpClient;
-    }
-
-    public void setHttpClient(HttpClientConfiguration httpClient) {
-        this.httpClient = httpClient;
-    }
 }
+

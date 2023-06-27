@@ -21,7 +21,7 @@ import java.io.IOException;
 
 public interface LicenseValidator {
 
-    boolean isValidLicenseURI(String license);
+    boolean isValidUri(String license);
 
     boolean isValidLicense(String license) throws IOException, DataverseException;
 }

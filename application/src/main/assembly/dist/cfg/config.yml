@@ -16,9 +16,16 @@ logging:
       type: file
       timeZone: system
 
+#
+# The following two sections determine whether the validation will be done for the Data Station context or the
+# Vault as a Service context. Only one of `dataverse` and `vaultCatalog` should be filled in.
+#
 dataverse:
   apiKey: ""
   baseUrl: "http://localhost:8080/"
+
+vaultCatalog:
+#  baseUrl: null
 
 validation:
   otherIdPrefixes: []

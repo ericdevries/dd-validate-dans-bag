@@ -266,6 +266,7 @@ public class RuleEngineImpl implements RuleEngine {
         return !depositType.equals(rule.getDepositType());
     }
 
+
     List<NumberedRule> filterRulesOnDepositType(NumberedRule[] rules, DepositType depositType) {
         return Arrays.stream(rules)
             .filter(rule -> !shouldBeIgnoredBecauseOfDepositType(rule, depositType))

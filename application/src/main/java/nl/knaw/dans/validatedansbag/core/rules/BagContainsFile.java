@@ -15,10 +15,28 @@
  */
 package nl.knaw.dans.validatedansbag.core.rules;
 
+import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import nl.knaw.dans.validatedansbag.core.engine.RuleResult;
+import nl.knaw.dans.validatedansbag.core.service.FileService;
+
 import java.nio.file.Path;
 
-public interface XmlRules {
-    BagValidatorRule xmlFileConformsToSchema(Path file, String schema);
+@AllArgsConstructor
+@Slf4j
+public class BagContainsFile implements BagValidatorRule {
 
-    BagValidatorRule xmlFileIfExistsConformsToSchema(Path file, String schema);
+    private final Path file;
+    private final FileService fileService;
+
+    @Override
+    public RuleResult validate(Path path) throws Exception {
+        var target = path.resolve(file);
+
+        if (!fileService.isFile(target)) {
+            return RuleResult.error(String.format("Path '%s' is not a file", file));
+        }
+
+        return RuleResult.ok();
+    }
 }

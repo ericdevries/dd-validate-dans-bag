@@ -15,40 +15,17 @@
  */
 package nl.knaw.dans.validatedansbag.core.config;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
+import java.net.URI;
 
-@SuppressWarnings("unused")
-public class DataverseConfig {
-    @Valid
+@Getter
+@Setter
+public class VaultCatalogConfig {
     @NotNull
-    private String baseUrl;
     @Valid
-    @NotNull
-    private String apiToken;
-
-    public DataverseConfig() {
-
-    }
-
-    public DataverseConfig(String baseUrl, String apiToken) {
-        this.baseUrl = baseUrl;
-        this.apiToken = apiToken;
-    }
-
-    public String getApiToken() {
-        return apiToken;
-    }
-
-    public void setApiToken(String apiToken) {
-        this.apiToken = apiToken;
-    }
-
-    public String getBaseUrl() {
-        return baseUrl;
-    }
-
-    public void setBaseUrl(String baseUrl) {
-        this.baseUrl = baseUrl;
-    }
+    private URI baseUrl;
 }

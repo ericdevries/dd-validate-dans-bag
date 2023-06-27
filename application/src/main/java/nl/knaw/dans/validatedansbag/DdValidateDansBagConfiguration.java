@@ -16,40 +16,28 @@
 
 package nl.knaw.dans.validatedansbag;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import io.dropwizard.Configuration;
+import lombok.Getter;
+import lombok.Setter;
 import nl.knaw.dans.lib.util.DataverseClientFactory;
 import nl.knaw.dans.validatedansbag.core.config.ValidationConfig;
+import nl.knaw.dans.validatedansbag.core.config.VaultCatalogConfig;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 
-@SuppressWarnings("unused")
+@Getter
+@Setter
 public class DdValidateDansBagConfiguration extends Configuration {
 
     @Valid
-    @NotNull
-    @JsonProperty("dataverse")
     private DataverseClientFactory dataverse;
 
     @Valid
+    private VaultCatalogConfig vaultCatalog;
+
+
+    @Valid
     @NotNull
-    @JsonProperty("validation")
-    private ValidationConfig validationConfig;
-
-    public DataverseClientFactory getDataverse() {
-        return dataverse;
-    }
-
-    public void setDataverse(DataverseClientFactory dataverse) {
-        this.dataverse = dataverse;
-    }
-
-    public void setValidationConfig(ValidationConfig validationConfig) {
-        this.validationConfig = validationConfig;
-    }
-
-    public ValidationConfig getValidationConfig() {
-        return validationConfig;
-    }
+    private ValidationConfig validation;
 }
