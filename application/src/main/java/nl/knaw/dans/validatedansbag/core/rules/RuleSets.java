@@ -181,7 +181,7 @@ public class RuleSets {
     private List<NumberedRule> getDataStationOnlyRules() {
         return List.of(
                 new NumberedRule("4.1(a)", new BagInfoIsVersionOfPointsToExistingDatasetInDataverse(dataverseService, bagItMetadataReader), DepositType.DEPOSIT, List.of("1.2.3(a)")),
-                new NumberedRule("4.1(b)", new BagInfoOrganizationalIdentifierExistsInDataset(dataverseService, bagItMetadataReader), DepositType.DEPOSIT, List.of("1.2.4(a)")),
+                new NumberedRule("4.1(b)", new BagInfoOrganizationalIdentifierExistsInDataset(dataverseService, bagItMetadataReader), DepositType.DEPOSIT, List.of("1.2.3(a)", "1.2.4(a)")),
                 new NumberedRule("4.2", new DatasetXmlLicenseAllowedByDatastation(xmlReader, licenseValidator), DepositType.DEPOSIT, List.of("3.1.2")),
                 new NumberedRule("4.3", new DatasetXmlEmbargoPeriodWithinLimits(dataverseService, xmlReader), DepositType.DEPOSIT, List.of("3.1.1")),
                 new NumberedRule("4.4", new BagDirDoesNotContain(payloadPath, new String[]{
