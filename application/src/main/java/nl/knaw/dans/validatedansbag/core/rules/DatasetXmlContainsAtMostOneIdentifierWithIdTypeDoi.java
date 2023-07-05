@@ -21,35 +21,30 @@ import nl.knaw.dans.validatedansbag.core.engine.RuleResult;
 import nl.knaw.dans.validatedansbag.core.service.XmlReader;
 
 import java.nio.file.Path;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @AllArgsConstructor
 @Slf4j
-public class DatasetXmlDoisAreValid implements BagValidatorRule {
-    private static final Pattern doiPattern = Pattern.compile("^10(\\.\\d+)+/.+");
-
-    private final XmlReader xmlReader;
+public class DatasetXmlContainsAtMostOneIdentifierWithIdTypeDoi implements BagValidatorRule {
+    private XmlReader xmlReader;
 
     @Override
     public RuleResult validate(Path path) throws Exception {
         var document = xmlReader.readXmlFile(path.resolve("metadata/dataset.xml"));
         var idTypePrefix = document.lookupPrefix(XmlReader.NAMESPACE_ID_TYPE);
         var expr = String.format("/ddm:DDM/ddm:dcmiMetadata/dcterms:identifier[@xsi:type=\"%s:DOI\"]", idTypePrefix);
-        var nodes = xmlReader.xpathToStreamOfStrings(document, expr);
-        var invalidDois = nodes
-                .peek(node -> log.trace("Validating if {} matches pattern {}", node, doiPattern))
-                .filter((text) -> !doiPattern.matcher(text).matches())
-                .collect(Collectors.joining(", "));
+        var count = xmlReader.xpathToStreamOfStrings(document, expr).count();
 
-        log.debug("Identifiers (DOI) that do not match the pattern: {}", invalidDois);
-
-        if (invalidDois.length() > 0) {
+        if (count == 0) {
+            return RuleResult.skipDependencies();
+        }
+        else if (count == 1) {
+            return RuleResult.ok();
+        }
+        else {
             return RuleResult.error(String.format(
-                    "dataset.xml: Invalid DOIs: %s", invalidDois
+                "dataset.xml: More than one identifier with xsi:type=\"%s:DOI\" found", idTypePrefix
             ));
         }
-
-        return RuleResult.ok();
     }
 }
