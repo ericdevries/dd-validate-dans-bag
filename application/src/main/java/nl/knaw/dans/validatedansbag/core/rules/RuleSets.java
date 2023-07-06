@@ -194,7 +194,8 @@ public class RuleSets {
         // 5 Vault as a Service context requirements
         return List.of(
                 // TODO: 5.1
-                new NumberedRule("5.2", new DatasetXmlDoisAreValid(xmlReader), List.of("3.1.1"))
+                new NumberedRule("5.2(a)", new DatasetXmlContainsAtMostOneIdentifierWithIdTypeDoi(xmlReader), List.of("3.1.1")),
+                new NumberedRule("5.2(b)", new DatasetXmlDoisAreValid(xmlReader), List.of("5.2(a)"))
         );
     }
 
