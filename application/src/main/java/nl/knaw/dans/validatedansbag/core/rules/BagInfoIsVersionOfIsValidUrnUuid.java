@@ -36,37 +36,38 @@ public class BagInfoIsVersionOfIsValidUrnUuid implements BagValidatorRule {
         var items = bagItMetadataReader.getField(path, "Is-Version-Of");
 
         var invalidUrns = items.stream().filter(item -> {
-                    log.debug("Validating if {} is a valid URN UUID ", item);
+                log.debug("Validating if {} is a valid URN UUID ", item);
 
-                    try {
-                        var uri = new URI(item);
+                try {
+                    var uri = new URI(item);
 
-                        if (!"urn".equalsIgnoreCase(uri.getScheme())) {
-                            log.debug("{} is not the expected value 'urn'", uri.getScheme());
-                            return true;
-                        }
-
-                        if (!uri.getSchemeSpecificPart().startsWith("uuid:")) {
-                            log.debug("{} does not start with 'uuid:'", uri.getSchemeSpecificPart());
-                            return true;
-                        }
-
-                        //noinspection ResultOfMethodCallIgnored
-                        UUID.fromString(uri.getSchemeSpecificPart().substring("uuid:".length()));
-                    } catch (URISyntaxException | IllegalArgumentException e) {
-                        log.trace("{} could not be parsed", item, e);
+                    if (!"urn".equalsIgnoreCase(uri.getScheme())) {
+                        log.debug("{} is not the expected value 'urn'", uri.getScheme());
                         return true;
                     }
 
-                    return false;
-                })
-                .collect(Collectors.toList());
+                    if (!uri.getSchemeSpecificPart().startsWith("uuid:")) {
+                        log.debug("{} does not start with 'uuid:'", uri.getSchemeSpecificPart());
+                        return true;
+                    }
+
+                    //noinspection ResultOfMethodCallIgnored
+                    UUID.fromString(uri.getSchemeSpecificPart().substring("uuid:".length()));
+                }
+                catch (URISyntaxException | IllegalArgumentException e) {
+                    log.trace("{} could not be parsed", item, e);
+                    return true;
+                }
+
+                return false;
+            })
+            .collect(Collectors.toList());
 
         log.debug("Invalid URN UUID's from this list ({}) are {}", items, invalidUrns);
 
         if (!invalidUrns.isEmpty()) {
             return RuleResult.error(
-                    String.format("bag-info.txt Is-Version-Of value must be a valid URN: Invalid items {%s}", String.join(", ", invalidUrns))
+                String.format("bag-info.txt Is-Version-Of value must be a valid URN: Invalid items {%s}", String.join(", ", invalidUrns))
             );
         }
 

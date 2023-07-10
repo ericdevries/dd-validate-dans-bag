@@ -30,6 +30,7 @@ dataverse:
 validation:
   otherIdPrefixes:
     - 'EXAMPLE:'
+    - 'USER01:'
 
   xmlSchemas:
       dataset.xml: file:../../dans-schema/lib/src/main/resources/md/ddm/v2/ddm.xsd

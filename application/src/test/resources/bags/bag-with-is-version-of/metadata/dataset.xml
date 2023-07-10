@@ -24,6 +24,7 @@
         <ddm:audience>D20000</ddm:audience>
         <ddm:audience>D24000</ddm:audience>
         <ddm:accessRights>OPEN_ACCESS_FOR_REGISTERED_USERS</ddm:accessRights>
+        <ddm:personalData present="Yes" />
     </ddm:profile>
     <ddm:dcmiMetadata>
         <dct:license xsi:type="dct:URI">http://creativecommons.org/licenses/by-sa/4.0</dct:license>
