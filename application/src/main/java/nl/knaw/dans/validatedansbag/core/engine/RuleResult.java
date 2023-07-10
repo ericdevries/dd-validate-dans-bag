@@ -80,4 +80,5 @@ public class RuleResult {
         SKIP_DEPENDENCIES,
         ERROR,
     }
+
 }

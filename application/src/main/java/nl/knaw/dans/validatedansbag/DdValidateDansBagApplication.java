@@ -20,6 +20,8 @@ import io.dropwizard.Application;
 import io.dropwizard.forms.MultiPartBundle;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
+import nl.knaw.dans.validatedansbag.client.OcflObjectVersionApi;
+import nl.knaw.dans.validatedansbag.client.VaultCatalogClient;
 import nl.knaw.dans.validatedansbag.core.engine.RuleEngineImpl;
 import nl.knaw.dans.validatedansbag.core.rules.RuleSets;
 import nl.knaw.dans.validatedansbag.core.service.BagItMetadataReaderImpl;
@@ -29,6 +31,7 @@ import nl.knaw.dans.validatedansbag.core.service.FileServiceImpl;
 import nl.knaw.dans.validatedansbag.core.service.FilesXmlServiceImpl;
 import nl.knaw.dans.validatedansbag.core.service.OriginalFilepathsServiceImpl;
 import nl.knaw.dans.validatedansbag.core.service.RuleEngineServiceImpl;
+import nl.knaw.dans.validatedansbag.core.service.VaultService;
 import nl.knaw.dans.validatedansbag.core.service.XmlReaderImpl;
 import nl.knaw.dans.validatedansbag.core.service.XmlSchemaValidatorImpl;
 import nl.knaw.dans.validatedansbag.core.validator.IdentifierValidatorImpl;
@@ -64,12 +67,14 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
     @Override
     public void run(final DdValidateDansBagConfiguration configuration, final Environment environment) {
         validateContextConfiguration(configuration);
+
         DataverseService dataverseService = null;
 
         if (configuration.getDataverse() != null) {
             dataverseService = new DataverseServiceImpl(configuration.getDataverse().build());
         }
 
+        var vaultService = getVaultService(configuration);
         var fileService = new FileServiceImpl();
         var bagItMetadataReader = new BagItMetadataReaderImpl();
         var xmlReader = new XmlReaderImpl();
@@ -84,18 +89,21 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
 
         var ruleEngine = new RuleEngineImpl();
         var ruleSets = new RuleSets(dataverseService,
-                fileService,
-                filesXmlService,
-                originalFilepathsService,
-                xmlReader,
-                bagItMetadataReader,
-                xmlSchemaValidator,
-                licenseValidator,
-                identifierValidator,
-                polygonListValidator,
-                organizationIdentifierPrefixValidator);
+            fileService,
+            filesXmlService,
+            originalFilepathsService,
+            xmlReader,
+            bagItMetadataReader,
+            xmlSchemaValidator,
+            licenseValidator,
+            identifierValidator,
+            polygonListValidator,
+            organizationIdentifierPrefixValidator,
+            vaultService
+        );
+
         var ruleEngineService = new RuleEngineServiceImpl(ruleEngine, fileService,
-                configuration.getDataverse() != null ? ruleSets.getDataStationSet() : ruleSets.getVaasSet());
+            configuration.getDataverse() != null ? ruleSets.getDataStationSet() : ruleSets.getVaasSet());
 
         environment.jersey().register(new IllegalArgumentExceptionMapper());
         environment.jersey().register(new ValidateResource(ruleEngineService, fileService));
@@ -109,5 +117,16 @@ public class DdValidateDansBagApplication extends Application<DdValidateDansBagC
         if ((configuration.getDataverse() != null) == (configuration.getVaultCatalog() != null)) {
             throw new IllegalArgumentException("Exactly one of dataverse and vaultCatalog must be configured");
         }
+    }
+
+    private VaultService getVaultService(DdValidateDansBagConfiguration configuration) {
+        if (configuration.getVaultCatalog() != null) {
+            var api = new OcflObjectVersionApi();
+            api.setCustomBaseUrl(configuration.getVaultCatalog().getBaseUrl().toString());
+
+            return new VaultCatalogClient(api);
+        }
+
+        return null;
     }
 }

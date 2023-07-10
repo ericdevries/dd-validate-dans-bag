@@ -21,6 +21,7 @@ import nl.knaw.dans.validatedansbag.core.service.DataverseService;
 import nl.knaw.dans.validatedansbag.core.service.FileService;
 import nl.knaw.dans.validatedansbag.core.service.FilesXmlService;
 import nl.knaw.dans.validatedansbag.core.service.OriginalFilepathsService;
+import nl.knaw.dans.validatedansbag.core.service.VaultService;
 import nl.knaw.dans.validatedansbag.core.service.XmlReader;
 import nl.knaw.dans.validatedansbag.core.service.XmlSchemaValidator;
 import nl.knaw.dans.validatedansbag.core.validator.IdentifierValidator;
@@ -54,6 +55,8 @@ public class RuleSetsTest {
 
     private static final OrganizationIdentifierPrefixValidator organizationIdentifierPrefixValidator = Mockito.mock(OrganizationIdentifierPrefixValidator.class);
 
+    private static final VaultService vaultService = Mockito.mock(VaultService.class);
+
 
     /*
      * The services in this test are never called; the only thing we want to test is whether the rule sets are consistent in terms of dependencies.
@@ -64,8 +67,8 @@ public class RuleSetsTest {
     public void dataStationsRuleSet_should_be_consistent() throws Exception {
         var ruleSets = new RuleSets(
                 dataverseService, fileService, filesXmlService, originalFilepathsService, xmlReader,
-                bagItMetadataReader, xmlSchemaValidator, licenseValidator, identifierValidator, polygonListValidator, organizationIdentifierPrefixValidator
-        );
+                bagItMetadataReader, xmlSchemaValidator, licenseValidator, identifierValidator, polygonListValidator, organizationIdentifierPrefixValidator,
+                vaultService);
         new RuleEngineImpl().validateRuleConfiguration(ruleSets.getDataStationSet());
         assertTrue(true); // if we get here, the rule set is consistent
     }
@@ -74,8 +77,8 @@ public class RuleSetsTest {
     public void vaasRuleSet_should_be_consistent() throws Exception {
         var ruleSets = new RuleSets(
                 dataverseService, fileService, filesXmlService, originalFilepathsService, xmlReader,
-                bagItMetadataReader, xmlSchemaValidator, licenseValidator, identifierValidator, polygonListValidator, organizationIdentifierPrefixValidator
-        );
+                bagItMetadataReader, xmlSchemaValidator, licenseValidator, identifierValidator, polygonListValidator, organizationIdentifierPrefixValidator,
+                vaultService);
         new RuleEngineImpl().validateRuleConfiguration(ruleSets.getVaasSet());
         assertTrue(true); // if we get here, the rule set is consistent
     }

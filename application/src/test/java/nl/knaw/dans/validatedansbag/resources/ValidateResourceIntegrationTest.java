@@ -37,6 +37,7 @@ import nl.knaw.dans.validatedansbag.core.service.FileServiceImpl;
 import nl.knaw.dans.validatedansbag.core.service.FilesXmlServiceImpl;
 import nl.knaw.dans.validatedansbag.core.service.OriginalFilepathsServiceImpl;
 import nl.knaw.dans.validatedansbag.core.service.RuleEngineServiceImpl;
+import nl.knaw.dans.validatedansbag.core.service.VaultService;
 import nl.knaw.dans.validatedansbag.core.service.XmlReaderImpl;
 import nl.knaw.dans.validatedansbag.core.service.XmlSchemaValidator;
 import nl.knaw.dans.validatedansbag.core.validator.IdentifierValidatorImpl;
@@ -109,6 +110,7 @@ class ValidateResourceIntegrationTest {
         var originalFilepathsService = new OriginalFilepathsServiceImpl(fileService);
         var filesXmlService = new FilesXmlServiceImpl(xmlReader);
         var identifierValidator = new IdentifierValidatorImpl();
+        var vaultService = Mockito.mock(VaultService.class);
 
         var organizationIdentifierPrefixValidator = new OrganizationIdentifierPrefixValidatorImpl(
                 List.of("u1:", "u2:")
@@ -118,8 +120,8 @@ class ValidateResourceIntegrationTest {
         var ruleEngine = new RuleEngineImpl();
         var ruleSets = new RuleSets(
                 dataverseService, fileService, filesXmlService, originalFilepathsService, xmlReader,
-                bagItMetadataReader, xmlSchemaValidator, licenseValidator, identifierValidator, polygonListValidator, organizationIdentifierPrefixValidator
-        );
+                bagItMetadataReader, xmlSchemaValidator, licenseValidator, identifierValidator, polygonListValidator, organizationIdentifierPrefixValidator,
+                vaultService);
 
         var ruleEngineService = new RuleEngineServiceImpl(ruleEngine, fileService, ruleSets.getDataStationSet());
         return new ValidateResource(ruleEngineService, fileService);
